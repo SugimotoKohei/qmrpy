@@ -48,7 +48,7 @@ qMRLab（MATLAB実装）の概念・モデルを **Python** へ段階的に移�
 
 `run_experiment.py` は `metrics/*_per_sample.csv` も出力するため、比較レポートでは残差分布や `T1 true` / `B1` に対する誤差の層別図も生成されます。
 
-さらに、`T1 true` / `B1` をビン分けした **層別平均 |誤差|** の図とCSV（`failure__abs_t1_err_by_*_bin.*`）も出力します。
+さらに、`T1 true` / `B1` をビン分けした **層別 |誤差| 集計（mean / median / p95）** の図とCSV（`failure__abs_t1_err_by_*_bin.*` / `failure__abs_t1_err_p95_by_*_bin.png`）も出力します。
 
 ## 開発（ローカル）
 
