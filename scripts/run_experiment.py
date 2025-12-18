@@ -263,6 +263,12 @@ class MwfConfig:
     mwf_ref: float
     t2_myelin_ms: float
     t2_ie_ms: float
+    lower_cutoff_mw_ms: float | None
+    cutoff_ms: float
+    upper_cutoff_iew_ms: float
+    t2_basis_range_ms: tuple[float, float]
+    t2_basis_n: int
+    use_weighted_geometric_mean: bool
     noise_model: str
     noise_sigma: float
     seed: int
@@ -396,7 +402,23 @@ def _parse_mwf_config(config: dict[str, object]) -> MwfConfig:
     mwf_ref = float(mwf_cfg.get("mwf_ref", 0.15))
     t2_myelin_ms = float(mwf_cfg.get("t2_myelin_ms", 20.0))
     t2_ie_ms = float(mwf_cfg.get("t2_ie_ms", 80.0))
-    
+
+    lower_cutoff_mw_ms = mwf_cfg.get("lower_cutoff_mw_ms")
+    lower_cutoff_mw_ms_parsed = None if lower_cutoff_mw_ms is None else float(lower_cutoff_mw_ms)
+    cutoff_ms = float(mwf_cfg.get("cutoff_ms", 40.0))
+    upper_cutoff_iew_ms = float(mwf_cfg.get("upper_cutoff_iew_ms", 200.0))
+
+    t2_basis_range_ms = mwf_cfg.get("t2_basis_range_ms", [10.0, 2000.0])
+    if (
+        not isinstance(t2_basis_range_ms, list)
+        or len(t2_basis_range_ms) != 2
+        or not all(isinstance(x, (int, float)) for x in t2_basis_range_ms)
+    ):
+        raise ValueError("mwf.t2_basis_range_ms must be [min, max]")
+    t2_basis_range_ms_parsed = (float(t2_basis_range_ms[0]), float(t2_basis_range_ms[1]))
+    t2_basis_n = int(mwf_cfg.get("t2_basis_n", 40))
+    use_weighted_geometric_mean = bool(mwf_cfg.get("use_weighted_geometric_mean", False))
+
     noise_model = str(mwf_cfg.get("noise_model", "gaussian"))
     noise_sigma = float(mwf_cfg.get("noise_sigma", 0.0))
     seed = int(run_cfg.get("seed", 0))
@@ -409,6 +431,12 @@ def _parse_mwf_config(config: dict[str, object]) -> MwfConfig:
         mwf_ref=mwf_ref,
         t2_myelin_ms=t2_myelin_ms,
         t2_ie_ms=t2_ie_ms,
+        lower_cutoff_mw_ms=lower_cutoff_mw_ms_parsed,
+        cutoff_ms=cutoff_ms,
+        upper_cutoff_iew_ms=upper_cutoff_iew_ms,
+        t2_basis_range_ms=t2_basis_range_ms_parsed,
+        t2_basis_n=t2_basis_n,
+        use_weighted_geometric_mean=use_weighted_geometric_mean,
         noise_model=noise_model,
         noise_sigma=noise_sigma,
         seed=seed,
@@ -665,7 +693,8 @@ def _run_mwf(cfg: MwfConfig, *, out_metrics: Path, out_figures: Path) -> dict[st
     import numpy as np
 
     _require_plotnine()
-    from plotnine import aes, geom_abline, geom_histogram, geom_point, ggplot, labs, theme_bw
+    from plotnine import aes, geom_abline, geom_histogram, geom_line, geom_point, geom_vline, ggplot, labs
+    from plotnine import scale_x_log10, theme_bw
     from plotnine import ggsave
 
     from qmrpy.models.t2.mwf import MultiComponentT2
@@ -707,20 +736,36 @@ def _run_mwf(cfg: MwfConfig, *, out_metrics: Path, out_figures: Path) -> dict[st
     else:
         raise ValueError(f"unknown noise_model for mwf: {cfg.noise_model}")
 
-    # Initialize model
-    model = MultiComponentT2(te_ms=te_arr)
-
     fitted_mwf = np.empty(cfg.n_samples, dtype=float)
+    fitted_t2mw = np.empty(cfg.n_samples, dtype=float)
+    fitted_t2iew = np.empty(cfg.n_samples, dtype=float)
     fitted_gmt2 = np.empty(cfg.n_samples, dtype=float)
-    fitted_resid = np.empty(cfg.n_samples, dtype=float)
+    fitted_resid_l2 = np.empty(cfg.n_samples, dtype=float)
+
+    t2_min_ms, t2_max_ms = cfg.t2_basis_range_ms
+    basis = MultiComponentT2.default_t2_basis_ms(t2_min_ms=t2_min_ms, t2_max_ms=t2_max_ms, n=cfg.t2_basis_n)
+    model = MultiComponentT2(te_ms=te_arr, t2_basis_ms=basis)
+    fitted_weights = np.empty((cfg.n_samples, basis.size), dtype=float)
 
     for i in range(cfg.n_samples):
-        res = model.fit(signal[i], regularization_alpha=cfg.regularization_alpha)
+        res = model.fit(
+            signal[i],
+            regularization_alpha=cfg.regularization_alpha,
+            lower_cutoff_mw_ms=cfg.lower_cutoff_mw_ms,
+            cutoff_ms=cfg.cutoff_ms,
+            upper_cutoff_iew_ms=cfg.upper_cutoff_iew_ms,
+            use_weighted_geometric_mean=cfg.use_weighted_geometric_mean,
+        )
         fitted_mwf[i] = res["mwf"]
-        fitted_gmt2[i] = res["gmt2"]
-        fitted_resid[i] = res["resid"]
+        fitted_t2mw[i] = res["t2mw_ms"]
+        fitted_t2iew[i] = res["t2iew_ms"]
+        fitted_gmt2[i] = res["gmt2_ms"]
+        fitted_resid_l2[i] = res["resid_l2"]
+        fitted_weights[i] = np.asarray(res["weights"], dtype=float)
 
     mwf_err = fitted_mwf - mwf_true
+    t2mw_err = fitted_t2mw - float(cfg.t2_myelin_ms)
+    t2iew_err = fitted_t2iew - float(cfg.t2_ie_ms)
 
     metrics = {
         "n_samples": int(cfg.n_samples),
@@ -728,12 +773,20 @@ def _run_mwf(cfg: MwfConfig, *, out_metrics: Path, out_figures: Path) -> dict[st
         "mwf_ref": float(cfg.mwf_ref),
         "t2_myelin_ms": float(cfg.t2_myelin_ms),
         "t2_ie_ms": float(cfg.t2_ie_ms),
+        "lower_cutoff_mw_ms": None if cfg.lower_cutoff_mw_ms is None else float(cfg.lower_cutoff_mw_ms),
+        "cutoff_ms": float(cfg.cutoff_ms),
+        "upper_cutoff_iew_ms": float(cfg.upper_cutoff_iew_ms),
+        "t2_basis_range_ms": [float(cfg.t2_basis_range_ms[0]), float(cfg.t2_basis_range_ms[1])],
+        "t2_basis_n": int(cfg.t2_basis_n),
+        "use_weighted_geometric_mean": bool(cfg.use_weighted_geometric_mean),
         "noise_model": str(cfg.noise_model),
         "noise_sigma": float(cfg.noise_sigma),
         "regularization_alpha": float(cfg.regularization_alpha),
         "mwf_mae": float(np.mean(np.abs(mwf_err))),
         "mwf_rmse": float(np.sqrt(np.mean(mwf_err**2))),
         "mwf_bias": float(np.mean(mwf_err)),
+        "t2mw_mae_ms": float(np.nanmean(np.abs(t2mw_err))),
+        "t2iew_mae_ms": float(np.nanmean(np.abs(t2iew_err))),
     }
     out_metrics.write_text(json.dumps(metrics, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
@@ -744,10 +797,46 @@ def _run_mwf(cfg: MwfConfig, *, out_metrics: Path, out_figures: Path) -> dict[st
             "mwf_true": mwf_true,
             "mwf_hat": fitted_mwf,
             "mwf_err": mwf_err,
-            "resid": fitted_resid,
+            "t2mw_hat_ms": fitted_t2mw,
+            "t2iew_hat_ms": fitted_t2iew,
+            "t2mw_err_ms": t2mw_err,
+            "t2iew_err_ms": t2iew_err,
+            "gmt2_ms": fitted_gmt2,
+            "resid_l2": fitted_resid_l2,
         }
     )
     df.to_csv(out_metrics.parent / "mwf_per_sample.csv", index=False)
+
+    # Extra: Spectrum visualization (mean normalized NNLS weights)
+    weights_sum = np.sum(fitted_weights, axis=1, keepdims=True)
+    weights_norm = np.divide(
+        fitted_weights,
+        weights_sum,
+        out=np.full_like(fitted_weights, np.nan),
+        where=weights_sum > 0,
+    )
+    w_mean = np.nanmean(weights_norm, axis=0)
+    df_spec = pd.DataFrame({"t2_ms": basis, "weight_mean": w_mean})
+    lower_cutoff = float(cfg.lower_cutoff_mw_ms) if cfg.lower_cutoff_mw_ms is not None else float(1.5 * te_arr[0])
+    df_lines = pd.DataFrame(
+        {
+            "x": [lower_cutoff, float(cfg.cutoff_ms), float(cfg.upper_cutoff_iew_ms)],
+            "name": ["lower_cutoff_mw", "cutoff", "upper_cutoff_iew"],
+        }
+    )
+    fig_spec = (
+        ggplot(df_spec, aes(x="t2_ms", y="weight_mean"))
+        + geom_line()
+        + geom_vline(aes(xintercept="x"), data=df_lines, linetype="dashed", alpha=0.4)
+        + scale_x_log10()
+        + theme_bw()
+        + labs(
+            title="Spectrum: mean NNLS weights (normalized)",
+            x="T2 (ms, log scale)",
+            y="mean weight fraction",
+        )
+    )
+    ggsave(fig_spec, filename=str(out_figures / "spectrum__mean_weights.png"), verbose=False, dpi=150)
 
     fig_a = (
         ggplot(df, aes(x="mwf_true"))

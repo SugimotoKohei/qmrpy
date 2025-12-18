@@ -1,0 +1,26 @@
+[run]
+tag = "mwf-baseline"
+seed = 0
+model = "mwf"
+
+[mwf]
+# Standard CPMG-like protocol: 32 echos, 10ms spacing
+te_ms = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 190, 200, 210, 220, 230, 240, 250, 260, 270, 280, 290, 300, 310, 320]
+n_samples = 100
+m0 = 1000.0
+mwf_ref = 0.15
+t2_myelin_ms = 20.0
+t2_ie_ms = 80.0
+# qMRLab-like cutoffs
+# - lower_cutoff_mw_ms: default None -> 1.5 * FirstEcho
+cutoff_ms = 40.0
+upper_cutoff_iew_ms = 200.0
+
+# NNLS T2 basis (log-spaced)
+t2_basis_range_ms = [10.0, 2000.0]
+t2_basis_n = 40
+use_weighted_geometric_mean = false
+
+noise_model = "gaussian"
+noise_sigma = 2.0  # SNR ~ 500
+regularization_alpha = 0.001
