@@ -1,6 +1,7 @@
 [run]
 tag = "mono-t2-baseline"
 seed = 0
+model = "mono_t2"
 
 [mono_t2]
 te_ms = [10, 20, 40, 80, 160]
