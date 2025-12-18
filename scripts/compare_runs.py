@@ -60,6 +60,15 @@ def _label_from_run(run: dict) -> str:
     return ", ".join(parts)
 
 
+def _find_run_dir(item: str) -> Path:
+    p = Path(item)
+    if p.is_dir():
+        return p
+    if p.name == "run.json":
+        return p.parent
+    return p
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument(
@@ -80,25 +89,46 @@ def main(argv: list[str] | None = None) -> int:
     import pandas as pd
 
     rows: list[dict] = []
+    per_sample_frames = []
     for item in args.runs:
-        p = Path(item)
-        run_json_path = p / "run.json" if p.is_dir() else p
+        run_dir = _find_run_dir(item)
+        run_json_path = run_dir / "run.json"
         run = _read_json(run_json_path)
         metrics = run.get("result", {}).get("metrics", {})
         if not isinstance(metrics, dict):
             metrics = {}
 
+        label = _label_from_run(run)
         row = {
             "run_id": run.get("run_id"),
             "model": run.get("model"),
-            "label": _label_from_run(run),
+            "label": label,
             "config": run.get("config"),
-            "noise_model": run.get("model_config", {}).get("noise_model") if isinstance(run.get("model_config", {}), dict) else None,
-            "noise_sigma": run.get("model_config", {}).get("noise_sigma") if isinstance(run.get("model_config", {}), dict) else None,
+            "noise_model": run.get("model_config", {}).get("noise_model")
+            if isinstance(run.get("model_config", {}), dict)
+            else None,
+            "noise_sigma": run.get("model_config", {}).get("noise_sigma")
+            if isinstance(run.get("model_config", {}), dict)
+            else None,
         }
         for k, v in metrics.items():
             row[k] = v
         rows.append(row)
+
+        model = str(run.get("model", ""))
+        if model == "vfa_t1":
+            per_sample_path = run_dir / "metrics" / "vfa_t1_per_sample.csv"
+        elif model == "mono_t2":
+            per_sample_path = run_dir / "metrics" / "mono_t2_per_sample.csv"
+        else:
+            per_sample_path = None
+
+        if per_sample_path is not None and per_sample_path.exists():
+            df_ps = pd.read_csv(per_sample_path)
+            df_ps["run_id"] = str(run.get("run_id"))
+            df_ps["label"] = label
+            df_ps["model"] = model
+            per_sample_frames.append(df_ps)
 
     df = pd.DataFrame(rows)
     if df.empty:
@@ -119,7 +149,17 @@ def main(argv: list[str] | None = None) -> int:
     )
 
     # figures (at least 3)
-    from plotnine import aes, coord_flip, geom_col, geom_point, ggplot, labs, theme_bw
+    from plotnine import (
+        aes,
+        coord_flip,
+        facet_wrap,
+        geom_col,
+        geom_histogram,
+        geom_point,
+        ggplot,
+        labs,
+        theme_bw,
+    )
     from plotnine import ggsave
 
     if "t1_rel_mae" in df.columns:
@@ -160,6 +200,46 @@ def main(argv: list[str] | None = None) -> int:
             + labs(title="(C) Diagnostics: mean used points", x="run", y="n_points_mean")
         )
         ggsave(fig4, filename=str(figures_dir / "diagnostic__n_points_mean.png"), verbose=False, dpi=150)
+
+    if per_sample_frames:
+        df_ps_all = pd.concat(per_sample_frames, ignore_index=True)
+        # ensure numeric columns are treated as numeric for plotnine/stat_smooth
+        for col in ["t1_true", "t1_hat", "t1_err", "b1_true", "n_points"]:
+            if col in df_ps_all.columns:
+                df_ps_all[col] = pd.to_numeric(df_ps_all[col], errors="coerce")
+
+        if "t1_err" in df_ps_all.columns:
+            fig5 = (
+                ggplot(df_ps_all, aes(x="t1_err"))
+                + geom_histogram(bins=40)
+                + facet_wrap("label", scales="free_y")
+                + theme_bw()
+                + labs(title="(C) Failure analysis: T1 residual distribution", x="t1_err [s]", y="count")
+            )
+            ggsave(fig5, filename=str(figures_dir / "failure__t1_err_hist_by_run.png"), verbose=False, dpi=150)
+
+        if "t1_true" in df_ps_all.columns and "t1_err" in df_ps_all.columns:
+            df_ps_all["abs_t1_err"] = (df_ps_all["t1_err"]).abs()
+            fig6 = (
+                ggplot(df_ps_all, aes(x="t1_true", y="abs_t1_err"))
+                + geom_point(alpha=0.35, size=1.0)
+                + facet_wrap("label", scales="free_y")
+                + theme_bw()
+                + labs(title="(C) Failure analysis: |T1 error| vs T1 true", x="t1_true [s]", y="|t1_err| [s]")
+            )
+            ggsave(fig6, filename=str(figures_dir / "failure__abs_t1_err_vs_t1_true.png"), verbose=False, dpi=150)
+
+        if "b1_true" in df_ps_all.columns and "t1_err" in df_ps_all.columns:
+            if "abs_t1_err" not in df_ps_all.columns:
+                df_ps_all["abs_t1_err"] = (df_ps_all["t1_err"]).abs()
+            fig7 = (
+                ggplot(df_ps_all, aes(x="b1_true", y="abs_t1_err"))
+                + geom_point(alpha=0.35, size=1.0)
+                + facet_wrap("label", scales="free_y")
+                + theme_bw()
+                + labs(title="(C) Failure analysis: |T1 error| vs B1", x="b1_true", y="|t1_err| [s]")
+            )
+            ggsave(fig7, filename=str(figures_dir / "failure__abs_t1_err_vs_b1.png"), verbose=False, dpi=150)
 
     (out_dir / "report.json").write_text(
         json.dumps(

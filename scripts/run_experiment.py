@@ -193,6 +193,7 @@ def _run_mono_t2(cfg: MonoT2Config, *, out_metrics: Path, out_figures: Path) -> 
     import pandas as pd
 
     df = pd.DataFrame({"t2_true": t2_true, "t2_hat": fitted_t2, "t2_err": t2_err})
+    df.to_csv(out_metrics.parent / "mono_t2_per_sample.csv", index=False)
 
     fig_a = (
         ggplot(df, aes(x="t2_true"))
@@ -386,7 +387,16 @@ def _run_vfa_t1(cfg: VfaT1Config, *, out_metrics: Path, out_figures: Path) -> di
 
     import pandas as pd
 
-    df = pd.DataFrame({"t1_true": t1_true, "t1_hat": fitted_t1, "t1_err": t1_err})
+    df = pd.DataFrame(
+        {
+            "t1_true": t1_true[valid],
+            "t1_hat": fitted_t1[valid],
+            "t1_err": t1_err,
+            "b1_true": b1_true[valid],
+            "n_points": n_points[valid],
+        }
+    )
+    df.to_csv(out_metrics.parent / "vfa_t1_per_sample.csv", index=False)
 
     fig_a = (
         ggplot(df, aes(x="t1_true"))

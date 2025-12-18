@@ -46,6 +46,8 @@ qMRLab（MATLAB実装）の概念・モデルを **Python** へ段階的に移�
 
 - `uv run --locked scripts/compare_runs.py --runs output/runs/<run_id1> output/runs/<run_id2> output/runs/<run_id3>`
 
+`run_experiment.py` は `metrics/*_per_sample.csv` も出力するため、比較レポートでは残差分布や `T1 true` / `B1` に対する誤差の層別図も生成されます。
+
 ## 開発（ローカル）
 
 現時点では最小のパッケージ雛形のみです（今後、モデル実装を段階的に追加します）。
