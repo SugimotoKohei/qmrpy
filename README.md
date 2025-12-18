@@ -34,6 +34,18 @@ qMRLab（MATLAB実装）の概念・モデルを **Python** へ段階的に移�
 - `uv sync --locked --extra viz --extra dev`
 - `uv run scripts/run_experiment.py --config configs/exp/mono_t2_baseline.toml`
 
+### vfa_t1 比較run（おすすめ）
+
+まずは以下の3条件を回して比較します（ノイズモデル/B1ばらつき/外れ値耐性の差を見る）：
+
+- `uv run --locked scripts/run_experiment.py --config configs/exp/vfa_t1_baseline.toml`
+- `uv run --locked scripts/run_experiment.py --config configs/exp/vfa_t1_rician.toml`
+- `uv run --locked scripts/run_experiment.py --config configs/exp/vfa_t1_b1range_rician_outlier.toml`
+
+比較レポート（集計CSV+比較図）：
+
+- `uv run --locked scripts/compare_runs.py --runs output/runs/<run_id1> output/runs/<run_id2> output/runs/<run_id3>`
+
 ## 開発（ローカル）
 
 現時点では最小のパッケージ雛形のみです（今後、モデル実装を段階的に追加します）。

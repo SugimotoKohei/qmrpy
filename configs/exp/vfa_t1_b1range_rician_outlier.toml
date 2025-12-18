@@ -1,0 +1,18 @@
+[run]
+tag = "vfa-t1-b1range-rician-outlier"
+seed = 0
+model = "vfa_t1"
+
+[vfa_t1]
+flip_angle_deg = [3, 8, 15, 25]
+tr_s = 0.015
+n_samples = 200
+m0 = 2000.0
+t1_range_s = [0.2, 2.0]
+b1_range = [0.8, 1.2]
+noise_model = "rician"
+noise_sigma = 5.0
+robust_linear = true
+huber_k = 1.345
+outlier_reject = true
+
