@@ -245,7 +245,6 @@ class VfaT1Config:
 @dataclass(frozen=True)
 class B1DamConfig:
     alpha_deg: float
-    tr_s: float
     n_samples: int
     m0: float
     b1_min: float
@@ -257,16 +256,17 @@ class B1DamConfig:
 
 
 @dataclass(frozen=True)
-class B1DamConfig:
-    alpha_deg: float
-    tr_s: float
+class MwfConfig:
+    te_ms: list[float]
     n_samples: int
     m0: float
-    b1_min: float
-    b1_max: float
+    mwf_ref: float
+    t2_myelin_ms: float
+    t2_ie_ms: float
     noise_model: str
     noise_sigma: float
     seed: int
+    regularization_alpha: float
 
 
 
@@ -351,10 +351,9 @@ def _parse_b1_dam_config(config: dict[str, object]) -> B1DamConfig:
         raise ValueError("config format error: [run] and [b1_dam] must be tables")
 
     alpha_deg = float(b1_cfg.get("alpha_deg", 60.0))
-    tr_s = float(b1_cfg.get("tr_s", 1.0))
     n_samples = int(b1_cfg.get("n_samples", 200))
     m0 = float(b1_cfg.get("m0", 1000.0))
-    b1_range = b1_cfg.get("b1_range", [0.5, 1.5])
+    b1_range = b1_cfg.get("b1_range", [0.6, 1.4])
     if (
         not isinstance(b1_range, list)
         or len(b1_range) != 2
@@ -369,7 +368,6 @@ def _parse_b1_dam_config(config: dict[str, object]) -> B1DamConfig:
 
     return B1DamConfig(
         alpha_deg=alpha_deg,
-        tr_s=tr_s,
         n_samples=n_samples,
         m0=m0,
         b1_min=b1_min,
@@ -381,17 +379,42 @@ def _parse_b1_dam_config(config: dict[str, object]) -> B1DamConfig:
 
 
 
-    return B1DamConfig(
-        alpha_deg=alpha_deg,
-        tr_s=tr_s,
+
+
+def _parse_mwf_config(config: dict[str, object]) -> MwfConfig:
+    run_cfg = config.get("run", {})
+    mwf_cfg = config.get("mwf", {})
+    if not isinstance(run_cfg, dict) or not isinstance(mwf_cfg, dict):
+        raise ValueError("config format error: [run] and [mwf] must be tables")
+
+    te_ms = mwf_cfg.get("te_ms")
+    if not isinstance(te_ms, list) or not all(isinstance(x, (int, float)) for x in te_ms):
+        raise ValueError("mwf.te_ms must be a list of numbers")
+
+    n_samples = int(mwf_cfg.get("n_samples", 100))
+    m0 = float(mwf_cfg.get("m0", 1000.0))
+    mwf_ref = float(mwf_cfg.get("mwf_ref", 0.15))
+    t2_myelin_ms = float(mwf_cfg.get("t2_myelin_ms", 20.0))
+    t2_ie_ms = float(mwf_cfg.get("t2_ie_ms", 80.0))
+    
+    noise_model = str(mwf_cfg.get("noise_model", "gaussian"))
+    noise_sigma = float(mwf_cfg.get("noise_sigma", 0.0))
+    seed = int(run_cfg.get("seed", 0))
+    regularization_alpha = float(mwf_cfg.get("regularization_alpha", 0.0))
+
+    return MwfConfig(
+        te_ms=[float(x) for x in te_ms],
         n_samples=n_samples,
         m0=m0,
-        b1_min=b1_min,
-        b1_max=b1_max,
+        mwf_ref=mwf_ref,
+        t2_myelin_ms=t2_myelin_ms,
+        t2_ie_ms=t2_ie_ms,
         noise_model=noise_model,
         noise_sigma=noise_sigma,
         seed=seed,
+        regularization_alpha=regularization_alpha,
     )
+
 
 
 def _parse_inversion_recovery_config(config: dict[str, object]) -> InversionRecoveryConfig:
@@ -569,19 +592,14 @@ def _run_b1_dam(cfg: B1DamConfig, *, out_metrics: Path, out_figures: Path) -> di
     from plotnine import aes, geom_abline, geom_histogram, geom_point, ggplot, labs, theme_bw
     from plotnine import ggsave
 
-    from qmrpy.models.b1.dam import B1Dam
+    from qmrpy.models.b1 import B1Dam
     from qmrpy.sim.noise import add_gaussian_noise, add_rician_noise
 
     rng = np.random.default_rng(cfg.seed)
     b1_true = rng.uniform(cfg.b1_min, cfg.b1_max, size=cfg.n_samples).astype(float)
-    m0_true = np.full(cfg.n_samples, cfg.m0, dtype=float)
+    model = B1Dam(alpha_deg=cfg.alpha_deg)
 
-    model = B1Dam(alpha_deg=cfg.alpha_deg, tr_s=cfg.tr_s)
-
-    # DAM output is [S1, S2] for each sample
-    signal_clean = np.stack(
-        [model.forward(m0=float(m0_true[i]), b1=float(b1_true[i])) for i in range(cfg.n_samples)]
-    )
+    signal_clean = np.stack([model.forward(m0=cfg.m0, b1=float(b1_true[i])) for i in range(cfg.n_samples)])
 
     if cfg.noise_model == "gaussian":
         signal = add_gaussian_noise(signal_clean, sigma=cfg.noise_sigma, rng=rng)
@@ -590,45 +608,36 @@ def _run_b1_dam(cfg: B1DamConfig, *, out_metrics: Path, out_figures: Path) -> di
     else:
         raise ValueError(f"unknown noise_model for b1_dam: {cfg.noise_model}")
 
-    fitted_b1 = np.empty(cfg.n_samples, dtype=float)
-    fitted_m0 = np.empty(cfg.n_samples, dtype=float)
-
+    b1_hat = np.empty(cfg.n_samples, dtype=float)
+    spurious = np.empty(cfg.n_samples, dtype=float)
     for i in range(cfg.n_samples):
-        res = model.fit(signal[i])
-        fitted_b1[i] = res["b1"]
-        fitted_m0[i] = res["m0"]
+        fitted = model.fit_raw(signal[i])
+        b1_hat[i] = fitted["b1_raw"]
+        spurious[i] = fitted["spurious"]
 
-    valid = np.isfinite(fitted_b1)
-    b1_err = fitted_b1[valid] - b1_true[valid]
-
+    err = b1_hat - b1_true
     metrics = {
         "n_samples": int(cfg.n_samples),
-        "n_valid": int(np.sum(valid)),
         "alpha_deg": float(cfg.alpha_deg),
         "noise_model": str(cfg.noise_model),
         "noise_sigma": float(cfg.noise_sigma),
-        "b1_mae": float(np.mean(np.abs(b1_err))) if b1_err.size else np.nan,
-        "b1_rmse": float(np.sqrt(np.mean(b1_err**2))) if b1_err.size else np.nan,
-        "b1_rel_mae": float(np.mean(np.abs(b1_err) / b1_true[valid])) if b1_err.size else np.nan,
+        "b1_mae": float(np.nanmean(np.abs(err))),
+        "b1_rmse": float(np.sqrt(np.nanmean(err**2))),
+        "b1_rel_mae": float(np.nanmean(np.abs(err) / b1_true)),
+        "spurious_rate": float(np.nanmean(spurious)),
     }
     out_metrics.write_text(json.dumps(metrics, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
     import pandas as pd
 
-    df = pd.DataFrame(
-        {
-            "b1_true": b1_true[valid],
-            "b1_hat": fitted_b1[valid],
-            "b1_err": b1_err,
-        }
-    )
+    df = pd.DataFrame({"b1_true": b1_true, "b1_hat": b1_hat, "b1_err": err, "spurious": spurious})
     df.to_csv(out_metrics.parent / "b1_dam_per_sample.csv", index=False)
 
     fig_a = (
         ggplot(df, aes(x="b1_true"))
         + geom_histogram(bins=30)
         + theme_bw()
-        + labs(title="(A) Data check: B1 true distribution", x="B1 true [a.u.]", y="count")
+        + labs(title="(A) Data check: B1 true distribution", x="B1 true", y="count")
     )
     ggsave(fig_a, filename=str(out_figures / "data_check__b1_true_hist.png"), verbose=False, dpi=150)
 
@@ -637,7 +646,7 @@ def _run_b1_dam(cfg: B1DamConfig, *, out_metrics: Path, out_figures: Path) -> di
         + geom_point(alpha=0.6)
         + geom_abline(intercept=0.0, slope=1.0)
         + theme_bw()
-        + labs(title="(B) Result: B1 fitted vs true", x="B1 true [a.u.]", y="B1 fitted [a.u.]")
+        + labs(title="(B) Result: B1 fitted vs true", x="B1 true", y="B1 fitted")
     )
     ggsave(fig_b, filename=str(out_figures / "result__b1_true_vs_hat.png"), verbose=False, dpi=150)
 
@@ -645,11 +654,128 @@ def _run_b1_dam(cfg: B1DamConfig, *, out_metrics: Path, out_figures: Path) -> di
         ggplot(df, aes(x="b1_err"))
         + geom_histogram(bins=30)
         + theme_bw()
-        + labs(title="(C) Failure analysis: B1 residual distribution", x="B1 error (hat - true) [a.u.]", y="count")
+        + labs(title="(C) Failure analysis: B1 residual distribution", x="B1 error (hat - true)", y="count")
     )
     ggsave(fig_c, filename=str(out_figures / "failure__b1_error_hist.png"), verbose=False, dpi=150)
 
     return {"metrics": metrics, "figures": [p.name for p in out_figures.glob("*.png")]}
+
+
+def _run_mwf(cfg: MwfConfig, *, out_metrics: Path, out_figures: Path) -> dict[str, object]:
+    import numpy as np
+
+    _require_plotnine()
+    from plotnine import aes, geom_abline, geom_histogram, geom_point, ggplot, labs, theme_bw
+    from plotnine import ggsave
+
+    from qmrpy.models.t2.mwf import MultiComponentT2
+    from qmrpy.sim.noise import add_gaussian_noise, add_rician_noise
+
+    rng = np.random.default_rng(cfg.seed)
+    
+    # Ground Truth: Two pools (Myelin + IE)
+    # w_myelin = MWF * M0
+    # w_ie = (1 - MWF) * M0
+    # In reality, M0 might vary, but fixing for baseline.
+    
+    # Generate distribution of MWF around ref? or constant?
+    # Let's vary MWF slightly to see scatter.
+    mwf_true = rng.uniform(cfg.mwf_ref * 0.5, cfg.mwf_ref * 1.5, size=cfg.n_samples)
+    m0_true = np.full(cfg.n_samples, cfg.m0, dtype=float)
+
+    # Signal simulation
+    # S(TE) = M0 * [ MWF*exp(-TE/T2_myelin) + (1-MWF)*exp(-TE/T2_ie) ]
+    te_arr = np.array(cfg.te_ms, dtype=float)
+    
+    # We can reuse MultiComponentT2 forward if we construct weights on basis?
+    # Or just simulate manually for exact T2s (which might not be on basis grid).
+    # Manual simulation is better to avoid "inverse crime".
+    
+    signal_clean = []
+    for i in range(cfg.n_samples):
+        s = m0_true[i] * (
+            mwf_true[i] * np.exp(-te_arr / cfg.t2_myelin_ms)
+            + (1.0 - mwf_true[i]) * np.exp(-te_arr / cfg.t2_ie_ms)
+        )
+        signal_clean.append(s)
+    signal_clean = np.stack(signal_clean)
+
+    if cfg.noise_model == "gaussian":
+        signal = add_gaussian_noise(signal_clean, sigma=cfg.noise_sigma, rng=rng)
+    elif cfg.noise_model == "rician":
+        signal = add_rician_noise(signal_clean, sigma=cfg.noise_sigma, rng=rng)
+    else:
+        raise ValueError(f"unknown noise_model for mwf: {cfg.noise_model}")
+
+    # Initialize model
+    model = MultiComponentT2(te_ms=te_arr)
+
+    fitted_mwf = np.empty(cfg.n_samples, dtype=float)
+    fitted_gmt2 = np.empty(cfg.n_samples, dtype=float)
+    fitted_resid = np.empty(cfg.n_samples, dtype=float)
+
+    for i in range(cfg.n_samples):
+        res = model.fit(signal[i], regularization_alpha=cfg.regularization_alpha)
+        fitted_mwf[i] = res["mwf"]
+        fitted_gmt2[i] = res["gmt2"]
+        fitted_resid[i] = res["resid"]
+
+    mwf_err = fitted_mwf - mwf_true
+
+    metrics = {
+        "n_samples": int(cfg.n_samples),
+        "te_ms": [float(x) for x in cfg.te_ms],
+        "mwf_ref": float(cfg.mwf_ref),
+        "t2_myelin_ms": float(cfg.t2_myelin_ms),
+        "t2_ie_ms": float(cfg.t2_ie_ms),
+        "noise_model": str(cfg.noise_model),
+        "noise_sigma": float(cfg.noise_sigma),
+        "regularization_alpha": float(cfg.regularization_alpha),
+        "mwf_mae": float(np.mean(np.abs(mwf_err))),
+        "mwf_rmse": float(np.sqrt(np.mean(mwf_err**2))),
+        "mwf_bias": float(np.mean(mwf_err)),
+    }
+    out_metrics.write_text(json.dumps(metrics, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    import pandas as pd
+
+    df = pd.DataFrame(
+        {
+            "mwf_true": mwf_true,
+            "mwf_hat": fitted_mwf,
+            "mwf_err": mwf_err,
+            "resid": fitted_resid,
+        }
+    )
+    df.to_csv(out_metrics.parent / "mwf_per_sample.csv", index=False)
+
+    fig_a = (
+        ggplot(df, aes(x="mwf_true"))
+        + geom_histogram(bins=30)
+        + theme_bw()
+        + labs(title="(A) Data check: MWF true distribution", x="MWF true", y="count")
+    )
+    ggsave(fig_a, filename=str(out_figures / "data_check__mwf_true_hist.png"), verbose=False, dpi=150)
+
+    fig_b = (
+        ggplot(df, aes(x="mwf_true", y="mwf_hat"))
+        + geom_point(alpha=0.6)
+        + geom_abline(intercept=0.0, slope=1.0)
+        + theme_bw()
+        + labs(title="(B) Result: MWF fitted vs true", x="MWF true", y="MWF fitted")
+    )
+    ggsave(fig_b, filename=str(out_figures / "result__mwf_true_vs_hat.png"), verbose=False, dpi=150)
+
+    fig_c = (
+        ggplot(df, aes(x="mwf_err"))
+        + geom_histogram(bins=30)
+        + theme_bw()
+        + labs(title="(C) Failure analysis: MWF residual distribution", x="MWF error (hat - true)", y="count")
+    )
+    ggsave(fig_c, filename=str(out_figures / "failure__mwf_error_hist.png"), verbose=False, dpi=150)
+
+    return {"metrics": metrics, "figures": [p.name for p in out_figures.glob("*.png")]}
+
 
 @dataclass(frozen=True)
 class InversionRecoveryConfig:
@@ -858,11 +984,11 @@ def main(argv: list[str] | None = None) -> int:
             out_figures=paths["figures"],
         )
         model_cfg_dict = asdict(model_cfg)
-    elif model_name == "b1_dam":
-        model_cfg = _parse_b1_dam_config(config)
-        result = _run_b1_dam(
+    elif model_name == "mwf":
+        model_cfg = _parse_mwf_config(config)
+        result = _run_mwf(
             model_cfg,
-            out_metrics=paths["metrics"] / "b1_dam_metrics.json",
+            out_metrics=paths["metrics"] / "mwf_metrics.json",
             out_figures=paths["figures"],
         )
         model_cfg_dict = asdict(model_cfg)

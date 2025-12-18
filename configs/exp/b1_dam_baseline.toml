@@ -1,0 +1,13 @@
+[run]
+tag = "b1-dam-baseline"
+seed = 0
+model = "b1_dam"
+
+[b1_dam]
+alpha_deg = 60.0
+n_samples = 200
+m0 = 1000.0
+b1_range = [0.6, 1.4]
+noise_model = "gaussian"
+noise_sigma = 10.0
+
