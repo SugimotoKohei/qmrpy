@@ -83,8 +83,12 @@ class MonoT2Config:
     m0: float
     t2_min_ms: float
     t2_max_ms: float
+    noise_model: str
     noise_sigma: float
     seed: int
+    fit_type: str
+    drop_first_echo: bool
+    offset_term: bool
 
 
 def _parse_mono_t2_config(config: dict[str, object]) -> MonoT2Config:
@@ -107,7 +111,11 @@ def _parse_mono_t2_config(config: dict[str, object]) -> MonoT2Config:
     ):
         raise ValueError("mono_t2.t2_range_ms must be [min, max]")
     t2_min_ms, t2_max_ms = float(t2_range[0]), float(t2_range[1])
+    noise_model = str(mono_cfg.get("noise_model", "gaussian"))
     noise_sigma = float(mono_cfg.get("noise_sigma", 0.0))
+    fit_type = str(mono_cfg.get("fit_type", "exponential"))
+    drop_first_echo = bool(mono_cfg.get("drop_first_echo", False))
+    offset_term = bool(mono_cfg.get("offset_term", False))
     seed = int(run_cfg.get("seed", 0))
 
     return MonoT2Config(
@@ -116,8 +124,12 @@ def _parse_mono_t2_config(config: dict[str, object]) -> MonoT2Config:
         m0=m0,
         t2_min_ms=t2_min_ms,
         t2_max_ms=t2_max_ms,
+        noise_model=noise_model,
         noise_sigma=noise_sigma,
         seed=seed,
+        fit_type=fit_type,
+        drop_first_echo=drop_first_echo,
+        offset_term=offset_term,
     )
 
 
@@ -129,6 +141,7 @@ def _run_mono_t2(cfg: MonoT2Config, *, out_metrics: Path, out_figures: Path) -> 
     from plotnine import ggsave
 
     from qmrpy.models.t2 import MonoT2
+    from qmrpy.sim.noise import add_gaussian_noise, add_rician_noise
 
     rng = np.random.default_rng(cfg.seed)
     t2_true = rng.uniform(cfg.t2_min_ms, cfg.t2_max_ms, size=cfg.n_samples).astype(float)
@@ -136,15 +149,27 @@ def _run_mono_t2(cfg: MonoT2Config, *, out_metrics: Path, out_figures: Path) -> 
 
     model = MonoT2(te=np.array(cfg.te_ms, dtype=float))
     signal_clean = np.stack([model.forward(m0=float(m0_true[i]), t2=float(t2_true[i])) for i in range(cfg.n_samples)])
-    noise = rng.normal(loc=0.0, scale=cfg.noise_sigma, size=signal_clean.shape)
-    signal = signal_clean + noise
+    if cfg.noise_model == "gaussian":
+        signal = add_gaussian_noise(signal_clean, sigma=cfg.noise_sigma, rng=rng)
+    elif cfg.noise_model == "rician":
+        signal = add_rician_noise(signal_clean, sigma=cfg.noise_sigma, rng=rng)
+    else:
+        raise ValueError(f"unknown noise_model for mono_t2: {cfg.noise_model}")
 
     fitted_m0 = np.empty(cfg.n_samples, dtype=float)
     fitted_t2 = np.empty(cfg.n_samples, dtype=float)
+    fitted_offset = np.full(cfg.n_samples, np.nan, dtype=float)
     for i in range(cfg.n_samples):
-        fitted = model.fit(signal[i])
+        fitted = model.fit(
+            signal[i],
+            fit_type=cfg.fit_type,
+            drop_first_echo=cfg.drop_first_echo,
+            offset_term=cfg.offset_term,
+        )
         fitted_m0[i] = fitted["m0"]
         fitted_t2[i] = fitted["t2"]
+        if "offset" in fitted:
+            fitted_offset[i] = float(fitted["offset"])
 
     t2_err = fitted_t2 - t2_true
     m0_err = fitted_m0 - m0_true
@@ -152,7 +177,11 @@ def _run_mono_t2(cfg: MonoT2Config, *, out_metrics: Path, out_figures: Path) -> 
     metrics = {
         "n_samples": int(cfg.n_samples),
         "te_ms": [float(x) for x in cfg.te_ms],
+        "noise_model": str(cfg.noise_model),
         "noise_sigma": float(cfg.noise_sigma),
+        "fit_type": str(cfg.fit_type),
+        "drop_first_echo": bool(cfg.drop_first_echo),
+        "offset_term": bool(cfg.offset_term),
         "t2_mae": float(np.mean(np.abs(t2_err))),
         "t2_rmse": float(np.sqrt(np.mean(t2_err**2))),
         "m0_mae": float(np.mean(np.abs(m0_err))),
@@ -202,6 +231,7 @@ class VfaT1Config:
     t1_min_s: float
     t1_max_s: float
     b1: float
+    noise_model: str
     noise_sigma: float
     seed: int
 
@@ -227,6 +257,7 @@ def _parse_vfa_t1_config(config: dict[str, object]) -> VfaT1Config:
         raise ValueError("vfa_t1.t1_range_s must be [min, max]")
     t1_min_s, t1_max_s = float(t1_range_s[0]), float(t1_range_s[1])
     b1 = float(vfa_cfg.get("b1", 1.0))
+    noise_model = str(vfa_cfg.get("noise_model", "gaussian"))
     noise_sigma = float(vfa_cfg.get("noise_sigma", 0.0))
     seed = int(run_cfg.get("seed", 0))
     return VfaT1Config(
@@ -237,6 +268,7 @@ def _parse_vfa_t1_config(config: dict[str, object]) -> VfaT1Config:
         t1_min_s=t1_min_s,
         t1_max_s=t1_max_s,
         b1=b1,
+        noise_model=noise_model,
         noise_sigma=noise_sigma,
         seed=seed,
     )
@@ -250,6 +282,7 @@ def _run_vfa_t1(cfg: VfaT1Config, *, out_metrics: Path, out_figures: Path) -> di
     from plotnine import ggsave
 
     from qmrpy.models.t1 import VfaT1
+    from qmrpy.sim.noise import add_gaussian_noise, add_rician_noise
 
     rng = np.random.default_rng(cfg.seed)
     t1_true = rng.uniform(cfg.t1_min_s, cfg.t1_max_s, size=cfg.n_samples).astype(float)
@@ -259,8 +292,12 @@ def _run_vfa_t1(cfg: VfaT1Config, *, out_metrics: Path, out_figures: Path) -> di
     signal_clean = np.stack(
         [model.forward(m0=float(m0_true[i]), t1_s=float(t1_true[i])) for i in range(cfg.n_samples)]
     )
-    noise = rng.normal(loc=0.0, scale=cfg.noise_sigma, size=signal_clean.shape)
-    signal = signal_clean + noise
+    if cfg.noise_model == "gaussian":
+        signal = add_gaussian_noise(signal_clean, sigma=cfg.noise_sigma, rng=rng)
+    elif cfg.noise_model == "rician":
+        signal = add_rician_noise(signal_clean, sigma=cfg.noise_sigma, rng=rng)
+    else:
+        raise ValueError(f"unknown noise_model for vfa_t1: {cfg.noise_model}")
 
     fitted_m0 = np.empty(cfg.n_samples, dtype=float)
     fitted_t1 = np.empty(cfg.n_samples, dtype=float)
@@ -277,6 +314,7 @@ def _run_vfa_t1(cfg: VfaT1Config, *, out_metrics: Path, out_figures: Path) -> di
         "flip_angle_deg": [float(x) for x in cfg.flip_angle_deg],
         "tr_s": float(cfg.tr_s),
         "b1": float(cfg.b1),
+        "noise_model": str(cfg.noise_model),
         "noise_sigma": float(cfg.noise_sigma),
         "t1_mae": float(np.mean(np.abs(t1_err))),
         "t1_rmse": float(np.sqrt(np.mean(t1_err**2))),
