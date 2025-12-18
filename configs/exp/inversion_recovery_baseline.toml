@@ -1,0 +1,15 @@
+[run]
+tag = "inversion-recovery-baseline"
+seed = 0
+model = "inversion_recovery"
+
+[inversion_recovery]
+ti_ms = [350, 500, 650, 800, 950, 1100, 1250, 1400, 1700]
+n_samples = 200
+t1_range_ms = [200.0, 2000.0]
+ra = 500.0
+rb = -1000.0
+method = "magnitude"
+noise_model = "rician"
+noise_sigma = 5.0
+

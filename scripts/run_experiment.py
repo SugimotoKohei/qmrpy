@@ -242,6 +242,49 @@ class VfaT1Config:
     outlier_reject: bool
 
 
+@dataclass(frozen=True)
+class B1DamConfig:
+    alpha_deg: float
+    tr_s: float
+    n_samples: int
+    m0: float
+    b1_min: float
+    b1_max: float
+    noise_model: str
+    noise_sigma: float
+    seed: int
+
+
+
+@dataclass(frozen=True)
+class B1DamConfig:
+    alpha_deg: float
+    tr_s: float
+    n_samples: int
+    m0: float
+    b1_min: float
+    b1_max: float
+    noise_model: str
+    noise_sigma: float
+    seed: int
+
+
+
+@dataclass(frozen=True)
+class InversionRecoveryConfig:
+    ti_ms: list[float]
+    n_samples: int
+    t1_min_ms: float
+    t1_max_ms: float
+    ra: float
+    rb: float
+    noise_model: str
+    noise_sigma: float
+    seed: int
+    method: str
+
+
+
 def _parse_vfa_t1_config(config: dict[str, object]) -> VfaT1Config:
     run_cfg = config.get("run", {})
     vfa_cfg = config.get("vfa_t1", {})
@@ -299,6 +342,99 @@ def _parse_vfa_t1_config(config: dict[str, object]) -> VfaT1Config:
         min_signal=min_signal_parsed,
         outlier_reject=outlier_reject,
     )
+
+
+def _parse_b1_dam_config(config: dict[str, object]) -> B1DamConfig:
+    run_cfg = config.get("run", {})
+    b1_cfg = config.get("b1_dam", {})
+    if not isinstance(run_cfg, dict) or not isinstance(b1_cfg, dict):
+        raise ValueError("config format error: [run] and [b1_dam] must be tables")
+
+    alpha_deg = float(b1_cfg.get("alpha_deg", 60.0))
+    tr_s = float(b1_cfg.get("tr_s", 1.0))
+    n_samples = int(b1_cfg.get("n_samples", 200))
+    m0 = float(b1_cfg.get("m0", 1000.0))
+    b1_range = b1_cfg.get("b1_range", [0.5, 1.5])
+    if (
+        not isinstance(b1_range, list)
+        or len(b1_range) != 2
+        or not all(isinstance(x, (int, float)) for x in b1_range)
+    ):
+        raise ValueError("b1_dam.b1_range must be [min, max]")
+    b1_min, b1_max = float(b1_range[0]), float(b1_range[1])
+
+    noise_model = str(b1_cfg.get("noise_model", "gaussian"))
+    noise_sigma = float(b1_cfg.get("noise_sigma", 0.0))
+    seed = int(run_cfg.get("seed", 0))
+
+    return B1DamConfig(
+        alpha_deg=alpha_deg,
+        tr_s=tr_s,
+        n_samples=n_samples,
+        m0=m0,
+        b1_min=b1_min,
+        b1_max=b1_max,
+        noise_model=noise_model,
+        noise_sigma=noise_sigma,
+        seed=seed,
+    )
+
+
+
+    return B1DamConfig(
+        alpha_deg=alpha_deg,
+        tr_s=tr_s,
+        n_samples=n_samples,
+        m0=m0,
+        b1_min=b1_min,
+        b1_max=b1_max,
+        noise_model=noise_model,
+        noise_sigma=noise_sigma,
+        seed=seed,
+    )
+
+
+def _parse_inversion_recovery_config(config: dict[str, object]) -> InversionRecoveryConfig:
+
+    run_cfg = config.get("run", {})
+    ir_cfg = config.get("inversion_recovery", {})
+    if not isinstance(run_cfg, dict) or not isinstance(ir_cfg, dict):
+        raise ValueError("config format error: [run] and [inversion_recovery] must be tables")
+
+    ti_ms = ir_cfg.get("ti_ms")
+    if not isinstance(ti_ms, list) or not all(isinstance(x, (int, float)) for x in ti_ms):
+        raise ValueError("inversion_recovery.ti_ms must be a list of numbers")
+
+    n_samples = int(ir_cfg.get("n_samples", 200))
+    t1_range = ir_cfg.get("t1_range_ms", [100.0, 2000.0])
+    if (
+        not isinstance(t1_range, list)
+        or len(t1_range) != 2
+        or not all(isinstance(x, (int, float)) for x in t1_range)
+    ):
+        raise ValueError("inversion_recovery.t1_range_ms must be [min, max]")
+    t1_min_ms, t1_max_ms = float(t1_range[0]), float(t1_range[1])
+
+    ra = float(ir_cfg.get("ra", 1000.0))
+    rb = float(ir_cfg.get("rb", -2000.0))
+    noise_model = str(ir_cfg.get("noise_model", "gaussian"))
+    noise_sigma = float(ir_cfg.get("noise_sigma", 0.0))
+    method = str(ir_cfg.get("method", "magnitude"))
+    seed = int(run_cfg.get("seed", 0))
+
+    return InversionRecoveryConfig(
+        ti_ms=[float(x) for x in ti_ms],
+        n_samples=n_samples,
+        t1_min_ms=t1_min_ms,
+        t1_max_ms=t1_max_ms,
+        ra=ra,
+        rb=rb,
+        noise_model=noise_model,
+        noise_sigma=noise_sigma,
+        seed=seed,
+        method=method,
+    )
+
 
 
 def _run_vfa_t1(cfg: VfaT1Config, *, out_metrics: Path, out_figures: Path) -> dict[str, object]:
@@ -426,6 +562,247 @@ def _run_vfa_t1(cfg: VfaT1Config, *, out_metrics: Path, out_figures: Path) -> di
     return {"metrics": metrics, "figures": [p.name for p in out_figures.glob("*.png")]}
 
 
+def _run_b1_dam(cfg: B1DamConfig, *, out_metrics: Path, out_figures: Path) -> dict[str, object]:
+    import numpy as np
+
+    _require_plotnine()
+    from plotnine import aes, geom_abline, geom_histogram, geom_point, ggplot, labs, theme_bw
+    from plotnine import ggsave
+
+    from qmrpy.models.b1.dam import B1Dam
+    from qmrpy.sim.noise import add_gaussian_noise, add_rician_noise
+
+    rng = np.random.default_rng(cfg.seed)
+    b1_true = rng.uniform(cfg.b1_min, cfg.b1_max, size=cfg.n_samples).astype(float)
+    m0_true = np.full(cfg.n_samples, cfg.m0, dtype=float)
+
+    model = B1Dam(alpha_deg=cfg.alpha_deg, tr_s=cfg.tr_s)
+
+    # DAM output is [S1, S2] for each sample
+    signal_clean = np.stack(
+        [model.forward(m0=float(m0_true[i]), b1=float(b1_true[i])) for i in range(cfg.n_samples)]
+    )
+
+    if cfg.noise_model == "gaussian":
+        signal = add_gaussian_noise(signal_clean, sigma=cfg.noise_sigma, rng=rng)
+    elif cfg.noise_model == "rician":
+        signal = add_rician_noise(signal_clean, sigma=cfg.noise_sigma, rng=rng)
+    else:
+        raise ValueError(f"unknown noise_model for b1_dam: {cfg.noise_model}")
+
+    fitted_b1 = np.empty(cfg.n_samples, dtype=float)
+    fitted_m0 = np.empty(cfg.n_samples, dtype=float)
+
+    for i in range(cfg.n_samples):
+        res = model.fit(signal[i])
+        fitted_b1[i] = res["b1"]
+        fitted_m0[i] = res["m0"]
+
+    valid = np.isfinite(fitted_b1)
+    b1_err = fitted_b1[valid] - b1_true[valid]
+
+    metrics = {
+        "n_samples": int(cfg.n_samples),
+        "n_valid": int(np.sum(valid)),
+        "alpha_deg": float(cfg.alpha_deg),
+        "noise_model": str(cfg.noise_model),
+        "noise_sigma": float(cfg.noise_sigma),
+        "b1_mae": float(np.mean(np.abs(b1_err))) if b1_err.size else np.nan,
+        "b1_rmse": float(np.sqrt(np.mean(b1_err**2))) if b1_err.size else np.nan,
+        "b1_rel_mae": float(np.mean(np.abs(b1_err) / b1_true[valid])) if b1_err.size else np.nan,
+    }
+    out_metrics.write_text(json.dumps(metrics, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    import pandas as pd
+
+    df = pd.DataFrame(
+        {
+            "b1_true": b1_true[valid],
+            "b1_hat": fitted_b1[valid],
+            "b1_err": b1_err,
+        }
+    )
+    df.to_csv(out_metrics.parent / "b1_dam_per_sample.csv", index=False)
+
+    fig_a = (
+        ggplot(df, aes(x="b1_true"))
+        + geom_histogram(bins=30)
+        + theme_bw()
+        + labs(title="(A) Data check: B1 true distribution", x="B1 true [a.u.]", y="count")
+    )
+    ggsave(fig_a, filename=str(out_figures / "data_check__b1_true_hist.png"), verbose=False, dpi=150)
+
+    fig_b = (
+        ggplot(df, aes(x="b1_true", y="b1_hat"))
+        + geom_point(alpha=0.6)
+        + geom_abline(intercept=0.0, slope=1.0)
+        + theme_bw()
+        + labs(title="(B) Result: B1 fitted vs true", x="B1 true [a.u.]", y="B1 fitted [a.u.]")
+    )
+    ggsave(fig_b, filename=str(out_figures / "result__b1_true_vs_hat.png"), verbose=False, dpi=150)
+
+    fig_c = (
+        ggplot(df, aes(x="b1_err"))
+        + geom_histogram(bins=30)
+        + theme_bw()
+        + labs(title="(C) Failure analysis: B1 residual distribution", x="B1 error (hat - true) [a.u.]", y="count")
+    )
+    ggsave(fig_c, filename=str(out_figures / "failure__b1_error_hist.png"), verbose=False, dpi=150)
+
+    return {"metrics": metrics, "figures": [p.name for p in out_figures.glob("*.png")]}
+
+@dataclass(frozen=True)
+class InversionRecoveryConfig:
+    ti_ms: list[float]
+    n_samples: int
+    t1_min_ms: float
+    t1_max_ms: float
+    ra: float
+    rb: float
+    method: str
+    noise_model: str
+    noise_sigma: float
+    seed: int
+
+
+def _parse_inversion_recovery_config(config: dict[str, object]) -> InversionRecoveryConfig:
+    run_cfg = config.get("run", {})
+    ir_cfg = config.get("inversion_recovery", {})
+    if not isinstance(run_cfg, dict) or not isinstance(ir_cfg, dict):
+        raise ValueError("config format error: [run] and [inversion_recovery] must be tables")
+
+    ti_ms = ir_cfg.get("ti_ms")
+    if not isinstance(ti_ms, list) or not all(isinstance(x, (int, float)) for x in ti_ms):
+        raise ValueError("inversion_recovery.ti_ms must be a list of numbers")
+
+    n_samples = int(ir_cfg.get("n_samples", 200))
+    t1_range_ms = ir_cfg.get("t1_range_ms", [200.0, 2000.0])
+    if (
+        not isinstance(t1_range_ms, list)
+        or len(t1_range_ms) != 2
+        or not all(isinstance(x, (int, float)) for x in t1_range_ms)
+    ):
+        raise ValueError("inversion_recovery.t1_range_ms must be [min, max]")
+    t1_min_ms, t1_max_ms = float(t1_range_ms[0]), float(t1_range_ms[1])
+    ra = float(ir_cfg.get("ra", 500.0))
+    rb = float(ir_cfg.get("rb", -1000.0))
+    method = str(ir_cfg.get("method", "magnitude"))
+    noise_model = str(ir_cfg.get("noise_model", "rician" if method.lower() == "magnitude" else "gaussian"))
+    noise_sigma = float(ir_cfg.get("noise_sigma", 5.0))
+    seed = int(run_cfg.get("seed", 0))
+    return InversionRecoveryConfig(
+        ti_ms=[float(x) for x in ti_ms],
+        n_samples=n_samples,
+        t1_min_ms=t1_min_ms,
+        t1_max_ms=t1_max_ms,
+        ra=ra,
+        rb=rb,
+        method=method,
+        noise_model=noise_model,
+        noise_sigma=noise_sigma,
+        seed=seed,
+    )
+
+
+def _run_inversion_recovery(
+    cfg: InversionRecoveryConfig,
+    *,
+    out_metrics: Path,
+    out_figures: Path,
+) -> dict[str, object]:
+    import numpy as np
+
+    _require_plotnine()
+    from plotnine import aes, geom_abline, geom_histogram, geom_point, ggplot, labs, theme_bw
+    from plotnine import ggsave
+
+    from qmrpy.models.t1 import InversionRecovery
+    from qmrpy.sim.noise import add_gaussian_noise, add_rician_noise
+
+    rng = np.random.default_rng(cfg.seed)
+    t1_true = rng.uniform(cfg.t1_min_ms, cfg.t1_max_ms, size=cfg.n_samples).astype(float)
+    model = InversionRecovery(ti_ms=np.array(cfg.ti_ms, dtype=float))
+
+    signal_clean = np.stack(
+        [model.forward(t1_ms=float(t1_true[i]), ra=cfg.ra, rb=cfg.rb, magnitude=False) for i in range(cfg.n_samples)]
+    )
+    if cfg.method.lower() == "magnitude":
+        signal_clean = np.abs(signal_clean)
+
+    if cfg.noise_model == "gaussian":
+        signal = add_gaussian_noise(signal_clean, sigma=cfg.noise_sigma, rng=rng)
+    elif cfg.noise_model == "rician":
+        signal = add_rician_noise(signal_clean, sigma=cfg.noise_sigma, rng=rng)
+    else:
+        raise ValueError(f"unknown noise_model for inversion_recovery: {cfg.noise_model}")
+
+    fitted_t1 = np.empty(cfg.n_samples, dtype=float)
+    fitted_idx = np.full(cfg.n_samples, np.nan, dtype=float)
+    fitted_rmse = np.empty(cfg.n_samples, dtype=float)
+    for i in range(cfg.n_samples):
+        fitted = model.fit(signal[i], method=cfg.method)
+        fitted_t1[i] = fitted["t1_ms"]
+        fitted_rmse[i] = fitted["res_rmse"]
+        if "idx" in fitted:
+            fitted_idx[i] = float(fitted["idx"])
+
+    t1_err = fitted_t1 - t1_true
+    metrics = {
+        "n_samples": int(cfg.n_samples),
+        "ti_ms": [float(x) for x in cfg.ti_ms],
+        "method": str(cfg.method),
+        "ra": float(cfg.ra),
+        "rb": float(cfg.rb),
+        "noise_model": str(cfg.noise_model),
+        "noise_sigma": float(cfg.noise_sigma),
+        "t1_mae_ms": float(np.mean(np.abs(t1_err))),
+        "t1_rmse_ms": float(np.sqrt(np.mean(t1_err**2))),
+        "t1_rel_mae": float(np.mean(np.abs(t1_err) / t1_true)),
+        "fit_res_rmse_mean": float(np.mean(fitted_rmse)),
+    }
+    out_metrics.write_text(json.dumps(metrics, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+
+    import pandas as pd
+
+    df = pd.DataFrame(
+        {
+            "t1_true_ms": t1_true,
+            "t1_hat_ms": fitted_t1,
+            "t1_err_ms": t1_err,
+            "fit_res_rmse": fitted_rmse,
+            "idx": fitted_idx,
+        }
+    )
+    df.to_csv(out_metrics.parent / "inversion_recovery_per_sample.csv", index=False)
+
+    fig_a = (
+        ggplot(df, aes(x="t1_true_ms"))
+        + geom_histogram(bins=30)
+        + theme_bw()
+        + labs(title="(A) Data check: T1 true distribution", x="T1 true [ms]", y="count")
+    )
+    ggsave(fig_a, filename=str(out_figures / "data_check__t1_true_hist.png"), verbose=False, dpi=150)
+
+    fig_b = (
+        ggplot(df, aes(x="t1_true_ms", y="t1_hat_ms"))
+        + geom_point(alpha=0.6)
+        + geom_abline(intercept=0.0, slope=1.0)
+        + theme_bw()
+        + labs(title="(B) Result: T1 fitted vs true", x="T1 true [ms]", y="T1 fitted [ms]")
+    )
+    ggsave(fig_b, filename=str(out_figures / "result__t1_true_vs_hat.png"), verbose=False, dpi=150)
+
+    fig_c = (
+        ggplot(df, aes(x="t1_err_ms"))
+        + geom_histogram(bins=30)
+        + theme_bw()
+        + labs(title="(C) Failure analysis: T1 residual distribution", x="T1 error (hat - true) [ms]", y="count")
+    )
+    ggsave(fig_c, filename=str(out_figures / "failure__t1_error_hist.png"), verbose=False, dpi=150)
+
+    return {"metrics": metrics, "figures": [p.name for p in out_figures.glob("*.png")]}
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True, help="configs/exp/*.toml")
@@ -473,7 +850,32 @@ def main(argv: list[str] | None = None) -> int:
             out_figures=paths["figures"],
         )
         model_cfg_dict = asdict(model_cfg)
+    elif model_name == "inversion_recovery":
+        model_cfg = _parse_inversion_recovery_config(config)
+        result = _run_inversion_recovery(
+            model_cfg,
+            out_metrics=paths["metrics"] / "inversion_recovery_metrics.json",
+            out_figures=paths["figures"],
+        )
+        model_cfg_dict = asdict(model_cfg)
+    elif model_name == "b1_dam":
+        model_cfg = _parse_b1_dam_config(config)
+        result = _run_b1_dam(
+            model_cfg,
+            out_metrics=paths["metrics"] / "b1_dam_metrics.json",
+            out_figures=paths["figures"],
+        )
+        model_cfg_dict = asdict(model_cfg)
+    elif model_name == "b1_dam":
+        model_cfg = _parse_b1_dam_config(config)
+        result = _run_b1_dam(
+            model_cfg,
+            out_metrics=paths["metrics"] / "b1_dam_metrics.json",
+            out_figures=paths["figures"],
+        )
+        model_cfg_dict = asdict(model_cfg)
     else:
+
         raise ValueError(f"unknown model: {model_name}")
 
     run_json = {
