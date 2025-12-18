@@ -238,6 +238,7 @@ class VfaT1Config:
     robust_linear: bool
     huber_k: float
     min_signal: float | None
+    outlier_reject: bool
 
 
 def _parse_vfa_t1_config(config: dict[str, object]) -> VfaT1Config:
@@ -278,6 +279,7 @@ def _parse_vfa_t1_config(config: dict[str, object]) -> VfaT1Config:
     huber_k = float(vfa_cfg.get("huber_k", 1.345))
     min_signal = vfa_cfg.get("min_signal")
     min_signal_parsed = None if min_signal is None else float(min_signal)
+    outlier_reject = bool(vfa_cfg.get("outlier_reject", False))
     seed = int(run_cfg.get("seed", 0))
     return VfaT1Config(
         flip_angle_deg=[float(x) for x in fa],
@@ -294,6 +296,7 @@ def _parse_vfa_t1_config(config: dict[str, object]) -> VfaT1Config:
         robust_linear=robust_linear,
         huber_k=huber_k,
         min_signal=min_signal_parsed,
+        outlier_reject=outlier_reject,
     )
 
 
@@ -335,6 +338,7 @@ def _run_vfa_t1(cfg: VfaT1Config, *, out_metrics: Path, out_figures: Path) -> di
 
     fitted_m0 = np.empty(cfg.n_samples, dtype=float)
     fitted_t1 = np.empty(cfg.n_samples, dtype=float)
+    n_points = np.full(cfg.n_samples, np.nan, dtype=float)
     for i in range(cfg.n_samples):
         if cfg.min_signal is not None and float(np.max(signal[i])) < float(cfg.min_signal):
             fitted_m0[i] = np.nan
@@ -344,9 +348,15 @@ def _run_vfa_t1(cfg: VfaT1Config, *, out_metrics: Path, out_figures: Path) -> di
             flip_angle_deg=model_nominal.flip_angle_deg,
             tr_s=cfg.tr_s,
             b1=float(b1_true[i]),
-        ).fit_linear(signal[i], robust=cfg.robust_linear, huber_k=cfg.huber_k)
+        ).fit_linear(
+            signal[i],
+            robust=cfg.robust_linear,
+            huber_k=cfg.huber_k,
+            outlier_reject=cfg.outlier_reject,
+        )
         fitted_m0[i] = fitted["m0"]
         fitted_t1[i] = fitted["t1_s"]
+        n_points[i] = float(fitted.get("n_points", np.nan))
 
     valid = np.isfinite(fitted_t1) & np.isfinite(fitted_m0)
     t1_err = fitted_t1[valid] - t1_true[valid]
@@ -364,6 +374,8 @@ def _run_vfa_t1(cfg: VfaT1Config, *, out_metrics: Path, out_figures: Path) -> di
         "robust_linear": bool(cfg.robust_linear),
         "huber_k": float(cfg.huber_k),
         "min_signal": cfg.min_signal,
+        "outlier_reject": bool(cfg.outlier_reject),
+        "n_points_mean": float(np.nanmean(n_points)),
         "t1_mae": float(np.mean(np.abs(t1_err))),
         "t1_rmse": float(np.sqrt(np.mean(t1_err**2))),
         "m0_mae": float(np.mean(np.abs(m0_err))),

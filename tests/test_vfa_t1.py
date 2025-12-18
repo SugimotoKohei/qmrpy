@@ -58,3 +58,25 @@ def test_vfa_t1_robust_fit_reduces_outlier_impact():
     err_nonrobust = abs(nonrobust["t1_s"] - t1_true_s)
     err_robust = abs(robust["t1_s"] - t1_true_s)
     assert err_robust < err_nonrobust
+
+
+def test_vfa_t1_outlier_rejection_recovers_from_upward_spike():
+    import pytest
+
+    np = pytest.importorskip("numpy")
+
+    from qmrpy.models.t1 import VfaT1
+
+    flip_angle_deg = np.array([3.0, 8.0, 15.0, 25.0], dtype=float)
+    model = VfaT1(flip_angle_deg=flip_angle_deg, tr_s=0.015, b1=1.0)
+
+    m0_true = 2000.0
+    t1_true_s = 0.9
+    signal = model.forward(m0=m0_true, t1_s=t1_true_s).copy()
+    signal[1] = signal[1] * 5.0  # upward spike
+
+    no_reject = model.fit_linear(signal, outlier_reject=False)
+    reject = model.fit_linear(signal, outlier_reject=True)
+
+    assert abs(reject["t1_s"] - t1_true_s) < abs(no_reject["t1_s"] - t1_true_s)
+    assert reject["n_points"] < no_reject["n_points"]

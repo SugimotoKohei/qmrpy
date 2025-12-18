@@ -75,6 +75,7 @@ class VfaT1:
         mask: ArrayLike | None = None,
         robust: bool = False,
         huber_k: float = 1.345,
+        outlier_reject: bool = False,
         max_iter: int = 50,
         min_points: int = 2,
     ) -> dict[str, float]:
@@ -110,17 +111,27 @@ class VfaT1:
                 raise ValueError("mask must have same shape as signal")
             valid = valid & (m.astype(bool))
 
-        xdata = xdata[valid]
-        ydata = ydata[valid]
-        if xdata.size < min_points:
-            raise ValueError("not enough valid points for VFA linear fit")
-
-        intercept, slope = _fit_line(xdata, ydata, robust=robust, huber_k=huber_k, max_iter=max_iter)
+        xdata_all = xdata
+        ydata_all = ydata
+        intercept, slope, final_valid = _fit_line_with_outlier_rejection(
+            x=xdata_all,
+            y=ydata_all,
+            valid=valid,
+            robust=robust,
+            huber_k=huber_k,
+            max_iter=max_iter,
+            outlier_reject=outlier_reject,
+            min_points=min_points,
+        )
 
         slope = min(max(slope, 1e-12), 1.0 - 1e-12)
         t1_s = -float(self.tr_s) / float(np.log(slope))
         m0 = intercept / (1.0 - slope)
-        return {"m0": float(m0), "t1_s": float(t1_s)}
+        return {
+            "m0": float(m0),
+            "t1_s": float(t1_s),
+            "n_points": int(np.sum(final_valid)),
+        }
 
 
 def _fit_line(
@@ -184,3 +195,114 @@ def _fit_line(
         intercept, slope = intercept_new, slope_new
 
     return float(intercept), float(slope)
+
+
+def _fit_line_with_outlier_rejection(
+    *,
+    x: Any,
+    y: Any,
+    valid: Any,
+    robust: bool,
+    huber_k: float,
+    max_iter: int,
+    outlier_reject: bool,
+    min_points: int,
+) -> tuple[float, float, Any]:
+    """Fit y = a + b x with optional outlier rejection.
+
+    Outlier rejection is implemented with a small-n friendly exhaustive subset search:
+    - enumerate all subsets with size >= min_points
+    - enforce physical constraint: 0 < slope < 1 (E = exp(-TR/T1))
+    - choose the largest subset that minimizes MAD residuals
+    - refit using the selected subset (optionally robust)
+    """
+    import numpy as np
+
+    x = np.asarray(x, dtype=np.float64)
+    y = np.asarray(y, dtype=np.float64)
+    valid_mask = np.asarray(valid, dtype=bool).copy()
+
+    def require_points() -> None:
+        if int(np.sum(valid_mask)) < int(min_points):
+            raise ValueError("not enough valid points for VFA linear fit")
+
+    require_points()
+    if not outlier_reject:
+        x_fit = x[valid_mask]
+        y_fit = y[valid_mask]
+        intercept, slope = _fit_line(
+            x_fit,
+            y_fit,
+            robust=robust,
+            huber_k=huber_k,
+            max_iter=max_iter,
+        )
+        return float(intercept), float(slope), valid_mask
+
+    # Exhaustive subset search (small-n) with a physical constraint:
+    # slope = E must satisfy 0 < slope < 1 for valid T1.
+    # Choose the largest subset that yields a valid slope and minimizes MAD residuals.
+    idx = np.flatnonzero(valid_mask)
+    x_fit = x[idx]
+    y_fit = y[idx]
+    n = int(x_fit.size)
+    if n > 20:
+        # fallback: no rejection for large n
+        intercept, slope = _fit_line(
+            x_fit,
+            y_fit,
+            robust=robust,
+            huber_k=huber_k,
+            max_iter=max_iter,
+        )
+        return float(intercept), float(slope), valid_mask
+
+    best_subset_mask: Any | None = None
+    best_size = -1
+    best_obj = float("inf")
+
+    # iterate subsets by bitmask
+    # note: exclude subsets smaller than min_points
+    for bits in range(1 << n):
+        k = int(bits.bit_count())
+        if k < int(min_points):
+            continue
+        subset = np.array([(bits >> i) & 1 for i in range(n)], dtype=bool)
+        x_sub = x_fit[subset]
+        y_sub = y_fit[subset]
+        # quick check for degenerate x
+        if float(np.std(x_sub)) == 0.0:
+            continue
+        intercept_sub, slope_sub = _fit_line(
+            x_sub,
+            y_sub,
+            robust=False,
+            huber_k=huber_k,
+            max_iter=max_iter,
+        )
+        if not (0.0 < float(slope_sub) < 1.0):
+            continue
+        r = y_sub - (float(intercept_sub) + float(slope_sub) * x_sub)
+        mad = float(np.median(np.abs(r - np.median(r))))
+        obj = mad
+        if k > best_size or (k == best_size and obj < best_obj):
+            best_size = k
+            best_obj = obj
+            best_subset_mask = subset
+
+    if best_subset_mask is not None and best_size < n:
+        # apply subset
+        valid_mask[idx[~best_subset_mask]] = False
+        require_points()
+
+    # final fit after last rejection
+    x_fit = x[valid_mask]
+    y_fit = y[valid_mask]
+    intercept, slope = _fit_line(
+        x_fit,
+        y_fit,
+        robust=robust,
+        huber_k=huber_k,
+        max_iter=max_iter,
+    )
+    return float(intercept), float(slope), valid_mask
