@@ -1,0 +1,19 @@
+[run]
+tag = "epg-backend-sweep-wide"
+seed = 0
+
+[epg_backend_sweep]
+# Broader coverage (still intended to be a quick diagnostic):
+# - multiple ETL / TE / beta conditions
+# - moderate grid size to keep runtime reasonable
+etl = [8, 16, 32]
+te_ms = [5.0, 10.0, 20.0]
+beta_deg = [120.0, 150.0, 180.0]
+
+alpha_deg = [90.0, 120.0, 150.0, 180.0]
+t1_s = [0.6, 1.0, 2.0]
+t2_ms = [10.0, 20.0, 30.0, 50.0, 80.0, 120.0, 200.0]
+
+normalize = "first_echo"
+topk = 5
+

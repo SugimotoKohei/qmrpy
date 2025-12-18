@@ -44,10 +44,11 @@ dev = [
 path = "src/qmrpy/__init__.py"
 
 [tool.hatch.build.targets.wheel]
-packages = ["src/qmrpy"]
+packages = ["src/qmrpy", "src/epgpy"]
 
 [tool.hatch.build.targets.wheel.force-include]
 "src/qmrpy/py.typed" = "qmrpy/py.typed"
+"THIRD_PARTY_NOTICES.md" = "THIRD_PARTY_NOTICES.md"
 
 [tool.ruff]
 line-length = 100

@@ -6,6 +6,10 @@ configs/local/
 # upstream reference (MATLAB)
 qMRLab/
 
+# upstream/vendor worktrees (do not commit; vendored snapshot lives under src/)
+/epgpy/
+/DECAES.jl/
+
 # environments / caches
 .venv/
 __pycache__/

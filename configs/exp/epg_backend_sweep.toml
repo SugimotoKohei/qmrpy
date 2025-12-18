@@ -1,0 +1,21 @@
+[run]
+tag = "epg-backend-sweep"
+seed = 0
+
+[epg_backend_sweep]
+# EPG decay curve comparison: epgpy vs decaes backends
+etl = 16
+te_ms = 10.0
+
+# Grid (small by default; intended for quick diagnostics)
+alpha_deg = [90.0, 120.0, 150.0, 180.0]
+t1_s = [0.6, 1.0, 2.0]
+t2_ms = [20.0, 30.0, 50.0, 80.0, 120.0, 200.0]
+beta_deg = 180.0
+
+# Normalization for error metrics: normalize by first echo
+normalize = "first_echo"
+
+# Failure analysis: overlay top-k worst cases
+topk = 3
+

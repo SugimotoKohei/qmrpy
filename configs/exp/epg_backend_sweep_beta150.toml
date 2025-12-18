@@ -1,0 +1,18 @@
+[run]
+tag = "epg-backend-sweep-beta150"
+seed = 0
+
+[epg_backend_sweep]
+etl = 16
+te_ms = 10.0
+
+alpha_deg = [90.0, 120.0, 150.0, 180.0]
+t1_s = [0.6, 1.0, 2.0]
+t2_ms = [20.0, 30.0, 50.0, 80.0, 120.0, 200.0]
+
+# Non-ideal refocusing
+beta_deg = 150.0
+
+normalize = "first_echo"
+topk = 3
+
