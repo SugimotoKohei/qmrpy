@@ -1,0 +1,11 @@
+[run]
+name = "mppca_demo"
+seed = 42
+
+[mppca]
+sx = 30
+sy = 30
+sz = 10
+n_vol = 30
+snr = 20.0
+kernel = [5, 5, 5]
