@@ -84,6 +84,46 @@ def main(argv: list[str] | None = None) -> int:
         help="output directory (default: output/reports/<timestamp>_compare)",
     )
     parser.add_argument("--tag", type=str, default="compare", help="tag for default output dir name")
+    parser.add_argument(
+        "--t1-range",
+        nargs=2,
+        type=float,
+        default=None,
+        metavar=("MIN", "MAX"),
+        help="fixed range for T1 binning (e.g. 0.2 2.0). If set, uses equal-width bins.",
+    )
+    parser.add_argument(
+        "--t1-bins",
+        type=int,
+        default=10,
+        help="number of fixed bins for T1 (used with --t1-range). default: 10",
+    )
+    parser.add_argument(
+        "--t1-edges",
+        type=str,
+        default=None,
+        help="explicit comma-separated T1 bin edges (overrides --t1-range/--t1-bins).",
+    )
+    parser.add_argument(
+        "--b1-range",
+        nargs=2,
+        type=float,
+        default=None,
+        metavar=("MIN", "MAX"),
+        help="fixed range for B1 binning (e.g. 0.8 1.2). If set, uses equal-width bins.",
+    )
+    parser.add_argument(
+        "--b1-bins",
+        type=int,
+        default=10,
+        help="number of fixed bins for B1 (used with --b1-range). default: 10",
+    )
+    parser.add_argument(
+        "--b1-edges",
+        type=str,
+        default=None,
+        help="explicit comma-separated B1 bin edges (overrides --b1-range/--b1-bins).",
+    )
     args = parser.parse_args(argv)
 
     import pandas as pd
@@ -245,14 +285,30 @@ def main(argv: list[str] | None = None) -> int:
         if "abs_t1_err" in df_ps_all.columns and "t1_true" in df_ps_all.columns:
             df_bin = df_ps_all[["label", "t1_true", "abs_t1_err"]].dropna()
             if not df_bin.empty:
-                # quantile bins are stable across skewed distributions
-                n_bins = 10 if df_bin["t1_true"].nunique() >= 10 else max(2, int(df_bin["t1_true"].nunique()))
-                df_bin["t1_bin"] = pd.qcut(df_bin["t1_true"], q=n_bins, duplicates="drop")
+                t1_edges = None
+                if args.t1_edges:
+                    t1_edges = [float(x) for x in args.t1_edges.split(",") if x.strip()]
+                elif args.t1_range is not None:
+                    t1_min, t1_max = float(args.t1_range[0]), float(args.t1_range[1])
+                    if t1_max <= t1_min:
+                        raise SystemExit("--t1-range must satisfy MAX > MIN")
+                    import numpy as np
+
+                    t1_edges = np.linspace(t1_min, t1_max, int(args.t1_bins) + 1).tolist()
+
+                if t1_edges is not None:
+                    # fixed bins across runs
+                    df_bin["t1_bin"] = pd.cut(df_bin["t1_true"], bins=t1_edges, include_lowest=True)
+                else:
+                    # default: quantile bins (stable within a run set)
+                    n_bins = 10 if df_bin["t1_true"].nunique() >= 10 else max(2, int(df_bin["t1_true"].nunique()))
+                    df_bin["t1_bin"] = pd.qcut(df_bin["t1_true"], q=n_bins, duplicates="drop")
+
                 def p95(x):
                     return x.quantile(0.95)
 
                 agg = (
-                    df_bin.groupby(["label", "t1_bin"], dropna=False, observed=False)
+                    df_bin.groupby(["label", "t1_bin"], dropna=False, observed=True)
                     .agg(
                         n=("abs_t1_err", "size"),
                         abs_t1_err_mean=("abs_t1_err", "mean"),
@@ -265,8 +321,9 @@ def main(argv: list[str] | None = None) -> int:
                 agg["t1_bin"] = agg["t1_bin"].astype(str)
                 agg.to_csv(metrics_dir / "failure__abs_t1_err_by_t1_bin.csv", index=False)
 
+                agg_plot = agg[agg["n"] > 0].copy()
                 fig8 = (
-                    ggplot(agg, aes(x="t1_bin", y="abs_t1_err_mean"))
+                    ggplot(agg_plot, aes(x="t1_bin", y="abs_t1_err_mean"))
                     + geom_col()
                     + coord_flip()
                     + facet_wrap("label", scales="free_y")
@@ -280,7 +337,7 @@ def main(argv: list[str] | None = None) -> int:
                 ggsave(fig8, filename=str(figures_dir / "failure__abs_t1_err_by_t1_bin.png"), verbose=False, dpi=150)
 
                 fig8b = (
-                    ggplot(agg, aes(x="t1_bin", y="abs_t1_err_p95"))
+                    ggplot(agg_plot, aes(x="t1_bin", y="abs_t1_err_p95"))
                     + geom_col()
                     + coord_flip()
                     + facet_wrap("label", scales="free_y")
@@ -296,13 +353,28 @@ def main(argv: list[str] | None = None) -> int:
         if "abs_t1_err" in df_ps_all.columns and "b1_true" in df_ps_all.columns:
             df_bin = df_ps_all[["label", "b1_true", "abs_t1_err"]].dropna()
             if not df_bin.empty:
-                n_bins = 10 if df_bin["b1_true"].nunique() >= 10 else max(2, int(df_bin["b1_true"].nunique()))
-                df_bin["b1_bin"] = pd.qcut(df_bin["b1_true"], q=n_bins, duplicates="drop")
+                b1_edges = None
+                if args.b1_edges:
+                    b1_edges = [float(x) for x in args.b1_edges.split(",") if x.strip()]
+                elif args.b1_range is not None:
+                    b1_min, b1_max = float(args.b1_range[0]), float(args.b1_range[1])
+                    if b1_max <= b1_min:
+                        raise SystemExit("--b1-range must satisfy MAX > MIN")
+                    import numpy as np
+
+                    b1_edges = np.linspace(b1_min, b1_max, int(args.b1_bins) + 1).tolist()
+
+                if b1_edges is not None:
+                    df_bin["b1_bin"] = pd.cut(df_bin["b1_true"], bins=b1_edges, include_lowest=True)
+                else:
+                    n_bins = 10 if df_bin["b1_true"].nunique() >= 10 else max(2, int(df_bin["b1_true"].nunique()))
+                    df_bin["b1_bin"] = pd.qcut(df_bin["b1_true"], q=n_bins, duplicates="drop")
+
                 def p95(x):
                     return x.quantile(0.95)
 
                 agg = (
-                    df_bin.groupby(["label", "b1_bin"], dropna=False, observed=False)
+                    df_bin.groupby(["label", "b1_bin"], dropna=False, observed=True)
                     .agg(
                         n=("abs_t1_err", "size"),
                         abs_t1_err_mean=("abs_t1_err", "mean"),
@@ -314,8 +386,9 @@ def main(argv: list[str] | None = None) -> int:
                 agg["b1_bin"] = agg["b1_bin"].astype(str)
                 agg.to_csv(metrics_dir / "failure__abs_t1_err_by_b1_bin.csv", index=False)
 
+                agg_plot = agg[agg["n"] > 0].copy()
                 fig9 = (
-                    ggplot(agg, aes(x="b1_bin", y="abs_t1_err_mean"))
+                    ggplot(agg_plot, aes(x="b1_bin", y="abs_t1_err_mean"))
                     + geom_col()
                     + coord_flip()
                     + facet_wrap("label", scales="free_y")
@@ -329,7 +402,7 @@ def main(argv: list[str] | None = None) -> int:
                 ggsave(fig9, filename=str(figures_dir / "failure__abs_t1_err_by_b1_bin.png"), verbose=False, dpi=150)
 
                 fig9b = (
-                    ggplot(agg, aes(x="b1_bin", y="abs_t1_err_p95"))
+                    ggplot(agg_plot, aes(x="b1_bin", y="abs_t1_err_p95"))
                     + geom_col()
                     + coord_flip()
                     + facet_wrap("label", scales="free_y")
@@ -354,6 +427,14 @@ def main(argv: list[str] | None = None) -> int:
                     "env": str(env_dir),
                 },
                 "env_updates": env_updates,
+                "binning": {
+                    "t1_range": args.t1_range,
+                    "t1_bins": args.t1_bins,
+                    "t1_edges": args.t1_edges,
+                    "b1_range": args.b1_range,
+                    "b1_bins": args.b1_bins,
+                    "b1_edges": args.b1_edges,
+                },
             },
             ensure_ascii=False,
             indent=2,
