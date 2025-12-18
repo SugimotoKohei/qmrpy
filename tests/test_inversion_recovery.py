@@ -54,3 +54,8 @@ def test_inversion_recovery_fit_magnitude_noise_free():
     assert abs(fitted["t1_ms"] - t1_true) / t1_true < 1e-6
     assert 0 <= int(fitted["idx"]) <= ti.size
 
+    img = np.stack([signal_mag, signal_mag], axis=0).reshape(2, 1, -1)
+    out = model.fit_image(img, method="magnitude")
+    assert out["t1_ms"].shape == img.shape[:-1]
+    assert out["idx"].shape == img.shape[:-1]
+

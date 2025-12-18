@@ -13,3 +13,8 @@ def test_b1_dam_fit_raw_noise_free():
     assert abs(fitted["b1_raw"] - b1_true) < 1e-12
     assert fitted["spurious"] == 0.0
 
+    img = np.stack([signal, signal], axis=0).reshape(2, 1, 2)
+    out = model.fit_image(img)
+    assert out["b1_raw"].shape == img.shape[:-1]
+    assert out["spurious"].shape == img.shape[:-1]
+

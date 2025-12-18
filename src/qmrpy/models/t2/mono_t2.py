@@ -157,3 +157,52 @@ class MonoT2:
         )
         m0_hat, t2_hat = result.x
         return {"m0": float(m0_hat), "t2": float(t2_hat)}
+
+    def fit_image(
+        self,
+        data: ArrayLike,
+        *,
+        mask: ArrayLike | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Voxel-wise fit on an image/volume.
+
+        Expects `data` shape (..., n_te) where n_te == len(self.te).
+        """
+        import numpy as np
+
+        arr = np.asarray(data, dtype=np.float64)
+        if arr.ndim == 1:
+            return self.fit(arr, **kwargs)
+        if arr.shape[-1] != self.te.shape[0]:
+            raise ValueError(
+                f"data last dim {arr.shape[-1]} must match te length {self.te.shape[0]}"
+            )
+
+        spatial_shape = arr.shape[:-1]
+        flat = arr.reshape((-1, arr.shape[-1]))
+
+        if mask is None:
+            mask_flat = np.ones((flat.shape[0],), dtype=bool)
+        else:
+            m = np.asarray(mask, dtype=bool)
+            if m.shape != spatial_shape:
+                raise ValueError(f"mask shape {m.shape} must match spatial shape {spatial_shape}")
+            mask_flat = m.reshape((-1,))
+
+        offset_term = bool(kwargs.get("offset_term", False))
+        out: dict[str, Any] = {
+            "m0": np.full(spatial_shape, np.nan, dtype=np.float64),
+            "t2": np.full(spatial_shape, np.nan, dtype=np.float64),
+        }
+        if offset_term:
+            out["offset"] = np.full(spatial_shape, np.nan, dtype=np.float64)
+
+        for idx in np.flatnonzero(mask_flat):
+            res = self.fit(flat[idx], **kwargs)
+            out["m0"].flat[idx] = float(res["m0"])
+            out["t2"].flat[idx] = float(res["t2"])
+            if offset_term and "offset" in res:
+                out["offset"].flat[idx] = float(res["offset"])
+
+        return out

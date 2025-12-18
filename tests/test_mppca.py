@@ -13,6 +13,9 @@ def test_mppca_runs_and_returns_expected_shapes() -> None:
     out = MPPCA(kernel=(3, 3, 3)).fit(data, mask=mask)
     assert set(out.keys()) == {"denoised", "sigma", "n_pars"}
 
+    out2 = MPPCA(kernel=(3, 3, 3)).fit_image(data, mask=mask)
+    assert set(out2.keys()) == {"denoised", "sigma", "n_pars"}
+
     den = out["denoised"]
     sig = out["sigma"]
     npars = out["n_pars"]

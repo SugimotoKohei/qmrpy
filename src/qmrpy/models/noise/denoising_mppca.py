@@ -75,6 +75,9 @@ class MPPCA:
             "n_pars": n_pars,
         }
 
+    def fit_image(self, data: ArrayLike, mask: ArrayLike | None = None) -> dict[str, Any]:
+        return self.fit(data, mask=mask)
+
 
 def _mp_denoising(
     data: NDArray[np.float64], 

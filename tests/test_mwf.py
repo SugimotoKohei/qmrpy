@@ -26,6 +26,11 @@ def test_mwf_two_point_basis_recovers_exact_noise_free():
     assert abs(out["t2iew_ms"] - 80.0) < 1e-12
     assert out["resid_l2"] < 1e-9
 
+    img = np.stack([signal, signal], axis=0).reshape(2, 1, -1)
+    out_img = model.fit_image(img)
+    assert out_img["mwf"].shape == img.shape[:-1]
+    assert out_img["t2mw_ms"].shape == img.shape[:-1]
+
 
 def test_mwf_default_basis_is_reasonable_noise_free():
     import pytest

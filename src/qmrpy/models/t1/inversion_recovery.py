@@ -151,3 +151,56 @@ class InversionRecovery:
             "idx": float(best_idx),
             "res_rmse": float(best_rmse),
         }
+
+    def fit_image(
+        self,
+        data: ArrayLike,
+        *,
+        mask: ArrayLike | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Voxel-wise fit on an image/volume.
+
+        Expects `data` shape (..., n_ti) where n_ti == len(self.ti_ms).
+        """
+        import numpy as np
+
+        arr = np.asarray(data, dtype=np.float64)
+        if arr.ndim == 1:
+            return self.fit(arr, **kwargs)
+        if arr.shape[-1] != self.ti_ms.shape[0]:
+            raise ValueError(
+                f"data last dim {arr.shape[-1]} must match ti_ms length {self.ti_ms.shape[0]}"
+            )
+
+        spatial_shape = arr.shape[:-1]
+        flat = arr.reshape((-1, arr.shape[-1]))
+
+        if mask is None:
+            mask_flat = np.ones((flat.shape[0],), dtype=bool)
+        else:
+            m = np.asarray(mask, dtype=bool)
+            if m.shape != spatial_shape:
+                raise ValueError(f"mask shape {m.shape} must match spatial shape {spatial_shape}")
+            mask_flat = m.reshape((-1,))
+
+        method_norm = str(kwargs.get("method", "magnitude")).lower().strip()
+        out: dict[str, Any] = {
+            "t1_ms": np.full(spatial_shape, np.nan, dtype=np.float64),
+            "ra": np.full(spatial_shape, np.nan, dtype=np.float64),
+            "rb": np.full(spatial_shape, np.nan, dtype=np.float64),
+            "res_rmse": np.full(spatial_shape, np.nan, dtype=np.float64),
+        }
+        if method_norm == "magnitude":
+            out["idx"] = np.full(spatial_shape, np.nan, dtype=np.float64)
+
+        for idx in np.flatnonzero(mask_flat):
+            res = self.fit(flat[idx], **kwargs)
+            out["t1_ms"].flat[idx] = float(res["t1_ms"])
+            out["ra"].flat[idx] = float(res["ra"])
+            out["rb"].flat[idx] = float(res["rb"])
+            out["res_rmse"].flat[idx] = float(res["res_rmse"])
+            if method_norm == "magnitude" and "idx" in res:
+                out["idx"].flat[idx] = float(res["idx"])
+
+        return out

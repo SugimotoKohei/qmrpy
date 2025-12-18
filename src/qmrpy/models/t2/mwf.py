@@ -206,3 +206,71 @@ class MultiComponentT2:
             "total_weight": float(total_w),
             "resid_l2": float(resid_l2),
         }
+
+    def fit_image(
+        self,
+        data: ArrayLike,
+        *,
+        mask: ArrayLike | None = None,
+        return_weights: bool = False,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Voxel-wise NNLS fit on an image/volume.
+
+        Expects `data` shape (..., n_te) where n_te == len(self.te_ms).
+        """
+        import numpy as np
+
+        arr = np.asarray(data, dtype=np.float64)
+        if arr.ndim == 1:
+            return self.fit(arr, **kwargs)
+        if arr.shape[-1] != self.te_ms.shape[0]:
+            raise ValueError(
+                f"data last dim {arr.shape[-1]} must match te_ms length {self.te_ms.shape[0]}"
+            )
+
+        spatial_shape = arr.shape[:-1]
+        flat = arr.reshape((-1, arr.shape[-1]))
+
+        if mask is None:
+            mask_flat = np.ones((flat.shape[0],), dtype=bool)
+        else:
+            m = np.asarray(mask, dtype=bool)
+            if m.shape != spatial_shape:
+                raise ValueError(f"mask shape {m.shape} must match spatial shape {spatial_shape}")
+            mask_flat = m.reshape((-1,))
+
+        out: dict[str, Any] = {
+            "t2_basis_ms": np.asarray(self.t2_basis_ms, dtype=np.float64),
+            "mwf": np.full(spatial_shape, np.nan, dtype=np.float64),
+            "t2mw_ms": np.full(spatial_shape, np.nan, dtype=np.float64),
+            "t2iew_ms": np.full(spatial_shape, np.nan, dtype=np.float64),
+            "gmt2_ms": np.full(spatial_shape, np.nan, dtype=np.float64),
+            "mw_weight": np.full(spatial_shape, np.nan, dtype=np.float64),
+            "iew_weight": np.full(spatial_shape, np.nan, dtype=np.float64),
+            "total_weight": np.full(spatial_shape, np.nan, dtype=np.float64),
+            "resid_l2": np.full(spatial_shape, np.nan, dtype=np.float64),
+        }
+        if return_weights:
+            out["weights"] = np.full(
+                spatial_shape + (int(out["t2_basis_ms"].shape[0]),),
+                np.nan,
+                dtype=np.float64,
+            )
+
+        for idx in np.flatnonzero(mask_flat):
+            res = self.fit(flat[idx], **kwargs)
+            out["mwf"].flat[idx] = float(res["mwf"])
+            out["t2mw_ms"].flat[idx] = float(res["t2mw_ms"])
+            out["t2iew_ms"].flat[idx] = float(res["t2iew_ms"])
+            out["gmt2_ms"].flat[idx] = float(res["gmt2_ms"])
+            out["mw_weight"].flat[idx] = float(res["mw_weight"])
+            out["iew_weight"].flat[idx] = float(res["iew_weight"])
+            out["total_weight"].flat[idx] = float(res["total_weight"])
+            out["resid_l2"].flat[idx] = float(res["resid_l2"])
+            if return_weights:
+                out["weights"].reshape((-1, out["t2_basis_ms"].shape[0]))[idx, :] = np.asarray(
+                    res["weights"], dtype=np.float64
+                )
+
+        return out

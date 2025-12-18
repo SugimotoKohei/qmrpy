@@ -135,6 +135,53 @@ class VfaT1:
             "n_points": int(np.sum(final_valid)),
         }
 
+    def fit_image(
+        self,
+        data: ArrayLike,
+        *,
+        mask: ArrayLike | None = None,
+        **kwargs: Any,
+    ) -> dict[str, Any]:
+        """Voxel-wise linear VFA fit on an image/volume.
+
+        Expects `data` shape (..., n_fa) where n_fa == len(self.flip_angle_deg).
+        """
+        import numpy as np
+
+        arr = np.asarray(data, dtype=np.float64)
+        if arr.ndim == 1:
+            return self.fit_linear(arr, **kwargs)
+        if arr.shape[-1] != np.asarray(self.flip_angle_deg).shape[0]:
+            raise ValueError(
+                "data last dim must match flip_angle_deg length "
+                f"({arr.shape[-1]} != {np.asarray(self.flip_angle_deg).shape[0]})"
+            )
+
+        spatial_shape = arr.shape[:-1]
+        flat = arr.reshape((-1, arr.shape[-1]))
+
+        if mask is None:
+            mask_flat = np.ones((flat.shape[0],), dtype=bool)
+        else:
+            m = np.asarray(mask, dtype=bool)
+            if m.shape != spatial_shape:
+                raise ValueError(f"mask shape {m.shape} must match spatial shape {spatial_shape}")
+            mask_flat = m.reshape((-1,))
+
+        out: dict[str, Any] = {
+            "m0": np.full(spatial_shape, np.nan, dtype=np.float64),
+            "t1_s": np.full(spatial_shape, np.nan, dtype=np.float64),
+            "n_points": np.zeros(spatial_shape, dtype=np.int64),
+        }
+
+        for idx in np.flatnonzero(mask_flat):
+            res = self.fit_linear(flat[idx], **kwargs)
+            out["m0"].flat[idx] = float(res["m0"])
+            out["t1_s"].flat[idx] = float(res["t1_s"])
+            out["n_points"].flat[idx] = int(res["n_points"])
+
+        return out
+
 
 def _fit_line(
     x: Any,

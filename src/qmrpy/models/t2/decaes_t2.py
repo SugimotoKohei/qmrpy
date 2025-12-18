@@ -153,15 +153,16 @@ def _epg_decay_curve_epgpy(
     t1_ms = float(t1_s) * 1000.0
     t2_ms = float(t2_s) * 1000.0
 
-    seq = [operators.T(alpha_ex, 0.0)]
+    # CPMG condition (as in epgpy examples): excitation phase = 90°, refocusing phase = 0°
+    seq = [operators.T(alpha_ex, 90.0)]
     for echo in range(etl):
         ref = alpha1 if echo == 0 else alphai
         seq.extend(
             [
+                operators.S(1, duration=tau_ms),
                 operators.E(tau_ms, t1_ms, t2_ms),
-                operators.S(1),
                 operators.T(ref, 0.0),
-                operators.S(1),
+                operators.S(1, duration=tau_ms),
                 operators.E(tau_ms, t1_ms, t2_ms),
                 operators.ADC,
             ]
