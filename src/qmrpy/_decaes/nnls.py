@@ -299,6 +299,173 @@ def _unsafe_nnls(work: _NnlsWorkspace, *, init_dual: bool = True, max_iter: int 
     work.nsetp = int(nsetp)
 
 
+def _unsafe_nnls_tikhonov(
+    work: _NnlsWorkspace,
+    lam: float,
+    *,
+    init_dual: bool = True,
+    max_iter: int | None = None,
+) -> int:
+    # Port of DECAES.NNLS.unsafe_nnls!(work, λ)
+    A = work.A
+    b = work.b
+    x = work.x
+    w = work.w
+    zz = work.zz
+    idx = work.idx
+    invidx = work.invidx
+    diag = work.diag
+
+    M, N = A.shape
+    m = M - N  # active row count (starts at data rows)
+    n = N
+
+    if max_iter is None:
+        max_iter = 3 * n
+
+    if init_dual:
+        w.fill(0.0)
+        _compute_dual(w, A, b, 0, m)
+
+    nsetp = 0
+    it = 0
+    work.mode = 0
+
+    while True:
+        if nsetp >= n:
+            break
+
+        # choose column to enter
+        while True:
+            wmax, jmax = _largest_positive_dual(w, nsetp)
+            if wmax <= 0.0:
+                jmax = -1
+                break
+
+            if not diag[idx[jmax]]:
+                if m < M:
+                    A[m, jmax] = lam
+
+            tau = _construct_apply_householder(A, b, nsetp, jmax, min(m + 1, M))
+            if tau >= 0.0:
+                break
+
+            w[jmax] = 0.0
+            if m < M:
+                A[m, jmax] = 0.0
+
+        if jmax < 0:
+            break
+
+        if not diag[idx[jmax]]:
+            m = min(m + 1, M)
+            diag[idx[jmax]] = True
+
+        # move column from Z to P
+        nsetp += 1
+        idx[nsetp - 1], idx[jmax] = idx[jmax], idx[nsetp - 1]
+
+        if nsetp < n:
+            _apply_householder_dual(A, w, b, tau, nsetp - 1, m)
+
+        for i in range(nsetp, m):
+            A[i, nsetp - 1] = 0.0
+        w[nsetp - 1] = 0.0
+
+        # solve triangular system
+        for i in range(nsetp):
+            zz[i] = b[i]
+        _solve_upper_triangular(zz, A, nsetp)
+
+        dual_flag = False
+        while True:
+            it += 1
+            if it > max_iter:
+                work.mode = 1
+                break
+
+            imv = nsetp
+            alpha = 2.0
+            for i in range(nsetp):
+                if zz[i] <= 0.0:
+                    xi = x[idx[i]]
+                    t = -xi / (zz[i] - xi)
+                    if alpha > t:
+                        imv = i + 1
+                        alpha = t
+
+            if alpha == 2.0:
+                break
+
+            dual_flag = True
+
+            for i in range(nsetp):
+                ix = idx[i]
+                x[ix] = x[ix] + alpha * (zz[i] - x[ix])
+
+            while True:
+                x[idx[imv - 1]] = 0.0
+
+                if (imv - 1) != (nsetp - 1):
+                    for i in range(imv, nsetp):
+                        cc, ss, rr = _orthogonal_rotmat(A[i - 1, i], A[i, i])
+                        A[i - 1, i] = rr
+                        A[i, i] = 0.0
+
+                        for j in range(0, i):
+                            A[i - 1, j], A[i, j] = _orthogonal_rotmatvec(cc, ss, A[i - 1, j], A[i, j])
+                        for j in range(i + 1, n):
+                            A[i - 1, j], A[i, j] = _orthogonal_rotmatvec(cc, ss, A[i - 1, j], A[i, j])
+
+                        b[i - 1], b[i] = _orthogonal_rotmatvec(cc, ss, b[i - 1], b[i])
+
+                    # swap columns
+                    for j in range(imv - 1, nsetp - 1):
+                        for i in range(0, m):
+                            A[i, j + 1], A[i, j] = A[i, j], A[i, j + 1]
+                        idx[j], idx[j + 1] = idx[j + 1], idx[j]
+
+                nsetp -= 1
+
+                allfeasible = True
+                for i in range(nsetp):
+                    if x[idx[i]] <= 0.0:
+                        allfeasible = False
+                        imv = i + 1
+                        break
+                if allfeasible:
+                    break
+
+            for i in range(nsetp):
+                zz[i] = b[i]
+            _solve_upper_triangular(zz, A, nsetp)
+
+        if work.mode == 1:
+            break
+
+        if dual_flag:
+            _compute_dual(w, A, b, nsetp, m)
+
+        for i in range(nsetp):
+            x[idx[i]] = zz[i]
+
+    for i in range(n):
+        invidx[idx[i]] = i
+
+    sm = 0.0
+    if nsetp < M:
+        for i in range(nsetp, M):
+            bi = float(b[i])
+            zz[i] = bi
+            sm += bi * bi
+    else:
+        w.fill(0.0)
+
+    work.rnorm = float(np.sqrt(sm))
+    work.nsetp = int(nsetp)
+    return m
+
+
 def _workspace(m: int, n: int) -> _NnlsWorkspace:
     return _NnlsWorkspace(
         A=np.zeros((m, n), dtype=np.float64),
@@ -379,7 +546,7 @@ def nnls_tikhonov(
     max_iter: int | None = None,
     init_last_column: bool = True,
 ) -> NnlsResult:
-    """Tikhonov-regularized NNLS via explicit augmentation (kept for now)."""
+    """Tikhonov-regularized NNLS matching DECAES.jl (no explicit augmentation)."""
 
     A0 = np.asarray(A, dtype=np.float64)
     b0 = np.asarray(b, dtype=np.float64)
@@ -389,7 +556,46 @@ def nnls_tikhonov(
     if mu == 0.0:
         return nnls_decaes(A0, b0, max_iter=max_iter, init_last_column=init_last_column)
 
-    m, n = A0.shape
-    A_aug = np.vstack([A0, mu * np.eye(n, dtype=np.float64)])
-    b_aug = np.concatenate([b0, np.zeros(n, dtype=np.float64)])
-    return nnls_decaes(A_aug, b_aug, max_iter=max_iter, init_last_column=init_last_column)
+    if not init_last_column:
+        # DECAES only defines the last-column-biased initialization; keep behavior consistent.
+        return nnls_decaes(A0, b0, max_iter=max_iter, init_last_column=False)
+
+    m0, n = A0.shape
+    M = m0 + n
+
+    w = _workspace(M, n)
+    C = w.A
+    f = w.b
+    x = w.x
+    dual = w.w
+    z = w.zz
+    idx = w.idx
+    diag = w.diag
+
+    # Initialize workspace matrix with A0 in top block and zeros elsewhere
+    C[:m0, :] = A0
+    C[m0:, :] = 0.0
+
+    # Initialize padded RHS
+    f[:m0] = b0
+    f[m0:] = 0.0
+
+    x.fill(0.0)
+    idx[:] = np.arange(n, dtype=np.int64)
+    diag[:] = False
+
+    # x = A[:, end] \ b with Tikhonov adjustment (||A[:,end]||^2 + mu^2)
+    den = float(np.dot(A0[:, n - 1], A0[:, n - 1]) + mu * mu)
+    xj = float(np.dot(A0[:, n - 1], b0) / den) if den != 0.0 else 0.0
+
+    # z = b - A[:, end] * xj (data rows only)
+    z[:m0] = b0 - A0[:, n - 1] * xj
+
+    for j in range(0, n - 1):
+        dual[j] = float(np.dot(A0[:, j], z[:m0]))
+
+    dual[n - 1] = 0.0
+    dual[n - 1] = float(np.all(dual <= 0.0))
+
+    _unsafe_nnls_tikhonov(w, mu, init_dual=False, max_iter=max_iter)
+    return NnlsResult(x=w.x.copy(), rnorm=w.rnorm)

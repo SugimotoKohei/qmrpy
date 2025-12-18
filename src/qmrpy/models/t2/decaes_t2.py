@@ -359,62 +359,150 @@ def _choose_mu(
     noise_level: float | None,
 ):
     import numpy as np
-    from scipy.optimize import brentq, minimize_scalar
+    from scipy.optimize import minimize_scalar
+
+    from qmrpy._decaes.nnls import nnls_tikhonov
 
     reg = reg.lower().strip()
 
     if reg == "none":
         return 0.0
 
-    # unregularized residual baseline
-    from qmrpy._decaes.nnls import nnls_tikhonov
-
+    # Unregularized baseline
     r0 = nnls_tikhonov(A, b, 0.0)
     rvec0 = A @ r0.x - b
     res0_sq = float(rvec0 @ rvec0)
 
-    # bounds in DECAES (logmu)
-    lo, hi = -8.0, 2.0
+    lo, hi = -8.0, 2.0  # DECAES bounds (logmu)
 
-    if reg == "chi2":
-        if chi2_factor is None or chi2_factor <= 1.0:
-            raise ValueError("chi2_factor must be > 1.0 when reg='chi2'")
-        target = float(chi2_factor) * res0_sq
+    def bracket_root_monotonic(
+        f, a: float, delta: float, *, dilate: float = 1.0, mono: int = +1, maxiters: int = 100
+    ) -> tuple[float, float, float, float]:
+        # Port of DECAES.optimization.bracket_root_monotonic
+        if delta <= 0:
+            raise ValueError("Initial step size must be positive")
+        if dilate < 1:
+            raise ValueError("Dilation factor must be at least 1")
+        if mono == 0:
+            raise ValueError("Monotonicity must be non-zero")
 
-        def f(logmu: float) -> float:
-            mu = float(np.exp(logmu))
-            r = nnls_tikhonov(A, b, mu)
-            rv = A @ r.x - b
-            return float(rv @ rv - target)
+        fa = float(f(a))
+        if not np.isfinite(fa):
+            return float(a), float(a), float("nan"), float("nan")
+        if fa == 0.0:
+            return float(a), float(a), float(fa), float(fa)
 
-        # bracket
-        a, b_ = lo, hi
-        fa, fb = f(a), f(b_)
-        if fa * fb > 0:
-            # fallback: choose closest
-            return float(np.exp(a if abs(fa) < abs(fb) else b_))
-        return float(np.exp(brentq(f, a, b_, xtol=0.0, rtol=0.0, maxiter=100)))
+        sgn_delta = float(np.sign(float(mono)) * np.sign(fa))
+        b_ = float(a - sgn_delta * float(delta))
+        fb = float(f(b_))
+        if not np.isfinite(fb):
+            return float(a), float(a), float(fa), float(fa)
+        if fb == 0.0:
+            return float(b_), float(b_), float(fb), float(fb)
 
-    if reg == "mdp":
-        if noise_level is None or noise_level <= 0.0:
-            raise ValueError("noise_level must be > 0 when reg='mdp'")
-        delta = float(np.sqrt(A.shape[0]) * noise_level)
-        target = delta * delta
+        delta = float(delta) * float(dilate)
+        cnt = 0
+        while fa * fb > 0 and cnt < int(maxiters):
+            a, fa = b_, fb
+            b_ = float(a - sgn_delta * delta)
+            fb = float(f(b_))
+            if not np.isfinite(fb):
+                return float(a), float(a), float(fa), float(fa)
+            if fb == 0.0:
+                return float(b_), float(b_), float(fb), float(fb)
+            delta *= float(dilate)
+            cnt += 1
 
-        def f(logmu: float) -> float:
-            mu = float(np.exp(logmu))
-            r = nnls_tikhonov(A, b, mu)
-            rv = A @ r.x - b
-            return float(rv @ rv - target)
+        return (float(a), float(b_), float(fa), float(fb)) if a < b_ else (float(b_), float(a), float(fb), float(fa))
 
-        a, b_ = lo, hi
-        fa, fb = f(a), f(b_)
-        if fa * fb > 0:
-            return float(np.exp(a if abs(fa) < abs(fb) else b_))
-        return float(np.exp(brentq(f, a, b_, xtol=0.0, rtol=0.0, maxiter=100)))
+    def brent_root(
+        f,
+        x0: float,
+        x1: float,
+        fx0: float,
+        fx1: float,
+        *,
+        xatol: float = 0.0,
+        xrtol: float = 0.0,
+        ftol: float = 0.0,
+        maxiters: int = 100,
+    ) -> tuple[float, float]:
+        # Port of DECAES.optimization.brent_root
+        if fx0 == 0.0:
+            return float(x0), float(fx0)
+        if fx1 == 0.0:
+            return float(x1), float(fx1)
+        if fx0 * fx1 >= 0.0:
+            raise ValueError("Root must be bracketed")
+
+        a, b_, fa, fb = float(x0), float(x1), float(fx0), float(fx1)
+        if abs(fa) < abs(fb):
+            a, b_, fa, fb = b_, a, fb, fa
+        c, d, fc, mflag = float(x0), float(x0), float(fx0), True
+
+        def secant_step(a_: float, b__: float, fa_: float, fb_: float) -> float:
+            den = (fb_ - fa_)
+            if den == 0.0:
+                return float("nan")
+            return a_ - fa_ * (b__ - a_) / den
+
+        def inverse_quadratic_step(
+            a_: float, b__: float, c_: float, fa_: float, fb_: float, fc_: float
+        ) -> float:
+            try:
+                s_ = 0.0
+                s_ += a_ * fb_ * fc_ / (fa_ - fb_) / (fa_ - fc_)
+                s_ += b__ * fa_ * fc_ / (fb_ - fa_) / (fb_ - fc_)
+                s_ += c_ * fa_ * fb_ / (fc_ - fa_) / (fc_ - fb_)
+                return s_
+            except ZeroDivisionError:
+                return float("nan")
+
+        for _ in range(int(maxiters)):
+            if abs(b_ - a) <= 2.0 * (float(xatol) + float(xrtol) * abs(b_)):
+                return float(b_), float(fb)
+
+            s = inverse_quadratic_step(a, b_, c, fa, fb, fc)
+            if not np.isfinite(s):
+                s = secant_step(a, b_, fa, fb)
+
+            u, v = (3.0 * a + b_) / 4.0, b_
+            if u > v:
+                u, v = v, u
+
+            tol = max(float(xatol), float(xrtol) * max(abs(b_), abs(c), abs(d)))
+            if (
+                not (u < s < v)
+                or (mflag and abs(s - b_) >= abs(b_ - c) / 2.0)
+                or ((not mflag) and abs(s - b_) >= abs(b_ - c) / 2.0)
+                or (mflag and abs(b_ - c) <= tol)
+                or ((not mflag) and abs(c - d) <= tol)
+            ):
+                s = (a + b_) / 2.0
+                mflag = True
+            else:
+                mflag = False
+
+            fs = float(f(s))
+            if fs == 0.0:
+                return float(s), float(fs)
+            if not np.isfinite(fs):
+                return float(b_), float(fb)
+            if abs(fs) <= float(ftol):
+                return float(s), float(fs)
+
+            c, fc, d = b_, fb, c
+            if np.sign(fa) * np.sign(fs) < 0:
+                b_, fb = s, fs
+            else:
+                a, fa = s, fs
+
+            if abs(fa) < abs(fb):
+                a, b_, fa, fb = b_, a, fb, fa
+
+        return float(b_), float(fb)
 
     if reg == "gcv":
-        # SVD singular values
         s = np.linalg.svd(A, compute_uv=False)
 
         def obj(logmu: float) -> float:
@@ -424,99 +512,188 @@ def _choose_mu(
         res = minimize_scalar(obj, bounds=(lo, hi), method="bounded", options={"xatol": 1e-4})
         return float(np.exp(float(res.x)))
 
-    if reg == "lcurve":
-        # Minimal port of DECAES lcurve_corner: maximize Menger curvature on (log||Ax-b||^2, log||x||^2)
-        from qmrpy._decaes.nnls import nnls_tikhonov
+    if reg == "chi2":
+        if chi2_factor is None or chi2_factor <= 1.0:
+            raise ValueError("chi2_factor must be > 1.0 when reg='chi2'")
 
-        def point(logmu: float):
+        res_target = float(chi2_factor) * res0_sq
+
+        def f(logmu: float) -> float:
             mu = float(np.exp(logmu))
             r = nnls_tikhonov(A, b, mu)
             rv = A @ r.x - b
-            xi = float(np.log(max(float(rv @ rv), np.finfo(float).tiny)))
-            eta = float(np.log(max(float(r.x @ r.x), np.finfo(float).tiny)))
+            res_sq = float(rv @ rv)
+            return float((res_sq - res_target) / res_target)
+
+        a, b_, fa, fb = bracket_root_monotonic(f, -4.0, 1.0, dilate=1.5, mono=+1, maxiters=6)
+        if fa * fb < 0:
+            logmu, _ = brent_root(
+                f,
+                a,
+                b_,
+                fa,
+                fb,
+                xatol=0.0,
+                xrtol=0.0,
+                ftol=float(1e-3) * (float(chi2_factor) - 1.0),
+                maxiters=100,
+            )
+            return float(np.exp(logmu))
+        return float(np.exp(a if abs(fa) < abs(fb) else b_))
+
+    if reg == "mdp":
+        if noise_level is None or noise_level <= 0.0:
+            raise ValueError("noise_level must be > 0 when reg='mdp'")
+
+        delta = float(np.sqrt(A.shape[0]) * float(noise_level))
+        if delta <= float(np.sqrt(res0_sq)):
+            return 0.0
+
+        bnorm_sq = float(b @ b)
+        if delta * delta >= bnorm_sq:
+            return float("inf")
+
+        target = delta * delta
+
+        def f(logmu: float) -> float:
+            mu = float(np.exp(logmu))
+            r = nnls_tikhonov(A, b, mu)
+            rv = A @ r.x - b
+            return float((rv @ rv) - target)
+
+        a, b_, fa, fb = bracket_root_monotonic(f, -4.0, 1.0, dilate=1.5, mono=+1, maxiters=6)
+        if fa * fb < 0:
+            logmu, err = brent_root(
+                f,
+                a,
+                b_,
+                fa,
+                fb,
+                xatol=0.0,
+                xrtol=0.0,
+                ftol=float(1e-3) * target,
+                maxiters=100,
+            )
+            if np.isfinite(err):
+                return float(np.exp(logmu))
+            return 0.0
+        return float(np.exp(a if abs(fa) < abs(fb) else b_))
+
+    if reg == "lcurve":
+        # Port of DECAES.jl `lcurve_corner` (lsqnonneg.jl). Keep a straightforward cache keyed by
+        # exact float values; this matches the deterministic evaluation points used by the method.
+        phi = float((1 + 5**0.5) / 2.0)
+        xtol = 1e-4
+        ptol = 1e-4
+        ctol = 1e-4
+
+        point_cache: dict[float, tuple[np.ndarray, float]] = {}  # logmu -> (P, C)
+        state_cache: list[
+            tuple[tuple[float, float, float, float], tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]]
+        ] = []
+
+        def f_lcurve(logmu: float) -> np.ndarray:
+            mu = float(np.exp(float(logmu)))
+            r = nnls_tikhonov(A, b, mu)
+            rv = A @ r.x - b
+            xi = float(np.log(float(rv @ rv)))
+            eta = float(np.log(float(r.x @ r.x)))
             return np.array([xi, eta], dtype=np.float64)
 
-        phi = (1 + 5**0.5) / 2
-
-        # caches
-        P_cache: dict[float, np.ndarray] = {}
-        C_cache: dict[float, float] = {}
+        def menger(pj: np.ndarray, pk: np.ndarray, pl: np.ndarray) -> float:
+            d_jk = pj - pk
+            d_kl = pk - pl
+            d_lj = pl - pj
+            pjk = float(d_jk @ d_jk)
+            pkl = float(d_kl @ d_kl)
+            plj = float(d_lj @ d_lj)
+            denom = float(np.sqrt(max(pjk * pkl * plj, 0.0)))
+            if denom == 0.0:
+                return float("-inf")
+            cross = float(d_jk[0] * d_kl[1] - d_jk[1] * d_kl[0])
+            return float(2.0 * cross / denom)
 
         def getP(x: float) -> np.ndarray:
-            if x not in P_cache:
-                P_cache[x] = point(x)
-            return P_cache[x]
+            x = float(x)
+            if x not in point_cache:
+                point_cache[x] = (f_lcurve(x), float("-inf"))
+            return point_cache[x][0]
 
-        def menger(p1: np.ndarray, p2: np.ndarray, p3: np.ndarray) -> float:
-            a = np.linalg.norm(p2 - p1)
-            b_ = np.linalg.norm(p3 - p2)
-            c_ = np.linalg.norm(p1 - p3)
-            s_ = (a + b_ + c_) / 2.0
-            area2 = max(s_ * (s_ - a) * (s_ - b_) * (s_ - c_), 0.0)
-            if area2 == 0.0 or a * b_ * c_ == 0.0:
-                return float("-inf")
-            area = np.sqrt(area2)
-            return float(4.0 * area / (a * b_ * c_))
+        def update_curvature(
+            xvec: tuple[float, float, float, float], ptopleft: np.ndarray, pbottomright: np.ndarray
+        ) -> None:
+            def pfilter(P: np.ndarray) -> bool:
+                return (
+                    min(float(np.linalg.norm(P - ptopleft)), float(np.linalg.norm(P - pbottomright))) > ctol
+                )
 
-        def curvature(x: float) -> float:
-            if x in C_cache:
-                return C_cache[x]
-            xs = sorted(P_cache.keys())
-            # ensure we have at least neighbors
-            if x not in xs:
-                xs.append(x)
-                xs.sort()
-            i = xs.index(x)
-            if i == 0 or i == len(xs) - 1:
-                C_cache[x] = float("-inf")
-                return C_cache[x]
-            p_prev = getP(xs[i - 1])
-            p = getP(x)
-            p_next = getP(xs[i + 1])
-            C_cache[x] = menger(p_prev, p, p_next)
-            return C_cache[x]
+            for x in xvec:
+                getP(x)
 
-        # initial state
-        x1, x4 = float(lo), float(hi)
-        x2 = (phi * x1 + x4) / (phi + 1)
-        x3 = x1 + (x4 - x2)
-        for x in (x1, x2, x3, x4):
-            getP(x)
+            xs = sorted(point_cache.keys())
+            for x in xvec:
+                P, _ = point_cache[x]
+                C = float("-inf")
+                if pfilter(P):
+                    x_m = max((t for t in xs if t < x), default=None)
+                    x_p = min((t for t in xs if t > x), default=None)
+                    if x_m is not None and x_p is not None:
+                        Pm = point_cache[float(x_m)][0]
+                        Pp = point_cache[float(x_p)][0]
+                        C = menger(Pm, P, Pp)
+                point_cache[x] = (P, float(C))
 
-        xtol = 1e-4
-        for _ in range(200):
-            # update curvatures (needs neighbors)
-            xs = sorted(P_cache.keys())
-            for x in xs[1:-1]:
-                curvature(x)
+        def initial_state(x1: float, x4: float):
+            x2 = (phi * x1 + x4) / (phi + 1.0)
+            x3 = x1 + (x4 - x2)
+            xvec = (float(x1), float(x2), float(x3), float(x4))
+            pvec = (getP(xvec[0]), getP(xvec[1]), getP(xvec[2]), getP(xvec[3]))
+            return xvec, pvec
 
-            # choose direction based on C(x2) vs C(x3)
-            c2 = curvature(x2)
-            c3 = curvature(x3)
+        def move_left(xvec, pvec):
+            x1, x2, x3, _x4 = xvec
+            x2_new = (phi * x1 + x3) / (phi + 1.0)
+            xnew = (float(x1), float(x2_new), float(x2), float(x3))
+            pnew = (pvec[0], getP(xnew[1]), pvec[1], pvec[2])
+            return xnew, pnew
+
+        def move_right(xvec, pvec):
+            _x1, x2, x3, x4 = xvec
+            x3_new = x2 + (x4 - x3)
+            xnew = (float(x2), float(x3), float(x3_new), float(x4))
+            pnew = (pvec[1], pvec[2], getP(xnew[2]), pvec[3])
+            return xnew, pnew
+
+        xvec, pvec = initial_state(float(lo), float(hi))
+        ptopleft, pbottomright = pvec[0], pvec[3]
+        update_curvature(xvec, ptopleft, pbottomright)
+
+        it = 0
+        while abs(xvec[3] - xvec[0]) >= xtol and float(np.linalg.norm(pvec[0] - pvec[3])) >= ptol:
+            it += 1
+
+            # backtracking
+            if point_cache and state_cache:
+                best_x = max(point_cache.items(), key=lambda kv: kv[1][1])[0]
+                best_diam = abs(xvec[3] - xvec[0])
+                for sx, sp in state_cache:
+                    if (sx[1] == best_x or sx[2] == best_x) and abs(sx[3] - sx[0]) <= best_diam:
+                        xvec, pvec = sx, sp
+                        best_diam = abs(sx[3] - sx[0])
+
+            c2 = point_cache.get(xvec[1], (None, float("-inf")))[1]
+            c3 = point_cache.get(xvec[2], (None, float("-inf")))[1]
             if c2 > c3:
-                # move left
-                x4 = x3
-                x3 = x2
-                x2 = (phi * x1 + x3) / (phi + 1)
-                getP(x2)
+                xvec, pvec = move_left(xvec, pvec)
             else:
-                # move right
-                x1 = x2
-                x2 = x3
-                x3 = x2 + (x4 - x2) / (phi + 1)
-                getP(x3)
+                xvec, pvec = move_right(xvec, pvec)
 
-            if abs(x4 - x1) < xtol:
+            update_curvature(xvec, ptopleft, pbottomright)
+            state_cache.append((xvec, pvec))
+            if it > 200:
                 break
 
-        # final: pick max curvature among cached points
-        xs = sorted(P_cache.keys())
-        best_x = xs[0]
-        best_c = float("-inf")
-        for x in xs[1:-1]:
-            c = curvature(x)
-            if c > best_c:
-                best_c, best_x = c, x
+        best_x = max(point_cache.items(), key=lambda kv: kv[1][1])[0]
         return float(np.exp(best_x))
 
     raise ValueError(f"Unknown reg: {reg}")
