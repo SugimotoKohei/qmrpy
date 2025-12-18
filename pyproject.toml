@@ -1,0 +1,58 @@
+[build-system]
+requires = ["hatchling>=1.25"]
+build-backend = "hatchling.build"
+
+[project]
+name = "qmrpy"
+description = "Python implementation (translation) of qMRLab models for quantitative MRI."
+readme = "README.md"
+requires-python = ">=3.11"
+license = { text = "MIT" }
+authors = [
+  { name = "Kohei Sugimoto" },
+]
+keywords = ["qMRI", "MRI", "qMRLab", "relaxometry", "diffusion"]
+classifiers = [
+  "Development Status :: 2 - Pre-Alpha",
+  "Intended Audience :: Science/Research",
+  "License :: OSI Approved :: MIT License",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3.11",
+  "Topic :: Scientific/Engineering :: Medical Science Apps.",
+]
+dependencies = [
+  "numpy>=1.26",
+  "scipy>=1.11",
+]
+dynamic = ["version"]
+
+[project.urls]
+Repository = "https://github.com/SugimotoKohei/qmrpy"
+Issues = "https://github.com/SugimotoKohei/qmrpy/issues"
+
+[project.optional-dependencies]
+viz = [
+  "plotnine>=0.13",
+]
+dev = [
+  "pytest>=8",
+  "pytest-cov>=5",
+  "ruff>=0.6",
+]
+
+[tool.hatch.version]
+path = "src/qmrpy/__init__.py"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/qmrpy"]
+
+[tool.hatch.build.targets.wheel.force-include]
+"src/qmrpy/py.typed" = "qmrpy/py.typed"
+
+[tool.ruff]
+line-length = 100
+target-version = "py311"
+
+[tool.pytest.ini_options]
+addopts = "-q"
+testpaths = ["tests"]

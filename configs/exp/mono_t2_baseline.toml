@@ -1,0 +1,11 @@
+[run]
+tag = "mono-t2-baseline"
+seed = 0
+
+[mono_t2]
+te_ms = [10, 20, 40, 80, 160]
+n_samples = 200
+m0 = 1000.0
+t2_range_ms = [20.0, 200.0]
+noise_sigma = 5.0
+

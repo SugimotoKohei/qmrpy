@@ -1,0 +1,35 @@
+# outputs / data
+output/
+data/
+configs/local/
+
+# upstream reference (MATLAB)
+qMRLab/
+
+# environments / caches
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.cache/
+.uv_cache/
+
+# packaging outputs
+dist/
+build/
+*.egg-info/
+
+# OS/editor
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# logs
+*.log
+
+# secrets (原則使わないが、万一置くなら絶対に管理しない)
+.env
+.env.*

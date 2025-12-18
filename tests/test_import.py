@@ -1,0 +1,22 @@
+def test_import():
+    import qmrpy  # noqa: F401
+
+
+def test_mono_t2_forward_and_fit_noise_free():
+    import pytest
+
+    np = pytest.importorskip("numpy")
+    pytest.importorskip("scipy")
+
+    from qmrpy.models.t2 import MonoT2
+
+    te_ms = np.array([10.0, 20.0, 40.0, 80.0, 160.0], dtype=float)
+    model = MonoT2(te=te_ms)
+
+    m0_true = 1000.0
+    t2_true = 75.0
+    signal = model.forward(m0=m0_true, t2=t2_true)
+
+    fitted = model.fit(signal)
+    assert abs(fitted["m0"] - m0_true) / m0_true < 1e-6
+    assert abs(fitted["t2"] - t2_true) / t2_true < 1e-6
