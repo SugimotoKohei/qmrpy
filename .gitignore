@@ -1,7 +1,7 @@
 # outputs / data
-output/
-data/
-configs/local/
+/output/
+/data/
+/configs/local/
 
 # upstream reference (MATLAB)
 qMRLab/
