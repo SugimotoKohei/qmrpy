@@ -231,9 +231,13 @@ class VfaT1Config:
     t1_min_s: float
     t1_max_s: float
     b1: float
+    b1_range: tuple[float, float] | None
     noise_model: str
     noise_sigma: float
     seed: int
+    robust_linear: bool
+    huber_k: float
+    min_signal: float | None
 
 
 def _parse_vfa_t1_config(config: dict[str, object]) -> VfaT1Config:
@@ -257,8 +261,23 @@ def _parse_vfa_t1_config(config: dict[str, object]) -> VfaT1Config:
         raise ValueError("vfa_t1.t1_range_s must be [min, max]")
     t1_min_s, t1_max_s = float(t1_range_s[0]), float(t1_range_s[1])
     b1 = float(vfa_cfg.get("b1", 1.0))
+    b1_range = vfa_cfg.get("b1_range")
+    if b1_range is None:
+        b1_range_parsed = None
+    else:
+        if (
+            not isinstance(b1_range, list)
+            or len(b1_range) != 2
+            or not all(isinstance(x, (int, float)) for x in b1_range)
+        ):
+            raise ValueError("vfa_t1.b1_range must be [min, max]")
+        b1_range_parsed = (float(b1_range[0]), float(b1_range[1]))
     noise_model = str(vfa_cfg.get("noise_model", "gaussian"))
     noise_sigma = float(vfa_cfg.get("noise_sigma", 0.0))
+    robust_linear = bool(vfa_cfg.get("robust_linear", False))
+    huber_k = float(vfa_cfg.get("huber_k", 1.345))
+    min_signal = vfa_cfg.get("min_signal")
+    min_signal_parsed = None if min_signal is None else float(min_signal)
     seed = int(run_cfg.get("seed", 0))
     return VfaT1Config(
         flip_angle_deg=[float(x) for x in fa],
@@ -268,9 +287,13 @@ def _parse_vfa_t1_config(config: dict[str, object]) -> VfaT1Config:
         t1_min_s=t1_min_s,
         t1_max_s=t1_max_s,
         b1=b1,
+        b1_range=b1_range_parsed,
         noise_model=noise_model,
         noise_sigma=noise_sigma,
         seed=seed,
+        robust_linear=robust_linear,
+        huber_k=huber_k,
+        min_signal=min_signal_parsed,
     )
 
 
@@ -287,10 +310,21 @@ def _run_vfa_t1(cfg: VfaT1Config, *, out_metrics: Path, out_figures: Path) -> di
     rng = np.random.default_rng(cfg.seed)
     t1_true = rng.uniform(cfg.t1_min_s, cfg.t1_max_s, size=cfg.n_samples).astype(float)
     m0_true = np.full(cfg.n_samples, cfg.m0, dtype=float)
+    if cfg.b1_range is not None:
+        b1_true = rng.uniform(cfg.b1_range[0], cfg.b1_range[1], size=cfg.n_samples).astype(float)
+    else:
+        b1_true = np.full(cfg.n_samples, cfg.b1, dtype=float)
 
-    model = VfaT1(flip_angle_deg=np.array(cfg.flip_angle_deg, dtype=float), tr_s=cfg.tr_s, b1=cfg.b1)
+    model_nominal = VfaT1(flip_angle_deg=np.array(cfg.flip_angle_deg, dtype=float), tr_s=cfg.tr_s, b1=1.0)
     signal_clean = np.stack(
-        [model.forward(m0=float(m0_true[i]), t1_s=float(t1_true[i])) for i in range(cfg.n_samples)]
+        [
+            VfaT1(
+                flip_angle_deg=model_nominal.flip_angle_deg,
+                tr_s=cfg.tr_s,
+                b1=float(b1_true[i]),
+            ).forward(m0=float(m0_true[i]), t1_s=float(t1_true[i]))
+            for i in range(cfg.n_samples)
+        ]
     )
     if cfg.noise_model == "gaussian":
         signal = add_gaussian_noise(signal_clean, sigma=cfg.noise_sigma, rng=rng)
@@ -302,25 +336,39 @@ def _run_vfa_t1(cfg: VfaT1Config, *, out_metrics: Path, out_figures: Path) -> di
     fitted_m0 = np.empty(cfg.n_samples, dtype=float)
     fitted_t1 = np.empty(cfg.n_samples, dtype=float)
     for i in range(cfg.n_samples):
-        fitted = model.fit_linear(signal[i])
+        if cfg.min_signal is not None and float(np.max(signal[i])) < float(cfg.min_signal):
+            fitted_m0[i] = np.nan
+            fitted_t1[i] = np.nan
+            continue
+        fitted = VfaT1(
+            flip_angle_deg=model_nominal.flip_angle_deg,
+            tr_s=cfg.tr_s,
+            b1=float(b1_true[i]),
+        ).fit_linear(signal[i], robust=cfg.robust_linear, huber_k=cfg.huber_k)
         fitted_m0[i] = fitted["m0"]
         fitted_t1[i] = fitted["t1_s"]
 
-    t1_err = fitted_t1 - t1_true
-    m0_err = fitted_m0 - m0_true
+    valid = np.isfinite(fitted_t1) & np.isfinite(fitted_m0)
+    t1_err = fitted_t1[valid] - t1_true[valid]
+    m0_err = fitted_m0[valid] - m0_true[valid]
 
     metrics = {
         "n_samples": int(cfg.n_samples),
+        "n_valid": int(np.sum(valid)),
         "flip_angle_deg": [float(x) for x in cfg.flip_angle_deg],
         "tr_s": float(cfg.tr_s),
         "b1": float(cfg.b1),
+        "b1_range": None if cfg.b1_range is None else [float(cfg.b1_range[0]), float(cfg.b1_range[1])],
         "noise_model": str(cfg.noise_model),
         "noise_sigma": float(cfg.noise_sigma),
+        "robust_linear": bool(cfg.robust_linear),
+        "huber_k": float(cfg.huber_k),
+        "min_signal": cfg.min_signal,
         "t1_mae": float(np.mean(np.abs(t1_err))),
         "t1_rmse": float(np.sqrt(np.mean(t1_err**2))),
         "m0_mae": float(np.mean(np.abs(m0_err))),
         "m0_rmse": float(np.sqrt(np.mean(m0_err**2))),
-        "t1_rel_mae": float(np.mean(np.abs(t1_err) / t1_true)),
+        "t1_rel_mae": float(np.mean(np.abs(t1_err) / t1_true[valid])),
     }
     out_metrics.write_text(json.dumps(metrics, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
