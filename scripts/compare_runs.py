@@ -241,6 +241,63 @@ def main(argv: list[str] | None = None) -> int:
             )
             ggsave(fig7, filename=str(figures_dir / "failure__abs_t1_err_vs_b1.png"), verbose=False, dpi=150)
 
+        # Stratified summaries (binning)
+        if "abs_t1_err" in df_ps_all.columns and "t1_true" in df_ps_all.columns:
+            df_bin = df_ps_all[["label", "t1_true", "abs_t1_err"]].dropna()
+            if not df_bin.empty:
+                # quantile bins are stable across skewed distributions
+                n_bins = 10 if df_bin["t1_true"].nunique() >= 10 else max(2, int(df_bin["t1_true"].nunique()))
+                df_bin["t1_bin"] = pd.qcut(df_bin["t1_true"], q=n_bins, duplicates="drop")
+                agg = (
+                    df_bin.groupby(["label", "t1_bin"], dropna=False, observed=False)
+                    .agg(n=("abs_t1_err", "size"), abs_t1_err_mean=("abs_t1_err", "mean"))
+                    .reset_index()
+                )
+                # plotnine/matplotlib: avoid categorical bin objects causing axis warnings
+                agg["t1_bin"] = agg["t1_bin"].astype(str)
+                agg.to_csv(metrics_dir / "failure__abs_t1_err_by_t1_bin.csv", index=False)
+
+                fig8 = (
+                    ggplot(agg, aes(x="t1_bin", y="abs_t1_err_mean"))
+                    + geom_col()
+                    + coord_flip()
+                    + facet_wrap("label", scales="free_y")
+                    + theme_bw()
+                    + labs(
+                        title="(C) Failure analysis: mean |T1 error| by T1 bin",
+                        x="T1 true bins [s]",
+                        y="mean |t1_err| [s]",
+                    )
+                )
+                ggsave(fig8, filename=str(figures_dir / "failure__abs_t1_err_by_t1_bin.png"), verbose=False, dpi=150)
+
+        if "abs_t1_err" in df_ps_all.columns and "b1_true" in df_ps_all.columns:
+            df_bin = df_ps_all[["label", "b1_true", "abs_t1_err"]].dropna()
+            if not df_bin.empty:
+                n_bins = 10 if df_bin["b1_true"].nunique() >= 10 else max(2, int(df_bin["b1_true"].nunique()))
+                df_bin["b1_bin"] = pd.qcut(df_bin["b1_true"], q=n_bins, duplicates="drop")
+                agg = (
+                    df_bin.groupby(["label", "b1_bin"], dropna=False, observed=False)
+                    .agg(n=("abs_t1_err", "size"), abs_t1_err_mean=("abs_t1_err", "mean"))
+                    .reset_index()
+                )
+                agg["b1_bin"] = agg["b1_bin"].astype(str)
+                agg.to_csv(metrics_dir / "failure__abs_t1_err_by_b1_bin.csv", index=False)
+
+                fig9 = (
+                    ggplot(agg, aes(x="b1_bin", y="abs_t1_err_mean"))
+                    + geom_col()
+                    + coord_flip()
+                    + facet_wrap("label", scales="free_y")
+                    + theme_bw()
+                    + labs(
+                        title="(C) Failure analysis: mean |T1 error| by B1 bin",
+                        x="B1 bins",
+                        y="mean |t1_err| [s]",
+                    )
+                )
+                ggsave(fig9, filename=str(figures_dir / "failure__abs_t1_err_by_b1_bin.png"), verbose=False, dpi=150)
+
     (out_dir / "report.json").write_text(
         json.dumps(
             {
