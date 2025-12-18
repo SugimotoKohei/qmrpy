@@ -4,12 +4,14 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from numpy.typing import ArrayLike
+    import numpy as np
+    from numpy.typing import ArrayLike, NDArray
 else:
     ArrayLike = Any  # type: ignore[misc,assignment]
+    NDArray = Any  # type: ignore[misc,assignment]
 
 
-def _as_1d_float_array(values: ArrayLike, *, name: str):
+def _as_1d_float_array(values: ArrayLike, *, name: str) -> NDArray[np.float64]:
     import numpy as np
 
     array = np.asarray(values, dtype=np.float64)
@@ -39,7 +41,7 @@ class B1Dam:
         if self.alpha_deg <= 0:
             raise ValueError("alpha_deg must be > 0")
 
-    def forward(self, *, m0: float, b1: float) -> Any:
+    def forward(self, *, m0: float, b1: float) -> NDArray[np.float64]:
         """Forward model returning [S(alpha), S(2*alpha)] under a simple sine model.
 
         This is a simplified signal model (TR→∞ assumption) used for synthetic runs/tests.
@@ -76,4 +78,3 @@ class B1Dam:
 
         spurious = 1.0 if (not np.isfinite(b1_raw) or b1_raw < 0.5) else 0.0
         return {"b1_raw": float(b1_raw), "spurious": float(spurious)}
-

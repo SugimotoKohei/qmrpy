@@ -1,9 +1,18 @@
 from __future__ import annotations
 
-from typing import Any
+from typing import TYPE_CHECKING, Any
+
+if TYPE_CHECKING:
+    import numpy as np
+    from numpy.random import Generator
+    from numpy.typing import ArrayLike, NDArray
+else:
+    ArrayLike = Any  # type: ignore[misc,assignment]
+    NDArray = Any  # type: ignore[misc,assignment]
+    Generator = Any  # type: ignore[misc,assignment]
 
 
-def add_gaussian_noise(signal: Any, *, sigma: float, rng: Any) -> Any:
+def add_gaussian_noise(signal: ArrayLike, *, sigma: float, rng: Generator) -> NDArray[np.float64]:
     """Add i.i.d. Gaussian noise to a real-valued signal.
 
     Parameters
@@ -25,7 +34,7 @@ def add_gaussian_noise(signal: Any, *, sigma: float, rng: Any) -> Any:
     return x + rng.normal(loc=0.0, scale=float(sigma), size=x.shape)
 
 
-def add_rician_noise(signal: Any, *, sigma: float, rng: Any) -> Any:
+def add_rician_noise(signal: ArrayLike, *, sigma: float, rng: Generator) -> NDArray[np.float64]:
     """Add Rician noise (magnitude of complex Gaussian) to a real-valued signal.
 
     This matches the common qMRI magnitude noise model:
@@ -41,4 +50,3 @@ def add_rician_noise(signal: Any, *, sigma: float, rng: Any) -> Any:
     n1 = rng.normal(loc=0.0, scale=float(sigma), size=s.shape)
     n2 = rng.normal(loc=0.0, scale=float(sigma), size=s.shape)
     return np.sqrt((s + n1) ** 2 + (n2**2))
-

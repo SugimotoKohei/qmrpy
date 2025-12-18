@@ -4,12 +4,14 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from numpy.typing import ArrayLike
+    import numpy as np
+    from numpy.typing import ArrayLike, NDArray
 else:
     ArrayLike = Any  # type: ignore[misc,assignment]
+    NDArray = Any  # type: ignore[misc,assignment]
 
 
-def _as_1d_float_array(values: ArrayLike, *, name: str):
+def _as_1d_float_array(values: ArrayLike, *, name: str) -> NDArray[np.float64]:
     import numpy as np
 
     array = np.asarray(values, dtype=np.float64)
@@ -32,9 +34,9 @@ class VfaT1:
         - t1_s: seconds
     """
 
-    flip_angle_deg: Any
+    flip_angle_deg: ArrayLike
     tr_s: float
-    b1: Any = 1.0
+    b1: ArrayLike | float = 1.0
 
     def __post_init__(self) -> None:
         import numpy as np
@@ -59,7 +61,7 @@ class VfaT1:
         object.__setattr__(self, "flip_angle_deg", fa)
         object.__setattr__(self, "b1", b1)
 
-    def forward(self, *, m0: float, t1_s: float) -> Any:
+    def forward(self, *, m0: float, t1_s: float) -> NDArray[np.float64]:
         import numpy as np
 
         if t1_s <= 0:

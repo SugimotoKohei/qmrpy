@@ -4,12 +4,14 @@ from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from numpy.typing import ArrayLike
+    import numpy as np
+    from numpy.typing import ArrayLike, NDArray
 else:
     ArrayLike = Any  # type: ignore[misc,assignment]
+    NDArray = Any  # type: ignore[misc,assignment]
 
 
-def _as_1d_float_array(values: ArrayLike, *, name: str):
+def _as_1d_float_array(values: ArrayLike, *, name: str) -> NDArray[np.float64]:
     import numpy as np
 
     array = np.asarray(values, dtype=np.float64)
@@ -39,8 +41,8 @@ class MultiComponentT2:
     (MWF, T2MW, T2IEW) by integrating the spectrum over cutoff ranges.
     """
 
-    te_ms: Any
-    t2_basis_ms: Any = field(default=None)
+    te_ms: ArrayLike
+    t2_basis_ms: ArrayLike | None = field(default=None)
 
     def __post_init__(self) -> None:
         import numpy as np
@@ -60,7 +62,9 @@ class MultiComponentT2:
         object.__setattr__(self, "t2_basis_ms", basis)
 
     @staticmethod
-    def default_t2_basis_ms(*, t2_min_ms: float = 10.0, t2_max_ms: float = 2000.0, n: int = 40):
+    def default_t2_basis_ms(
+        *, t2_min_ms: float = 10.0, t2_max_ms: float = 2000.0, n: int = 40
+    ) -> NDArray[np.float64]:
         import numpy as np
 
         if t2_min_ms <= 0:
@@ -71,14 +75,14 @@ class MultiComponentT2:
             raise ValueError("n must be > 1")
         return np.logspace(np.log10(float(t2_min_ms)), np.log10(float(t2_max_ms)), int(n))
 
-    def _design_matrix(self) -> Any:
+    def _design_matrix(self) -> NDArray[np.float64]:
         import numpy as np
 
         # A shape: (n_te, n_basis)
         # A[i, j] = exp(-te[i] / t2_basis[j])
         return np.exp(-self.te_ms[:, None] / self.t2_basis_ms[None, :])
 
-    def forward(self, *, weights: ArrayLike) -> Any:
+    def forward(self, *, weights: ArrayLike) -> NDArray[np.float64]:
         """Simulate signal from weights.
 
         weights: array of size (n_basis,) corresponding to t2_basis_ms.

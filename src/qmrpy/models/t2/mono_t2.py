@@ -4,13 +4,14 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any, Sequence
 
 if TYPE_CHECKING:
+    import numpy as np
     from numpy.typing import ArrayLike, NDArray
 else:
     ArrayLike = Any  # type: ignore[misc,assignment]
     NDArray = Any  # type: ignore[misc,assignment]
 
 
-def _as_1d_float_array(values: ArrayLike, *, name: str):
+def _as_1d_float_array(values: ArrayLike, *, name: str) -> NDArray[np.float64]:
     import numpy as np
 
     array = np.asarray(values, dtype=np.float64)
@@ -27,7 +28,7 @@ class MonoT2:
         S(TE) = m0 * exp(-TE / T2)
     """
 
-    te: Any
+    te: ArrayLike
 
     def __post_init__(self) -> None:
         import numpy as np
@@ -37,7 +38,7 @@ class MonoT2:
             raise ValueError("te must be non-negative")
         object.__setattr__(self, "te", te_array)
 
-    def forward(self, *, m0: float, t2: float):
+    def forward(self, *, m0: float, t2: float) -> NDArray[np.float64]:
         import numpy as np
 
         if t2 <= 0:

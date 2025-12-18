@@ -4,12 +4,14 @@ from dataclasses import dataclass
 from typing import TYPE_CHECKING, Any
 
 if TYPE_CHECKING:
-    from numpy.typing import ArrayLike
+    import numpy as np
+    from numpy.typing import ArrayLike, NDArray
 else:
     ArrayLike = Any  # type: ignore[misc,assignment]
+    NDArray = Any  # type: ignore[misc,assignment]
 
 
-def _as_1d_float_array(values: ArrayLike, *, name: str):
+def _as_1d_float_array(values: ArrayLike, *, name: str) -> NDArray[np.float64]:
     import numpy as np
 
     array = np.asarray(values, dtype=np.float64)
@@ -34,7 +36,7 @@ class InversionRecovery:
         - "magnitude": assume |S| observed; perform polarity restoration by searching idx
     """
 
-    ti_ms: Any
+    ti_ms: ArrayLike
 
     def __post_init__(self) -> None:
         import numpy as np
@@ -47,7 +49,9 @@ class InversionRecovery:
             raise ValueError("ti_ms must be sorted ascending")
         object.__setattr__(self, "ti_ms", ti)
 
-    def forward(self, *, t1_ms: float, ra: float, rb: float, magnitude: bool = False):
+    def forward(
+        self, *, t1_ms: float, ra: float, rb: float, magnitude: bool = False
+    ) -> NDArray[np.float64]:
         import numpy as np
 
         if t1_ms <= 0:
@@ -147,4 +151,3 @@ class InversionRecovery:
             "idx": float(best_idx),
             "res_rmse": float(best_rmse),
         }
-
