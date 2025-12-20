@@ -81,7 +81,7 @@ model = VfaT1(
 )
 
 signal = model.forward(m0=1.0, t1_s=1.2)
-fit = model.fit(signal)
+fit = model.fit_linear(signal)
 print(fit["t1_s"], fit["m0"])
 ```
 
