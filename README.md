@@ -63,19 +63,10 @@ qMRLab（MATLAB実装）の概念・モデルを **Python** へ段階的に移�
 
 ## パッケージ利用
 
-### インストール（ローカル利用）
-
-開発中のローカルソースをそのまま使う場合（編集可能インストール）：
+`uv` を使う場合の導入例：
 
 ```bash
-uv pip install -e /Users/sugim/Developments/qmrpy
-```
-
-このリポジトリ内だけで使う場合：
-
-```bash
-uv sync --locked
-uv run python -c "import qmrpy; print(qmrpy.__version__)"
+uv add qmrpy
 ```
 
 ### 最小利用例
