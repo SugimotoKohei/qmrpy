@@ -279,11 +279,26 @@ def fisher_information_gaussian(
     return f
 
 
-def crlb_from_fisher(fisher: Any) -> Any:
+def crlb_from_fisher(
+    fisher: Any,
+    *,
+    variables: list[str] | None = None,
+    return_matrix: bool = False,
+) -> Any:
+    """Compute CRLB (covariance) from Fisher information.
+
+    If `variables` is provided and `return_matrix=False`, returns a dict of per-parameter
+    variances (diag of CRLB). Otherwise returns the full covariance matrix (ndarray).
+    """
     import numpy as np
 
     f = np.asarray(fisher, dtype=np.float64)
-    return np.linalg.inv(f + np.eye(f.shape[0]) * 0.0)
+    cov = np.linalg.inv(f + np.eye(f.shape[0]) * 0.0)
+    if return_matrix or variables is None:
+        return cov
+    if len(variables) != cov.shape[0]:
+        raise ValueError("variables length must match Fisher dimension")
+    return {str(name): float(cov[i, i]) for i, name in enumerate(variables)}
 
 
 def crlb_cov_mean(
