@@ -1346,6 +1346,7 @@ dev = [
     { name = "ruff" },
 ]
 viz = [
+    { name = "pandas" },
     { name = "plotnine" },
 ]
 
@@ -1359,6 +1360,7 @@ requires-dist = [
     { name = "nbclient", marker = "extra == 'dev'", specifier = ">=0.10.2" },
     { name = "nbformat", marker = "extra == 'dev'", specifier = ">=5.10.4" },
     { name = "numpy", specifier = ">=1.26" },
+    { name = "pandas", marker = "extra == 'viz'", specifier = ">=2.3.3" },
     { name = "plotnine", marker = "extra == 'viz'", specifier = ">=0.13" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5" },

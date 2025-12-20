@@ -32,6 +32,7 @@ Issues = "https://github.com/SugimotoKohei/qmrpy/issues"
 
 [project.optional-dependencies]
 viz = [
+  "pandas>=2.3.3",
   "plotnine>=0.13",
 ]
 dev = [
