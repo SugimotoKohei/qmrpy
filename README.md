@@ -8,8 +8,7 @@ qMRLab（MATLAB実装）の概念・モデルを **Python** へ段階的に移�
 
 ## 方針（重要）
 
-- 実装を始める前に `docs/studyplan.md` を完成させ（`Status: active`, `Version: v0.1.0`）、そこに沿って進めます。
-- 出力（実験結果やログ）は原則 `output/` に出し、Git 管理しません。
+ - 出力（実験結果やログ）は原則 `output/` に出し、Git 管理しません。
 
 ## ディレクトリ構成（予定）
 
@@ -23,14 +22,13 @@ qMRLab（MATLAB実装）の概念・モデルを **Python** へ段階的に移�
 ├─ tests/                    # pytest
 ├─ scripts/                  # 実験・実行入口（薄く保つ）
 ├─ configs/                  # 実験設定（再現性の入力）
-├─ docs/                     # 計画・記録・論文
 ├─ notebooks/                # 探索・可視化（任意）
 └─ output/                   # 実験結果（Git外）
 ```
 
 ## 代表コマンド（後で有効化）
 
-`docs/studyplan.md` に従って、run 形式で検証を回します。
+研究計画・記録は非公開で管理しています。
 
 - `uv sync --locked --extra viz --extra dev`
 - `uv run scripts/run_experiment.py --config configs/exp/mono_t2_baseline.toml`
