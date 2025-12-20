@@ -26,7 +26,7 @@ class B1Afi:
 
     Protocol:
         - nom_fa_deg: nominal excitation flip angle [deg]
-        - tr1_s, tr2_s: repetition times (any consistent units; only ratio matters)
+        - tr1_ms, tr2_ms: repetition times (any consistent units; only ratio matters)
 
     Input signal ordering:
         - signal = [AFIData1, AFIData2]
@@ -34,14 +34,14 @@ class B1Afi:
     """
 
     nom_fa_deg: float
-    tr1_s: float
-    tr2_s: float
+    tr1_ms: float
+    tr2_ms: float
 
     def __post_init__(self) -> None:
         if self.nom_fa_deg <= 0:
             raise ValueError("nom_fa_deg must be > 0")
-        if self.tr1_s <= 0 or self.tr2_s <= 0:
-            raise ValueError("tr1_s and tr2_s must be > 0")
+        if self.tr1_ms <= 0 or self.tr2_ms <= 0:
+            raise ValueError("tr1_ms and tr2_ms must be > 0")
 
     def fit_raw(self, signal: ArrayLike) -> dict[str, float]:
         """Fit B1 from AFI signals [S(TR1), S(TR2)].
@@ -61,7 +61,7 @@ class B1Afi:
         if abs(s1) < 1e-12:
             return {"b1_raw": float("nan"), "spurious": 1.0}
 
-        n = float(self.tr2_s) / float(self.tr1_s)
+        n = float(self.tr2_ms) / float(self.tr1_ms)
         r = abs(s2 / s1)
 
         # qMRLab behavior: r>1 treated as noise
@@ -105,7 +105,7 @@ class B1Afi:
         spurious = np.ones(spatial_shape, dtype=np.float64)
 
         valid = m & np.isfinite(s1) & np.isfinite(s2) & (np.abs(s1) >= 1e-12)
-        n = float(self.tr2_s) / float(self.tr1_s)
+        n = float(self.tr2_ms) / float(self.tr1_ms)
 
         r = np.empty_like(s1, dtype=np.float64)
         r[valid] = np.abs(s2[valid] / s1[valid])

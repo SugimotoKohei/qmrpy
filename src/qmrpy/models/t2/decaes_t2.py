@@ -44,9 +44,9 @@ def _epg_decay_curve_decaes(
     *,
     etl: int,
     alpha_deg: float,
-    te_s: float,
-    t2_s: float,
-    t1_s: float,
+    te_ms: float,
+    t2_ms: float,
+    t1_ms: float,
     beta_deg: float,
 ) -> NDArray[np.float64]:
     """Compute normalized MSE echo decay curve using EPG w/ stimulated echo correction.
@@ -59,15 +59,15 @@ def _epg_decay_curve_decaes(
     etl = int(etl)
     if etl < 1:
         raise ValueError("etl must be >= 1")
-    te_s = float(te_s)
-    if te_s <= 0:
-        raise ValueError("te_s must be > 0")
-    t2_s = float(t2_s)
-    t1_s = float(t1_s)
-    if t2_s <= 0:
-        raise ValueError("t2_s must be > 0")
-    if t1_s <= 0:
-        raise ValueError("t1_s must be > 0")
+    te_ms = float(te_ms)
+    if te_ms <= 0:
+        raise ValueError("te_ms must be > 0")
+    t2_ms = float(t2_ms)
+    t1_ms = float(t1_ms)
+    if t2_ms <= 0:
+        raise ValueError("t2_ms must be > 0")
+    if t1_ms <= 0:
+        raise ValueError("t1_ms must be > 0")
 
     A = float(alpha_deg) / 180.0
     alpha_ex = A * 90.0
@@ -75,8 +75,8 @@ def _epg_decay_curve_decaes(
     alphai = A * float(beta_deg)
 
     # Relaxation for TE/2
-    E1 = float(np.exp(-((te_s / 2.0) / t1_s)))
-    E2 = float(np.exp(-((te_s / 2.0) / t2_s)))
+    E1 = float(np.exp(-((te_ms / 2.0) / t1_ms)))
+    E2 = float(np.exp(-((te_ms / 2.0) / t2_ms)))
     E = np.array([E2, E2, E1], dtype=np.complex128)
 
     R1 = _element_flipmat(alpha1)
@@ -121,9 +121,9 @@ def _epg_decay_curve_epgpy(
     *,
     etl: int,
     alpha_deg: float,
-    te_s: float,
-    t2_s: float,
-    t1_s: float,
+    te_ms: float,
+    t2_ms: float,
+    t1_ms: float,
     beta_deg: float,
 ) -> NDArray[np.float64]:
     """Compute normalized MSE echo decay curve using vendored epgpy."""
@@ -134,24 +134,24 @@ def _epg_decay_curve_epgpy(
     etl = int(etl)
     if etl < 1:
         raise ValueError("etl must be >= 1")
-    te_s = float(te_s)
-    if te_s <= 0:
-        raise ValueError("te_s must be > 0")
-    t2_s = float(t2_s)
-    t1_s = float(t1_s)
-    if t2_s <= 0:
-        raise ValueError("t2_s must be > 0")
-    if t1_s <= 0:
-        raise ValueError("t1_s must be > 0")
+    te_ms = float(te_ms)
+    if te_ms <= 0:
+        raise ValueError("te_ms must be > 0")
+    t2_ms = float(t2_ms)
+    t1_ms = float(t1_ms)
+    if t2_ms <= 0:
+        raise ValueError("t2_ms must be > 0")
+    if t1_ms <= 0:
+        raise ValueError("t1_ms must be > 0")
 
     A = float(alpha_deg) / 180.0
     alpha_ex = A * 90.0
     alpha1 = A * 180.0
     alphai = A * float(beta_deg)
 
-    tau_ms = float(te_s) * 1000.0 / 2.0
-    t1_ms = float(t1_s) * 1000.0
-    t2_ms = float(t2_s) * 1000.0
+    tau_ms = float(te_ms) / 2.0
+    t1_ms = float(t1_ms)
+    t2_ms = float(t2_ms)
 
     # CPMG condition (as in epgpy examples): excitation phase = 90°, refocusing phase = 0°
     seq = [operators.T(alpha_ex, 90.0)]
@@ -177,35 +177,35 @@ def epg_decay_curve(
     *,
     etl: int,
     alpha_deg: float,
-    te_s: float,
-    t2_s: float,
-    t1_s: float,
+    te_ms: float,
+    t2_ms: float,
+    t1_ms: float,
     beta_deg: float,
-    backend: str = "epgpy",
+    backend: str = "decaes",
 ) -> NDArray[np.float64]:
     """Compute normalized MSE echo decay curve using EPG backend.
 
     backend:
-      - "epgpy": use vendored `epgpy` (default)
-      - "decaes": use DECAES-style reduced EPG implementation
+      - "epgpy": use vendored `epgpy`
+      - "decaes": use DECAES-style reduced EPG implementation (default)
     """
     backend_norm = str(backend).lower().strip()
     if backend_norm == "epgpy":
         return _epg_decay_curve_epgpy(
             etl=etl,
             alpha_deg=alpha_deg,
-            te_s=te_s,
-            t2_s=t2_s,
-            t1_s=t1_s,
+            te_ms=te_ms,
+            t2_ms=t2_ms,
+            t1_ms=t1_ms,
             beta_deg=beta_deg,
         )
     if backend_norm == "decaes":
         return _epg_decay_curve_decaes(
             etl=etl,
             alpha_deg=alpha_deg,
-            te_s=te_s,
-            t2_s=t2_s,
-            t1_s=t1_s,
+            te_ms=te_ms,
+            t2_ms=t2_ms,
+            t1_ms=t1_ms,
             beta_deg=beta_deg,
         )
     raise ValueError("backend must be 'epgpy' or 'decaes'")
@@ -227,23 +227,23 @@ def _logspace_range(lo: float, hi: float, n: int) -> NDArray[np.float64]:
 def _basis_matrix(
     *,
     n_te: int,
-    te_s: float,
-    t2_times_s,
-    t1_s: float,
+    te_ms: float,
+    t2_times_ms,
+    t1_ms: float,
     alpha_deg: float,
     refcon_angle_deg: float,
     epg_backend: str,
 ) -> NDArray[np.float64]:
     import numpy as np
 
-    A = np.zeros((n_te, len(t2_times_s)), dtype=np.float64)
-    for j, t2 in enumerate(t2_times_s):
+    A = np.zeros((n_te, len(t2_times_ms)), dtype=np.float64)
+    for j, t2 in enumerate(t2_times_ms):
         A[:, j] = epg_decay_curve(
             etl=n_te,
             alpha_deg=float(alpha_deg),
-            te_s=float(te_s),
-            t2_s=float(t2),
-            t1_s=float(t1_s),
+            te_ms=float(te_ms),
+            t2_ms=float(t2),
+            t1_ms=float(t1_ms),
             beta_deg=float(refcon_angle_deg),
             backend=str(epg_backend),
         )
@@ -253,9 +253,9 @@ def _basis_matrix(
 def _basis_matrix_dalpha_fd(
     *,
     n_te: int,
-    te_s: float,
-    t2_times_s,
-    t1_s: float,
+    te_ms: float,
+    t2_times_ms,
+    t1_ms: float,
     alpha_deg: float,
     refcon_angle_deg: float,
     epg_backend: str,
@@ -271,18 +271,18 @@ def _basis_matrix_dalpha_fd(
     if a - h < float(alpha_min_deg):
         A0 = _basis_matrix(
             n_te=n_te,
-            te_s=te_s,
-            t2_times_s=t2_times_s,
-            t1_s=t1_s,
+            te_ms=te_ms,
+            t2_times_ms=t2_times_ms,
+            t1_ms=t1_ms,
             alpha_deg=a,
             refcon_angle_deg=refcon_angle_deg,
             epg_backend=epg_backend,
         )
         A1 = _basis_matrix(
             n_te=n_te,
-            te_s=te_s,
-            t2_times_s=t2_times_s,
-            t1_s=t1_s,
+            te_ms=te_ms,
+            t2_times_ms=t2_times_ms,
+            t1_ms=t1_ms,
             alpha_deg=a + h,
             refcon_angle_deg=refcon_angle_deg,
             epg_backend=epg_backend,
@@ -291,18 +291,18 @@ def _basis_matrix_dalpha_fd(
     if a + h > 180.0:
         A0 = _basis_matrix(
             n_te=n_te,
-            te_s=te_s,
-            t2_times_s=t2_times_s,
-            t1_s=t1_s,
+            te_ms=te_ms,
+            t2_times_ms=t2_times_ms,
+            t1_ms=t1_ms,
             alpha_deg=a - h,
             refcon_angle_deg=refcon_angle_deg,
             epg_backend=epg_backend,
         )
         A1 = _basis_matrix(
             n_te=n_te,
-            te_s=te_s,
-            t2_times_s=t2_times_s,
-            t1_s=t1_s,
+            te_ms=te_ms,
+            t2_times_ms=t2_times_ms,
+            t1_ms=t1_ms,
             alpha_deg=a,
             refcon_angle_deg=refcon_angle_deg,
             epg_backend=epg_backend,
@@ -311,18 +311,18 @@ def _basis_matrix_dalpha_fd(
 
     A_plus = _basis_matrix(
         n_te=n_te,
-        te_s=te_s,
-        t2_times_s=t2_times_s,
-        t1_s=t1_s,
+        te_ms=te_ms,
+        t2_times_ms=t2_times_ms,
+        t1_ms=t1_ms,
         alpha_deg=a + h,
         refcon_angle_deg=refcon_angle_deg,
         epg_backend=epg_backend,
     )
     A_minus = _basis_matrix(
         n_te=n_te,
-        te_s=te_s,
-        t2_times_s=t2_times_s,
-        t1_s=t1_s,
+        te_ms=te_ms,
+        t2_times_ms=t2_times_ms,
+        t1_ms=t1_ms,
         alpha_deg=a - h,
         refcon_angle_deg=refcon_angle_deg,
         epg_backend=epg_backend,
@@ -702,20 +702,24 @@ def _choose_mu(
 
 @dataclass(frozen=True, slots=True)
 class DecaesT2Map:
-    """DECAES-like multi-component T2 mapping (T2mapSEcorr + core outputs)."""
+    """DECAES-like multi-component T2 mapping (T2mapSEcorr + core outputs).
+
+    Units:
+        - te_ms, t2_range_ms, t1_ms: milliseconds
+    """
 
     n_te: int
-    te_s: float
+    te_ms: float
     n_t2: int
-    t2_range_s: tuple[float, float]
+    t2_range_ms: tuple[float, float]
+    reg: str  # none|lcurve|gcv|chi2|mdp
 
-    t1_s: float = 1.0
+    t1_ms: float = 1000.0
     refcon_angle_deg: float = 180.0
-    epg_backend: str = "epgpy"  # epgpy|decaes
+    epg_backend: str = "decaes"  # epgpy|decaes
 
     threshold: float = 0.0
 
-    reg: str = "gcv"  # none|lcurve|gcv|chi2|mdp
     chi2_factor: float | None = None
     noise_level: float | None = None
 
@@ -732,29 +736,41 @@ class DecaesT2Map:
     def __post_init__(self) -> None:
         if int(self.n_te) < 4:
             raise ValueError("n_te must be >= 4")
-        if float(self.te_s) <= 0:
-            raise ValueError("te_s must be > 0")
+        if float(self.te_ms) <= 0:
+            raise ValueError("te_ms must be > 0")
         if int(self.n_t2) < 2:
             raise ValueError("n_t2 must be >= 2")
-        lo, hi = self.t2_range_s
+        lo, hi = self.t2_range_ms
         if lo <= 0 or hi <= 0 or hi <= lo:
-            raise ValueError("t2_range_s must be (lo, hi) with 0 < lo < hi")
+            raise ValueError("t2_range_ms must be (lo, hi) with 0 < lo < hi")
 
-        reg = self.reg.lower().strip()
+        reg = str(self.reg).lower().strip()
         if reg not in {"none", "lcurve", "gcv", "chi2", "mdp"}:
             raise ValueError("reg must be one of: none, lcurve, gcv, chi2, mdp")
+        object.__setattr__(self, "reg", reg)
+
+        if reg == "chi2":
+            if self.chi2_factor is None or float(self.chi2_factor) <= 1.0:
+                raise ValueError("chi2_factor must be > 1.0 when reg='chi2'")
+        if reg == "mdp":
+            if self.noise_level is None or float(self.noise_level) <= 0.0:
+                raise ValueError("noise_level must be > 0 when reg='mdp'")
 
         backend = str(self.epg_backend).lower().strip()
         if backend not in {"epgpy", "decaes"}:
             raise ValueError("epg_backend must be 'epgpy' or 'decaes'")
+        object.__setattr__(self, "epg_backend", backend)
 
-    def echotimes_s(self) -> NDArray[np.float64]:
+        if self.n_ref_angles_min is None:
+            object.__setattr__(self, "n_ref_angles_min", min(5, int(self.n_ref_angles)))
+
+    def echotimes_ms(self) -> NDArray[np.float64]:
         import numpy as np
 
-        return float(self.te_s) * np.arange(1, int(self.n_te) + 1, dtype=np.float64)
+        return float(self.te_ms) * np.arange(1, int(self.n_te) + 1, dtype=np.float64)
 
-    def t2_times_s(self) -> NDArray[np.float64]:
-        lo, hi = self.t2_range_s
+    def t2_times_ms(self) -> NDArray[np.float64]:
+        lo, hi = self.t2_range_ms
         return _logspace_range(lo, hi, self.n_t2)
 
     def _flip_angles(self) -> NDArray[np.float64]:
@@ -771,12 +787,12 @@ class DecaesT2Map:
 
         if self.set_flip_angle_deg is not None:
             alpha = float(self.set_flip_angle_deg)
-            t2s = self.t2_times_s()
+            t2s = self.t2_times_ms()
             A = _basis_matrix(
                 n_te=self.n_te,
-                te_s=self.te_s,
-                t2_times_s=t2s,
-                t1_s=self.t1_s,
+                te_ms=self.te_ms,
+                t2_times_ms=t2s,
+                t1_ms=self.t1_ms,
                 alpha_deg=alpha,
                 refcon_angle_deg=self.refcon_angle_deg,
                 epg_backend=self.epg_backend,
@@ -785,7 +801,7 @@ class DecaesT2Map:
 
         from qmrpy._decaes.surrogate_1d import NNLSDiscreteSurrogateSearch1D, surrogate_optimize_1d
 
-        t2s = self.t2_times_s()
+        t2s = self.t2_times_ms()
         grid = self._flip_angles()
         P = grid.size
 
@@ -795,18 +811,18 @@ class DecaesT2Map:
         for k, a in enumerate(grid):
             As[:, :, k] = _basis_matrix(
                 n_te=self.n_te,
-                te_s=self.te_s,
-                t2_times_s=t2s,
-                t1_s=self.t1_s,
+                te_ms=self.te_ms,
+                t2_times_ms=t2s,
+                t1_ms=self.t1_ms,
                 alpha_deg=float(a),
                 refcon_angle_deg=self.refcon_angle_deg,
                 epg_backend=self.epg_backend,
             )
             dAs[:, :, k] = _basis_matrix_dalpha_fd(
                 n_te=self.n_te,
-                te_s=self.te_s,
-                t2_times_s=t2s,
-                t1_s=self.t1_s,
+                te_ms=self.te_ms,
+                t2_times_ms=t2s,
+                t1_ms=self.t1_ms,
                 alpha_deg=float(a),
                 refcon_angle_deg=self.refcon_angle_deg,
                 epg_backend=self.epg_backend,
@@ -821,9 +837,9 @@ class DecaesT2Map:
 
         A_opt = _basis_matrix(
             n_te=self.n_te,
-            te_s=self.te_s,
-            t2_times_s=t2s,
-            t1_s=self.t1_s,
+            te_ms=self.te_ms,
+            t2_times_ms=t2s,
+            t1_ms=self.t1_ms,
             alpha_deg=float(alpha_opt),
             refcon_angle_deg=self.refcon_angle_deg,
             epg_backend=self.epg_backend,
@@ -866,7 +882,7 @@ class DecaesT2Map:
         decay_curvefit = A @ x_hat
         residuals = decay_curvefit - y
 
-        t2s = self.t2_times_s()
+        t2s = self.t2_times_ms()
         logt2 = np.log(t2s)
         sumx = float(np.sum(x_hat))
 
@@ -885,8 +901,8 @@ class DecaesT2Map:
         snr = float(max_signal / sigma_res) if sigma_res > 0 else float("inf")
 
         out: dict[str, Any] = {
-            "echotimes_s": self.echotimes_s(),
-            "t2times_s": t2s,
+            "echotimes_ms": self.echotimes_ms(),
+            "t2times_ms": t2s,
             "refangleset": refangleset,
             "decaybasisset": decaybasisset,
             "alpha_deg": float(alpha_deg),
@@ -937,8 +953,8 @@ class DecaesT2Map:
         else:
             alpha_map = None
 
-        t2s = self.t2_times_s()
-        echotimes = self.echotimes_s()
+        t2s = self.t2_times_ms()
+        echotimes = self.echotimes_ms()
 
         shape3 = img.shape[:3]
         gdn = np.full(shape3, np.nan, dtype=np.float64)
@@ -968,9 +984,9 @@ class DecaesT2Map:
             for k, a in enumerate(refangleset):
                 decaybasisset[:, :, k] = _basis_matrix(
                     n_te=self.n_te,
-                    te_s=self.te_s,
-                    t2_times_s=t2s,
-                    t1_s=self.t1_s,
+                    te_ms=self.te_ms,
+                    t2_times_ms=t2s,
+                    t1_ms=self.t1_ms,
                     alpha_deg=float(a),
                     refcon_angle_deg=self.refcon_angle_deg,
                     epg_backend=self.epg_backend,
@@ -978,9 +994,9 @@ class DecaesT2Map:
         else:
             decaybasisset = _basis_matrix(
                 n_te=self.n_te,
-                te_s=self.te_s,
-                t2_times_s=t2s,
-                t1_s=self.t1_s,
+                te_ms=self.te_ms,
+                t2_times_ms=t2s,
+                t1_ms=self.t1_ms,
                 alpha_deg=float(refangleset),
                 refcon_angle_deg=self.refcon_angle_deg,
                 epg_backend=self.epg_backend,
@@ -1002,9 +1018,9 @@ class DecaesT2Map:
                 alpha_deg = float(alpha_map[idx])
                 A = _basis_matrix(
                     n_te=self.n_te,
-                    te_s=self.te_s,
-                    t2_times_s=t2s,
-                    t1_s=self.t1_s,
+                    te_ms=self.te_ms,
+                    t2_times_ms=t2s,
+                    t1_ms=self.t1_ms,
                     alpha_deg=float(alpha_deg),
                     refcon_angle_deg=self.refcon_angle_deg,
                     epg_backend=self.epg_backend,
@@ -1058,8 +1074,8 @@ class DecaesT2Map:
                 decaybasis[idx] = A
 
         maps: dict[str, Any] = {
-            "echotimes": echotimes,
-            "t2times": t2s,
+            "echotimes_ms": echotimes,
+            "t2times_ms": t2s,
             "refangleset": refangleset,
             "decaybasisset": decaybasisset,
             "gdn": gdn,

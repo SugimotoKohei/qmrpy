@@ -72,11 +72,11 @@ if strcmp(model_name, 'mono_t2')
 
 elseif strcmp(model_name, 'vfa_t1')
     Model = vfa_t1;
-    % Protocol: FlipAngle (deg), TR (s)
-    % Python: [3, 10, 20, 30], TR=0.015
+    % Protocol: FlipAngle (deg), TR (ms)
+    % Python: [3, 10, 20, 30], TR=15.0
     % We should parse from json ideally but hardcoding for speed/stability first.
     FA = [3, 10, 20, 30]';
-    TR = 0.015;
+    TR = 15.0;
     
     Model.Prot.VFAData.Mat = [FA, repmat(TR, length(FA), 1)]; 
     % qMRLab vfa_t1 protocol format: [FlipAngle TR]

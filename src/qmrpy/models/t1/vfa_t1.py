@@ -30,12 +30,12 @@ class VfaT1:
 
     Units (aligned to qMRLab protocol):
         - flip_angle_deg: degrees
-        - tr_s: seconds
-        - t1_s: seconds
+        - tr_ms: milliseconds
+        - t1_ms: milliseconds
     """
 
     flip_angle_deg: ArrayLike
-    tr_s: float
+    tr_ms: float
     b1: ArrayLike | float = 1.0
 
     def __post_init__(self) -> None:
@@ -44,8 +44,8 @@ class VfaT1:
         fa = _as_1d_float_array(self.flip_angle_deg, name="flip_angle_deg")
         if np.any(fa <= 0):
             raise ValueError("flip_angle_deg must be > 0")
-        if self.tr_s <= 0:
-            raise ValueError("tr_s must be > 0")
+        if self.tr_ms <= 0:
+            raise ValueError("tr_ms must be > 0")
         b1 = np.asarray(self.b1, dtype=np.float64)
         if b1.ndim == 0:
             if float(b1) <= 0:
@@ -61,13 +61,13 @@ class VfaT1:
         object.__setattr__(self, "flip_angle_deg", fa)
         object.__setattr__(self, "b1", b1)
 
-    def forward(self, *, m0: float, t1_s: float) -> NDArray[np.float64]:
+    def forward(self, *, m0: float, t1_ms: float) -> NDArray[np.float64]:
         import numpy as np
 
-        if t1_s <= 0:
-            raise ValueError("t1_s must be > 0")
+        if t1_ms <= 0:
+            raise ValueError("t1_ms must be > 0")
         alpha = np.deg2rad(self.flip_angle_deg) * self.b1
-        e = np.exp(-float(self.tr_s) / float(t1_s))
+        e = np.exp(-float(self.tr_ms) / float(t1_ms))
         return m0 * np.sin(alpha) * (1.0 - e) / (1.0 - e * np.cos(alpha))
 
     def fit_linear(
@@ -127,11 +127,11 @@ class VfaT1:
         )
 
         slope = min(max(slope, 1e-12), 1.0 - 1e-12)
-        t1_s = -float(self.tr_s) / float(np.log(slope))
+        t1_ms = -float(self.tr_ms) / float(np.log(slope))
         m0 = intercept / (1.0 - slope)
         return {
             "m0": float(m0),
-            "t1_s": float(t1_s),
+            "t1_ms": float(t1_ms),
             "n_points": int(np.sum(final_valid)),
         }
 
@@ -170,14 +170,14 @@ class VfaT1:
 
         out: dict[str, Any] = {
             "m0": np.full(spatial_shape, np.nan, dtype=np.float64),
-            "t1_s": np.full(spatial_shape, np.nan, dtype=np.float64),
+            "t1_ms": np.full(spatial_shape, np.nan, dtype=np.float64),
             "n_points": np.zeros(spatial_shape, dtype=np.int64),
         }
 
         for idx in np.flatnonzero(mask_flat):
             res = self.fit_linear(flat[idx], **kwargs)
             out["m0"].flat[idx] = float(res["m0"])
-            out["t1_s"].flat[idx] = float(res["t1_s"])
+            out["t1_ms"].flat[idx] = float(res["t1_ms"])
             out["n_points"].flat[idx] = int(res["n_points"])
 
         return out

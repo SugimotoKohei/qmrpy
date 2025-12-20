@@ -133,7 +133,7 @@ def _run_backend_sweep(cfg: dict[str, object], *, out_metrics: Path, out_figures
     etls = _as_int_list_or_int(sweep.get("etl", 16), name="epg_backend_sweep.etl")
     te_ms_list = _as_float_list_or_float(sweep.get("te_ms", 10.0), name="epg_backend_sweep.te_ms")
     alpha_deg = _as_float_list(sweep.get("alpha_deg", [180.0]), name="epg_backend_sweep.alpha_deg")
-    t1_s = _as_float_list(sweep.get("t1_s", [1.0]), name="epg_backend_sweep.t1_s")
+    t1_ms = _as_float_list(sweep.get("t1_ms", [1000.0]), name="epg_backend_sweep.t1_ms")
     t2_ms = _as_float_list(sweep.get("t2_ms", [80.0]), name="epg_backend_sweep.t2_ms")
     beta_deg_list = _as_float_list_or_float(sweep.get("beta_deg", 180.0), name="epg_backend_sweep.beta_deg")
     normalize = str(sweep.get("normalize", "first_echo"))
@@ -146,23 +146,23 @@ def _run_backend_sweep(cfg: dict[str, object], *, out_metrics: Path, out_figures
         for te_ms in te_ms_list:
             for beta_deg in beta_deg_list:
                 for a in alpha_deg:
-                    for t1 in t1_s:
+                    for t1 in t1_ms:
                         for t2 in t2_ms:
                             y_epgpy = epg_decay_curve(
                                 etl=int(etl),
                                 alpha_deg=float(a),
-                                te_s=float(te_ms) / 1000.0,
-                                t2_s=float(t2) / 1000.0,
-                                t1_s=float(t1),
+                                te_ms=float(te_ms),
+                                t2_ms=float(t2),
+                                t1_ms=float(t1),
                                 beta_deg=float(beta_deg),
                                 backend="epgpy",
                             )
                             y_decaes = epg_decay_curve(
                                 etl=int(etl),
                                 alpha_deg=float(a),
-                                te_s=float(te_ms) / 1000.0,
-                                t2_s=float(t2) / 1000.0,
-                                t1_s=float(t1),
+                                te_ms=float(te_ms),
+                                t2_ms=float(t2),
+                                t1_ms=float(t1),
                                 beta_deg=float(beta_deg),
                                 backend="decaes",
                             )
@@ -180,7 +180,7 @@ def _run_backend_sweep(cfg: dict[str, object], *, out_metrics: Path, out_figures
                                     "te_ms": float(te_ms),
                                     "beta_deg": float(beta_deg),
                                     "alpha_deg": float(a),
-                                    "t1_s": float(t1),
+                                    "t1_ms": float(t1),
                                     "t2_ms": float(t2),
                                     "nmse": nmse,
                                     "max_abs_diff": max_abs,
@@ -215,15 +215,15 @@ def _run_backend_sweep(cfg: dict[str, object], *, out_metrics: Path, out_figures
         + "deg"
     )
     fig_a = (
-        ggplot(df, aes(x="t2_ms", y="t1_s"))
+        ggplot(df, aes(x="t2_ms", y="t1_ms"))
         + geom_point(aes(color="alpha_deg"), size=2.5, alpha=0.8)
         + scale_y_log10()
         + facet_wrap("group", ncol=1)
         + theme_bw()
         + labs(
-            title="(A) Data check: sweep grid (t2_ms vs t1_s; color=alpha_deg)",
+            title="(A) Data check: sweep grid (t2_ms vs t1_ms; color=alpha_deg)",
             x="T2 [ms]",
-            y="T1 [s] (log)",
+            y="T1 [ms] (log)",
         )
     )
     ggsave(fig_a, filename=str(out_figures / "data_check__grid.png"), verbose=False, dpi=150)
@@ -246,30 +246,30 @@ def _run_backend_sweep(cfg: dict[str, object], *, out_metrics: Path, out_figures
         te_ms = float(getattr(row, "te_ms"))
         beta_deg = float(getattr(row, "beta_deg"))
         a = float(row.alpha_deg)
-        t1 = float(row.t1_s)
+        t1 = float(row.t1_ms)
         t2 = float(row.t2_ms)
         y_epgpy = epg_decay_curve(
             etl=etl,
             alpha_deg=a,
-            te_s=float(te_ms) / 1000.0,
-            t2_s=float(t2) / 1000.0,
-            t1_s=t1,
+            te_ms=float(te_ms),
+            t2_ms=float(t2),
+            t1_ms=t1,
             beta_deg=float(beta_deg),
             backend="epgpy",
         )
         y_decaes = epg_decay_curve(
             etl=etl,
             alpha_deg=a,
-            te_s=float(te_ms) / 1000.0,
-            t2_s=float(t2) / 1000.0,
-            t1_s=t1,
+            te_ms=float(te_ms),
+            t2_ms=float(t2),
+            t1_ms=t1,
             beta_deg=float(beta_deg),
             backend="decaes",
         )
         y_epgpy = _normalize_curve(y_epgpy, mode=normalize)
         y_decaes = _normalize_curve(y_decaes, mode=normalize)
 
-        label = f"case{i}: ETL={etl}, TE={te_ms:g}ms, beta={beta_deg:g}, a={a:.0f}, T1={t1:g}s, T2={t2:g}ms"
+        label = f"case{i}: ETL={etl}, TE={te_ms:g}ms, beta={beta_deg:g}, a={a:.0f}, T1={t1:g}ms, T2={t2:g}ms"
         for echo_idx in range(etl):
             curve_rows.append(
                 {"case": label, "backend": "epgpy", "echo": echo_idx + 1, "signal": float(y_epgpy[echo_idx])}

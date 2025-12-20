@@ -5,11 +5,11 @@ def test_b1_afi_fit_raw_noise_free():
 
     from qmrpy.models.b1 import B1Afi
 
-    model = B1Afi(nom_fa_deg=60.0, tr1_s=0.02, tr2_s=0.1)
+    model = B1Afi(nom_fa_deg=60.0, tr1_ms=20.0, tr2_ms=100.0)
 
     # Construct signals consistent with a known B1 using AFI equation
     b1_true = 1.1
-    n = model.tr2_s / model.tr1_s
+    n = model.tr2_ms / model.tr1_ms
     afi_deg = model.nom_fa_deg * b1_true
     cos_arg = np.cos(np.deg2rad(afi_deg))
     r = (n * cos_arg + 1.0) / (n + cos_arg)

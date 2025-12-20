@@ -33,7 +33,9 @@ def _logspace_range(lo: float, hi: float, n: int) -> NDArray[np.float64]:
     return np.logspace(np.log10(lo), np.log10(hi), n)
 
 
-def _sigmoid_weights(*, t2_times_s: NDArray[np.float64], spwin_hi_s: float, sigmoid_s: float) -> NDArray[np.float64]:
+def _sigmoid_weights(
+    *, t2_times_ms: NDArray[np.float64], spwin_hi_ms: float, sigmoid_ms: float
+) -> NDArray[np.float64]:
     """Port of DECAES.jl `sigmoid_weights` (T2partSEcorr.jl).
 
     Uses a complementary normal CDF (survival function) to smooth the SPWin upper cutoff.
@@ -43,11 +45,11 @@ def _sigmoid_weights(*, t2_times_s: NDArray[np.float64], spwin_hi_s: float, sigm
     from scipy.special import erfc, erfinv
 
     k = 0.1
-    t2_kperc = float(sigmoid_s)
-    t2_50perc = float(spwin_hi_s)
+    t2_kperc = float(sigmoid_ms)
+    t2_50perc = float(spwin_hi_ms)
 
     sigma = abs(t2_kperc / (np.sqrt(2.0) * float(erfinv(2 * k - 1))))
-    z = (np.asarray(t2_times_s, dtype=np.float64) - t2_50perc) / sigma
+    z = (np.asarray(t2_times_ms, dtype=np.float64) - t2_50perc) / sigma
 
     # normccdf(z) = 0.5 * erfc(z/sqrt(2))
     w = 0.5 * erfc(z / np.sqrt(2.0))
@@ -59,30 +61,30 @@ def _sigmoid_weights(*, t2_times_s: NDArray[np.float64], spwin_hi_s: float, sigm
 class DecaesT2Part:
     """DECAES-like T2-parts analysis (`T2partSEcorr`) on precomputed T2 distributions.
 
-    Units are seconds.
+    Units are milliseconds.
     """
 
     n_t2: int
-    t2_range_s: tuple[float, float]
-    spwin_s: tuple[float, float]
-    mpwin_s: tuple[float, float]
-    sigmoid_s: float | None = None
+    t2_range_ms: tuple[float, float]
+    spwin_ms: tuple[float, float]
+    mpwin_ms: tuple[float, float]
+    sigmoid_ms: float | None = None
 
     def __post_init__(self) -> None:
         if int(self.n_t2) < 2:
             raise ValueError("n_t2 must be >= 2")
-        lo, hi = self.t2_range_s
+        lo, hi = self.t2_range_ms
         if lo <= 0 or hi <= 0 or hi <= lo:
-            raise ValueError("t2_range_s must be (lo, hi) with 0 < lo < hi")
-        if self.spwin_s[0] >= self.spwin_s[1]:
-            raise ValueError("spwin_s must be (lo, hi) with lo < hi")
-        if self.mpwin_s[0] >= self.mpwin_s[1]:
-            raise ValueError("mpwin_s must be (lo, hi) with lo < hi")
-        if self.sigmoid_s is not None and float(self.sigmoid_s) <= 0:
-            raise ValueError("sigmoid_s must be > 0")
+            raise ValueError("t2_range_ms must be (lo, hi) with 0 < lo < hi")
+        if self.spwin_ms[0] >= self.spwin_ms[1]:
+            raise ValueError("spwin_ms must be (lo, hi) with lo < hi")
+        if self.mpwin_ms[0] >= self.mpwin_ms[1]:
+            raise ValueError("mpwin_ms must be (lo, hi) with lo < hi")
+        if self.sigmoid_ms is not None and float(self.sigmoid_ms) <= 0:
+            raise ValueError("sigmoid_ms must be > 0")
 
-    def t2_times_s(self) -> NDArray[np.float64]:
-        lo, hi = self.t2_range_s
+    def t2_times_ms(self) -> NDArray[np.float64]:
+        lo, hi = self.t2_range_ms
         return _logspace_range(lo, hi, self.n_t2)
 
     def fit(self, distribution: ArrayLike) -> dict[str, float]:
@@ -94,11 +96,11 @@ class DecaesT2Part:
         if np.any(np.isnan(dist)):
             return {"sfr": float("nan"), "sgm": float("nan"), "mfr": float("nan"), "mgm": float("nan")}
 
-        t2 = self.t2_times_s()
+        t2 = self.t2_times_ms()
         logt2 = np.log(t2)
 
-        sp = np.where((t2 >= self.spwin_s[0]) & (t2 <= self.spwin_s[1]))[0]
-        mp = np.where((t2 >= self.mpwin_s[0]) & (t2 <= self.mpwin_s[1]))[0]
+        sp = np.where((t2 >= self.spwin_ms[0]) & (t2 <= self.spwin_ms[1]))[0]
+        mp = np.where((t2 >= self.mpwin_ms[0]) & (t2 <= self.mpwin_ms[1]))[0]
 
         sum_all = float(np.sum(dist))
         sum_sp = float(np.sum(dist[sp])) if sp.size else 0.0
@@ -110,10 +112,14 @@ class DecaesT2Part:
         mgm = float("nan")
 
         if sum_all > 0:
-            if self.sigmoid_s is None:
+            if self.sigmoid_ms is None:
                 sfr = float(sum_sp / sum_all)
             else:
-                w = _sigmoid_weights(t2_times_s=t2, spwin_hi_s=self.spwin_s[1], sigmoid_s=float(self.sigmoid_s))
+                w = _sigmoid_weights(
+                    t2_times_ms=t2,
+                    spwin_hi_ms=self.spwin_ms[1],
+                    sigmoid_ms=float(self.sigmoid_ms),
+                )
                 sfr = float(np.dot(dist, w) / sum_all)
             mfr = float(sum_mp / sum_all)
 

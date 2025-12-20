@@ -6,15 +6,15 @@ def test_vfa_t1_forward_and_fit_linear_noise_free():
     from qmrpy.models.t1 import VfaT1
 
     flip_angle_deg = np.array([3.0, 8.0, 15.0, 25.0], dtype=float)
-    model = VfaT1(flip_angle_deg=flip_angle_deg, tr_s=0.015, b1=1.0)
+    model = VfaT1(flip_angle_deg=flip_angle_deg, tr_ms=15.0, b1=1.0)
 
     m0_true = 2000.0
-    t1_true_s = 0.9
-    signal = model.forward(m0=m0_true, t1_s=t1_true_s)
+    t1_true_ms = 900.0
+    signal = model.forward(m0=m0_true, t1_ms=t1_true_ms)
 
     fitted = model.fit_linear(signal)
     assert abs(fitted["m0"] - m0_true) / m0_true < 1e-6
-    assert abs(fitted["t1_s"] - t1_true_s) / t1_true_s < 1e-6
+    assert abs(fitted["t1_ms"] - t1_true_ms) / t1_true_ms < 1e-6
 
 
 def test_vfa_t1_linear_fit_respects_b1():
@@ -25,16 +25,16 @@ def test_vfa_t1_linear_fit_respects_b1():
     from qmrpy.models.t1 import VfaT1
 
     flip_angle_deg = np.array([3.0, 8.0, 15.0, 25.0], dtype=float)
-    tr_s = 0.015
+    tr_ms = 15.0
     b1 = 0.9
-    model = VfaT1(flip_angle_deg=flip_angle_deg, tr_s=tr_s, b1=b1)
+    model = VfaT1(flip_angle_deg=flip_angle_deg, tr_ms=tr_ms, b1=b1)
 
     m0_true = 1500.0
-    t1_true_s = 1.1
-    signal = model.forward(m0=m0_true, t1_s=t1_true_s)
+    t1_true_ms = 1100.0
+    signal = model.forward(m0=m0_true, t1_ms=t1_true_ms)
 
     fitted = model.fit_linear(signal)
-    assert abs(fitted["t1_s"] - t1_true_s) / t1_true_s < 1e-6
+    assert abs(fitted["t1_ms"] - t1_true_ms) / t1_true_ms < 1e-6
 
 
 def test_vfa_t1_robust_fit_reduces_outlier_impact():
@@ -45,18 +45,18 @@ def test_vfa_t1_robust_fit_reduces_outlier_impact():
     from qmrpy.models.t1 import VfaT1
 
     flip_angle_deg = np.array([3.0, 8.0, 15.0, 25.0], dtype=float)
-    model = VfaT1(flip_angle_deg=flip_angle_deg, tr_s=0.015, b1=1.0)
+    model = VfaT1(flip_angle_deg=flip_angle_deg, tr_ms=15.0, b1=1.0)
 
     m0_true = 2000.0
-    t1_true_s = 0.9
-    signal = model.forward(m0=m0_true, t1_s=t1_true_s).copy()
+    t1_true_ms = 900.0
+    signal = model.forward(m0=m0_true, t1_ms=t1_true_ms).copy()
     signal[1] = signal[1] * 0.2  # deterministic outlier (downward spike)
 
     nonrobust = model.fit_linear(signal, robust=False)
     robust = model.fit_linear(signal, robust=True)
 
-    err_nonrobust = abs(nonrobust["t1_s"] - t1_true_s)
-    err_robust = abs(robust["t1_s"] - t1_true_s)
+    err_nonrobust = abs(nonrobust["t1_ms"] - t1_true_ms)
+    err_robust = abs(robust["t1_ms"] - t1_true_ms)
     assert err_robust < err_nonrobust
 
 
@@ -68,17 +68,17 @@ def test_vfa_t1_outlier_rejection_recovers_from_upward_spike():
     from qmrpy.models.t1 import VfaT1
 
     flip_angle_deg = np.array([3.0, 8.0, 15.0, 25.0], dtype=float)
-    model = VfaT1(flip_angle_deg=flip_angle_deg, tr_s=0.015, b1=1.0)
+    model = VfaT1(flip_angle_deg=flip_angle_deg, tr_ms=15.0, b1=1.0)
 
     m0_true = 2000.0
-    t1_true_s = 0.9
-    signal = model.forward(m0=m0_true, t1_s=t1_true_s).copy()
+    t1_true_ms = 900.0
+    signal = model.forward(m0=m0_true, t1_ms=t1_true_ms).copy()
     signal[1] = signal[1] * 5.0  # upward spike
 
     no_reject = model.fit_linear(signal, outlier_reject=False)
     reject = model.fit_linear(signal, outlier_reject=True)
 
-    assert abs(reject["t1_s"] - t1_true_s) < abs(no_reject["t1_s"] - t1_true_s)
+    assert abs(reject["t1_ms"] - t1_true_ms) < abs(no_reject["t1_ms"] - t1_true_ms)
     assert reject["n_points"] < no_reject["n_points"]
 
 
@@ -90,12 +90,12 @@ def test_vfa_t1_fit_image_shapes():
     from qmrpy.models.t1 import VfaT1
 
     flip_angle_deg = np.array([3.0, 8.0, 15.0, 25.0], dtype=float)
-    model = VfaT1(flip_angle_deg=flip_angle_deg, tr_s=0.015, b1=1.0)
+    model = VfaT1(flip_angle_deg=flip_angle_deg, tr_ms=15.0, b1=1.0)
 
-    signal = model.forward(m0=2000.0, t1_s=0.9)
+    signal = model.forward(m0=2000.0, t1_ms=900.0)
     img = np.stack([signal, signal], axis=0).reshape(2, 1, -1)
     out = model.fit_image(img)
 
     assert out["m0"].shape == img.shape[:-1]
-    assert out["t1_s"].shape == img.shape[:-1]
+    assert out["t1_ms"].shape == img.shape[:-1]
     assert out["n_points"].shape == img.shape[:-1]

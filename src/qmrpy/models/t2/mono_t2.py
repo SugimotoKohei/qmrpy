@@ -26,24 +26,28 @@ class MonoT2:
 
     Signal model:
         S(TE) = m0 * exp(-TE / T2)
+
+    Units:
+        - te_ms: milliseconds
+        - t2_ms: milliseconds
     """
 
-    te: ArrayLike
+    te_ms: ArrayLike
 
     def __post_init__(self) -> None:
         import numpy as np
 
-        te_array = _as_1d_float_array(self.te, name="te")
+        te_array = _as_1d_float_array(self.te_ms, name="te_ms")
         if np.any(te_array < 0):
-            raise ValueError("te must be non-negative")
-        object.__setattr__(self, "te", te_array)
+            raise ValueError("te_ms must be non-negative")
+        object.__setattr__(self, "te_ms", te_array)
 
-    def forward(self, *, m0: float, t2: float) -> NDArray[np.float64]:
+    def forward(self, *, m0: float, t2_ms: float) -> NDArray[np.float64]:
         import numpy as np
 
-        if t2 <= 0:
-            raise ValueError("t2 must be > 0")
-        return m0 * np.exp(-self.te / t2)
+        if t2_ms <= 0:
+            raise ValueError("t2_ms must be > 0")
+        return m0 * np.exp(-self.te_ms / t2_ms)
 
     def fit(
         self,
@@ -53,32 +57,32 @@ class MonoT2:
         drop_first_echo: bool = False,
         offset_term: bool = False,
         m0_init: float | None = None,
-        t2_init: float | None = None,
-        bounds: tuple[tuple[float, float], tuple[float, float]] | None = None,
+        t2_init_ms: float | None = None,
+        bounds_ms: tuple[tuple[float, float], tuple[float, float]] | None = None,
     ) -> dict[str, float]:
         """Fit m0 and T2 using non-linear least squares.
 
         Parameters
         ----------
         signal:
-            1D signal samples at the model's `te`.
-        m0_init, t2_init:
+            1D signal samples at the model's `te_ms`.
+        m0_init, t2_init_ms:
             Optional initial guesses. If omitted, they are estimated heuristically.
-        bounds:
-            Optional bounds as ((m0_min, t2_min), (m0_max, t2_max)).
+        bounds_ms:
+            Optional bounds as ((m0_min, t2_min_ms), (m0_max, t2_max_ms)).
 
         Returns
         -------
-        dict with keys: "m0", "t2".
+        dict with keys: "m0", "t2_ms".
         """
         import numpy as np
         from scipy.optimize import least_squares
 
         y = _as_1d_float_array(signal, name="signal")
-        if y.shape != self.te.shape:
-            raise ValueError(f"signal shape {y.shape} must match te shape {self.te.shape}")
+        if y.shape != self.te_ms.shape:
+            raise ValueError(f"signal shape {y.shape} must match te_ms shape {self.te_ms.shape}")
 
-        x = self.te
+        x = self.te_ms
         if drop_first_echo:
             if y.size <= 2:
                 raise ValueError("drop_first_echo is not valid for <=2 echoes")
@@ -97,25 +101,25 @@ class MonoT2:
 
         if m0_init is None:
             m0_init = float(y_norm[0]) * 1.5 if y_norm.size else 1.0
-        if t2_init is None:
+        if t2_init_ms is None:
             if x.size >= 2 and y_norm.size >= 2 and y_norm[0] > 0 and y_norm[-1] > 0:
                 # qMRLab-like heuristic: use end-1 and first, robust to last-point noise
                 ref_idx = -2 if y_norm.size >= 3 else -1
                 dt = float(x[0] - x[ref_idx])
                 ratio = float(y_norm[ref_idx] / y_norm[0])
                 if ratio > 0 and ratio != 1:
-                    t2_init = dt / float(np.log(ratio))
+                    t2_init_ms = dt / float(np.log(ratio))
                 else:
-                    t2_init = 30.0
+                    t2_init_ms = 30.0
             else:
-                t2_init = 30.0
-            if t2_init <= 0 or np.isnan(t2_init):
-                t2_init = 30.0
-        if bounds is None:
+                t2_init_ms = 30.0
+            if t2_init_ms <= 0 or np.isnan(t2_init_ms):
+                t2_init_ms = 30.0
+        if bounds_ms is None:
             lower = (0.0, 1e-6)
             upper = (np.inf, np.inf)
         else:
-            lower, upper = bounds
+            lower, upper = bounds_ms
 
         if fit_type_norm == "linear":
             if np.any(y_abs <= 0):
@@ -128,7 +132,7 @@ class MonoT2:
                 beta1 = float(np.finfo(float).eps)
             t2_hat = -1.0 / beta1
             m0_hat = float(np.exp(float(beta0)))
-            return {"m0": m0_hat, "t2": float(t2_hat)}
+            return {"m0": m0_hat, "t2_ms": float(t2_hat)}
 
         def residuals(params: NDArray[np.float64]) -> NDArray[np.float64]:
             m0_value = float(params[0])
@@ -139,7 +143,7 @@ class MonoT2:
             return (m0_value * np.exp(-x / t2_value)) - y_norm
 
         if offset_term:
-            x0 = np.array([m0_init, t2_init, 0.0], dtype=np.float64)
+            x0 = np.array([m0_init, t2_init_ms, 0.0], dtype=np.float64)
             lower3 = (float(lower[0]), float(lower[1]), -np.inf)
             upper3 = (float(upper[0]), float(upper[1]), np.inf)
             result = least_squares(
@@ -148,15 +152,15 @@ class MonoT2:
                 bounds=(np.asarray(lower3, dtype=np.float64), np.asarray(upper3, dtype=np.float64)),
             )
             m0_hat, t2_hat, offset_hat = result.x
-            return {"m0": float(m0_hat), "t2": float(t2_hat), "offset": float(offset_hat)}
+            return {"m0": float(m0_hat), "t2_ms": float(t2_hat), "offset": float(offset_hat)}
 
         result = least_squares(
             residuals,
-            x0=np.array([m0_init, t2_init], dtype=np.float64),
+            x0=np.array([m0_init, t2_init_ms], dtype=np.float64),
             bounds=(np.asarray(lower, dtype=np.float64), np.asarray(upper, dtype=np.float64)),
         )
         m0_hat, t2_hat = result.x
-        return {"m0": float(m0_hat), "t2": float(t2_hat)}
+        return {"m0": float(m0_hat), "t2_ms": float(t2_hat)}
 
     def fit_image(
         self,
@@ -167,16 +171,16 @@ class MonoT2:
     ) -> dict[str, Any]:
         """Voxel-wise fit on an image/volume.
 
-        Expects `data` shape (..., n_te) where n_te == len(self.te).
+        Expects `data` shape (..., n_te) where n_te == len(self.te_ms).
         """
         import numpy as np
 
         arr = np.asarray(data, dtype=np.float64)
         if arr.ndim == 1:
             return self.fit(arr, **kwargs)
-        if arr.shape[-1] != self.te.shape[0]:
+        if arr.shape[-1] != self.te_ms.shape[0]:
             raise ValueError(
-                f"data last dim {arr.shape[-1]} must match te length {self.te.shape[0]}"
+                f"data last dim {arr.shape[-1]} must match te_ms length {self.te_ms.shape[0]}"
             )
 
         spatial_shape = arr.shape[:-1]
@@ -193,7 +197,7 @@ class MonoT2:
         offset_term = bool(kwargs.get("offset_term", False))
         out: dict[str, Any] = {
             "m0": np.full(spatial_shape, np.nan, dtype=np.float64),
-            "t2": np.full(spatial_shape, np.nan, dtype=np.float64),
+            "t2_ms": np.full(spatial_shape, np.nan, dtype=np.float64),
         }
         if offset_term:
             out["offset"] = np.full(spatial_shape, np.nan, dtype=np.float64)
@@ -201,7 +205,7 @@ class MonoT2:
         for idx in np.flatnonzero(mask_flat):
             res = self.fit(flat[idx], **kwargs)
             out["m0"].flat[idx] = float(res["m0"])
-            out["t2"].flat[idx] = float(res["t2"])
+            out["t2_ms"].flat[idx] = float(res["t2_ms"])
             if offset_term and "offset" in res:
                 out["offset"].flat[idx] = float(res["offset"])
 

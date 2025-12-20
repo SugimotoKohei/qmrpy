@@ -15,11 +15,11 @@ def test_simulate_single_voxel_with_fit_runs() -> None:
     from qmrpy.models.t2 import MonoT2
     from qmrpy.sim import simulate_single_voxel
 
-    model = MonoT2(te=np.array([0.01, 0.02, 0.04, 0.08], dtype=np.float64))
+    model = MonoT2(te_ms=np.array([10.0, 20.0, 40.0, 80.0], dtype=np.float64))
 
     out = simulate_single_voxel(
         model,
-        params={"m0": 1000.0, "t2": 0.06},
+        params={"m0": 1000.0, "t2_ms": 60.0},
         noise_model="gaussian",
         noise_snr=50.0,
         fit=True,
@@ -28,5 +28,4 @@ def test_simulate_single_voxel_with_fit_runs() -> None:
     assert set(out.keys()) == {"signal_clean", "signal", "fit"}
     assert out["signal"].shape == (4,)
     assert out["signal_clean"].shape == (4,)
-    assert "t2" in out["fit"]
-
+    assert "t2_ms" in out["fit"]

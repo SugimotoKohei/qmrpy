@@ -30,13 +30,13 @@ import numpy as np
 from qmrpy.models.t1.vfa_t1 import VfaT1
 
 model = VfaT1(
-    tr_s=0.015,
+    tr_ms=15.0,
     flip_angles_deg=np.array([2, 5, 10, 15]),
 )
 
-signal = model.forward(m0=1.0, t1_s=1.2)
+signal = model.forward(m0=1.0, t1_ms=1200.0)
 fit = model.fit_linear(signal)
-print(fit["t1_s"], fit["m0"])
+print(fit["t1_ms"], fit["m0"])
 ```
 
 ### QSM の最小利用例

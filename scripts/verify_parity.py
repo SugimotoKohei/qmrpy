@@ -60,10 +60,10 @@ def verify_mono_t2() -> None:
     # Actually qMRLab needs Signal and Protocol.
     # We will save strict columns: "id", "T2_true", "M0_true", "S_0", "S_1", ... 
     
-    model_py = MonoT2(te=te_ms)
+    model_py = MonoT2(te_ms=te_ms)
     signals = []
     for i in range(n_samples):
-        s = model_py.forward(m0=m0_true[i], t2=t2_true[i])
+        s = model_py.forward(m0=m0_true[i], t2_ms=t2_true[i])
         signals.append(s)
     signals = np.stack(signals)
     
@@ -98,7 +98,7 @@ def verify_mono_t2() -> None:
     
     for i in range(n_samples):
         res = model_py.fit(signals[i])
-        fitted_t2.append(res["t2"])
+        fitted_t2.append(res["t2_ms"])
         fitted_m0.append(res["m0"])
         
     df_py = pd.DataFrame({
@@ -144,20 +144,20 @@ def verify_vfa_t1() -> None:
     # 1. Generate Data
     n_samples = 50
     flip_angles = np.array([3, 10, 20, 30], dtype=float)
-    tr_s = 0.015
+    tr_ms = 15.0
     rng = np.random.default_rng(43)
     
-    t1_true = rng.uniform(0.5, 2.0, n_samples)
+    t1_true = rng.uniform(500.0, 2000.0, n_samples)
     m0_true = rng.uniform(1000, 3000, n_samples)
     b1_true = rng.uniform(0.8, 1.2, n_samples)
     
     # Python Forward
-    model_nominal = VfaT1(flip_angle_deg=flip_angles, tr_s=tr_s, b1=1.0)
+    model_nominal = VfaT1(flip_angle_deg=flip_angles, tr_ms=tr_ms, b1=1.0)
     signals = []
     for i in range(n_samples):
         # Forward with actual B1
-        model_act = VfaT1(flip_angle_deg=flip_angles, tr_s=tr_s, b1=b1_true[i])
-        s = model_act.forward(m0=m0_true[i], t1_s=t1_true[i])
+        model_act = VfaT1(flip_angle_deg=flip_angles, tr_ms=tr_ms, b1=b1_true[i])
+        s = model_act.forward(m0=m0_true[i], t1_ms=t1_true[i])
         signals.append(s)
     signals = np.stack(signals)
     
@@ -173,7 +173,7 @@ def verify_vfa_t1() -> None:
         df_in[f"S_{j}"] = signals[:, j]
     
     with open(PARITY_DATA_DIR / f"{model_name}_protocol.json", "w") as f:
-        json.dump({"flip_angle_deg": flip_angles.tolist(), "tr_s": tr_s}, f)
+        json.dump({"flip_angle_deg": flip_angles.tolist(), "tr_ms": tr_ms}, f)
         
     df_in.to_csv(input_csv, index=False)
     
@@ -181,8 +181,7 @@ def verify_vfa_t1() -> None:
     run_octave(model_name, input_csv, octave_out_csv)
     
     # 3. Load Octave Results
-    # Expected: id, T1, M0
-    # Note: qMRLab outputs T1 in seconds usually for vfa_t1.
+    # Expected: id, T1, M0 (ms)
     df_oct = pd.read_csv(octave_out_csv)
     
     # 4. Run Python Model
@@ -191,9 +190,9 @@ def verify_vfa_t1() -> None:
     
     for i in range(n_samples):
         # We must provide B1 to fit
-        model_fit = VfaT1(flip_angle_deg=flip_angles, tr_s=tr_s, b1=b1_true[i])
+        model_fit = VfaT1(flip_angle_deg=flip_angles, tr_ms=tr_ms, b1=b1_true[i])
         res = model_fit.fit_linear(signals[i]) # Linear fit default
-        fitted_t1.append(res["t1_s"])
+        fitted_t1.append(res["t1_ms"])
         fitted_m0.append(res["m0"])
         
     df_py = pd.DataFrame({
@@ -209,7 +208,7 @@ def verify_vfa_t1() -> None:
     diff_m0 = np.abs(df_all["m0_py"] - df_all["m0_oct"])
     
     print(f"--- Verification: {model_name} ---")
-    print(f"Max Diff T1: {diff_t1.max():.6e} s")
+    print(f"Max Diff T1: {diff_t1.max():.6e} ms")
     print(f"Max Diff M0: {diff_m0.max():.6e}")
     
     if diff_t1.max() < 1e-4:

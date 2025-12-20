@@ -147,8 +147,10 @@ def _run_mono_t2(cfg: MonoT2Config, *, out_metrics: Path, out_figures: Path) -> 
     t2_true = rng.uniform(cfg.t2_min_ms, cfg.t2_max_ms, size=cfg.n_samples).astype(float)
     m0_true = np.full(cfg.n_samples, cfg.m0, dtype=float)
 
-    model = MonoT2(te=np.array(cfg.te_ms, dtype=float))
-    signal_clean = np.stack([model.forward(m0=float(m0_true[i]), t2=float(t2_true[i])) for i in range(cfg.n_samples)])
+    model = MonoT2(te_ms=np.array(cfg.te_ms, dtype=float))
+    signal_clean = np.stack(
+        [model.forward(m0=float(m0_true[i]), t2_ms=float(t2_true[i])) for i in range(cfg.n_samples)]
+    )
     if cfg.noise_model == "gaussian":
         signal = add_gaussian_noise(signal_clean, sigma=cfg.noise_sigma, rng=rng)
     elif cfg.noise_model == "rician":
@@ -167,7 +169,7 @@ def _run_mono_t2(cfg: MonoT2Config, *, out_metrics: Path, out_figures: Path) -> 
             offset_term=cfg.offset_term,
         )
         fitted_m0[i] = fitted["m0"]
-        fitted_t2[i] = fitted["t2"]
+        fitted_t2[i] = fitted["t2_ms"]
         if "offset" in fitted:
             fitted_offset[i] = float(fitted["offset"])
 
@@ -226,11 +228,11 @@ def _run_mono_t2(cfg: MonoT2Config, *, out_metrics: Path, out_figures: Path) -> 
 @dataclass(frozen=True)
 class VfaT1Config:
     flip_angle_deg: list[float]
-    tr_s: float
+    tr_ms: float
     n_samples: int
     m0: float
-    t1_min_s: float
-    t1_max_s: float
+    t1_min_ms: float
+    t1_max_ms: float
     b1: float
     b1_range: tuple[float, float] | None
     noise_model: str
@@ -300,17 +302,17 @@ def _parse_vfa_t1_config(config: dict[str, object]) -> VfaT1Config:
     fa = vfa_cfg.get("flip_angle_deg")
     if not isinstance(fa, list) or not all(isinstance(x, (int, float)) for x in fa):
         raise ValueError("vfa_t1.flip_angle_deg must be a list of numbers")
-    tr_s = float(vfa_cfg.get("tr_s", 0.015))
+    tr_ms = float(vfa_cfg.get("tr_ms", 15.0))
     n_samples = int(vfa_cfg.get("n_samples", 200))
     m0 = float(vfa_cfg.get("m0", 2000.0))
-    t1_range_s = vfa_cfg.get("t1_range_s", [0.2, 2.0])
+    t1_range_ms = vfa_cfg.get("t1_range_ms", [200.0, 2000.0])
     if (
-        not isinstance(t1_range_s, list)
-        or len(t1_range_s) != 2
-        or not all(isinstance(x, (int, float)) for x in t1_range_s)
+        not isinstance(t1_range_ms, list)
+        or len(t1_range_ms) != 2
+        or not all(isinstance(x, (int, float)) for x in t1_range_ms)
     ):
-        raise ValueError("vfa_t1.t1_range_s must be [min, max]")
-    t1_min_s, t1_max_s = float(t1_range_s[0]), float(t1_range_s[1])
+        raise ValueError("vfa_t1.t1_range_ms must be [min, max]")
+    t1_min_ms, t1_max_ms = float(t1_range_ms[0]), float(t1_range_ms[1])
     b1 = float(vfa_cfg.get("b1", 1.0))
     b1_range = vfa_cfg.get("b1_range")
     if b1_range is None:
@@ -333,11 +335,11 @@ def _parse_vfa_t1_config(config: dict[str, object]) -> VfaT1Config:
     seed = int(run_cfg.get("seed", 0))
     return VfaT1Config(
         flip_angle_deg=[float(x) for x in fa],
-        tr_s=tr_s,
+        tr_ms=tr_ms,
         n_samples=n_samples,
         m0=m0,
-        t1_min_s=t1_min_s,
-        t1_max_s=t1_max_s,
+        t1_min_ms=t1_min_ms,
+        t1_max_ms=t1_max_ms,
         b1=b1,
         b1_range=b1_range_parsed,
         noise_model=noise_model,
@@ -499,21 +501,21 @@ def _run_vfa_t1(cfg: VfaT1Config, *, out_metrics: Path, out_figures: Path) -> di
     from qmrpy.sim.noise import add_gaussian_noise, add_rician_noise
 
     rng = np.random.default_rng(cfg.seed)
-    t1_true = rng.uniform(cfg.t1_min_s, cfg.t1_max_s, size=cfg.n_samples).astype(float)
+    t1_true = rng.uniform(cfg.t1_min_ms, cfg.t1_max_ms, size=cfg.n_samples).astype(float)
     m0_true = np.full(cfg.n_samples, cfg.m0, dtype=float)
     if cfg.b1_range is not None:
         b1_true = rng.uniform(cfg.b1_range[0], cfg.b1_range[1], size=cfg.n_samples).astype(float)
     else:
         b1_true = np.full(cfg.n_samples, cfg.b1, dtype=float)
 
-    model_nominal = VfaT1(flip_angle_deg=np.array(cfg.flip_angle_deg, dtype=float), tr_s=cfg.tr_s, b1=1.0)
+    model_nominal = VfaT1(flip_angle_deg=np.array(cfg.flip_angle_deg, dtype=float), tr_ms=cfg.tr_ms, b1=1.0)
     signal_clean = np.stack(
         [
             VfaT1(
                 flip_angle_deg=model_nominal.flip_angle_deg,
-                tr_s=cfg.tr_s,
+                tr_ms=cfg.tr_ms,
                 b1=float(b1_true[i]),
-            ).forward(m0=float(m0_true[i]), t1_s=float(t1_true[i]))
+            ).forward(m0=float(m0_true[i]), t1_ms=float(t1_true[i]))
             for i in range(cfg.n_samples)
         ]
     )
@@ -534,7 +536,7 @@ def _run_vfa_t1(cfg: VfaT1Config, *, out_metrics: Path, out_figures: Path) -> di
             continue
         fitted = VfaT1(
             flip_angle_deg=model_nominal.flip_angle_deg,
-            tr_s=cfg.tr_s,
+            tr_ms=cfg.tr_ms,
             b1=float(b1_true[i]),
         ).fit_linear(
             signal[i],
@@ -543,7 +545,7 @@ def _run_vfa_t1(cfg: VfaT1Config, *, out_metrics: Path, out_figures: Path) -> di
             outlier_reject=cfg.outlier_reject,
         )
         fitted_m0[i] = fitted["m0"]
-        fitted_t1[i] = fitted["t1_s"]
+        fitted_t1[i] = fitted["t1_ms"]
         n_points[i] = float(fitted.get("n_points", np.nan))
 
     valid = np.isfinite(fitted_t1) & np.isfinite(fitted_m0)
@@ -554,7 +556,7 @@ def _run_vfa_t1(cfg: VfaT1Config, *, out_metrics: Path, out_figures: Path) -> di
         "n_samples": int(cfg.n_samples),
         "n_valid": int(np.sum(valid)),
         "flip_angle_deg": [float(x) for x in cfg.flip_angle_deg],
-        "tr_s": float(cfg.tr_s),
+        "tr_ms": float(cfg.tr_ms),
         "b1": float(cfg.b1),
         "b1_range": None if cfg.b1_range is None else [float(cfg.b1_range[0]), float(cfg.b1_range[1])],
         "noise_model": str(cfg.noise_model),
@@ -589,7 +591,7 @@ def _run_vfa_t1(cfg: VfaT1Config, *, out_metrics: Path, out_figures: Path) -> di
         ggplot(df, aes(x="t1_true"))
         + geom_histogram(bins=30)
         + theme_bw()
-        + labs(title="(A) Data check: T1 true distribution", x="T1 true [s]", y="count")
+        + labs(title="(A) Data check: T1 true distribution", x="T1 true [ms]", y="count")
     )
     ggsave(fig_a, filename=str(out_figures / "data_check__t1_true_hist.png"), verbose=False, dpi=150)
 
@@ -598,7 +600,7 @@ def _run_vfa_t1(cfg: VfaT1Config, *, out_metrics: Path, out_figures: Path) -> di
         + geom_point(alpha=0.6)
         + geom_abline(intercept=0.0, slope=1.0)
         + theme_bw()
-        + labs(title="(B) Result: T1 fitted vs true", x="T1 true [s]", y="T1 fitted [s]")
+        + labs(title="(B) Result: T1 fitted vs true", x="T1 true [ms]", y="T1 fitted [ms]")
     )
     ggsave(fig_b, filename=str(out_figures / "result__t1_true_vs_hat.png"), verbose=False, dpi=150)
 
@@ -606,7 +608,7 @@ def _run_vfa_t1(cfg: VfaT1Config, *, out_metrics: Path, out_figures: Path) -> di
         ggplot(df, aes(x="t1_err"))
         + geom_histogram(bins=30)
         + theme_bw()
-        + labs(title="(C) Failure analysis: T1 residual distribution", x="T1 error (hat - true) [s]", y="count")
+        + labs(title="(C) Failure analysis: T1 residual distribution", x="T1 error (hat - true) [ms]", y="count")
     )
     ggsave(fig_c, filename=str(out_figures / "failure__t1_error_hist.png"), verbose=False, dpi=150)
 
