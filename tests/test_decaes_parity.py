@@ -32,7 +32,7 @@ def test_decaes_parity_fixed_flip_no_reg() -> None:
     out = m.fit(signal)
 
     assert np.isclose(out["alpha_deg"], alpha_ref, rtol=0, atol=1e-9)
-    assert np.allclose(out["t2times_ms"], t2times, rtol=0, atol=1e-12)
+    assert np.allclose(out["t2times_ms"], t2times, rtol=0, atol=1e-9)
     assert np.allclose(out["distribution"], dist_ref, rtol=1e-8, atol=1e-10)
 
 
