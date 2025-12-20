@@ -39,6 +39,28 @@ fit = model.fit_linear(signal)
 print(fit["t1_s"], fit["m0"])
 ```
 
+### QSM の最小利用例
+
+```python
+import numpy as np
+from qmrpy.models.qsm import QsmSplitBregman
+
+shape = (6, 6, 6)
+phase = np.random.default_rng(0).normal(0, 1, size=shape)
+mask = np.ones(shape, dtype=float)
+
+qsm = QsmSplitBregman(
+    sharp_filter=False,
+    l1_regularized=True,
+    l2_regularized=False,
+    no_regularization=False,
+    pad_size=(1, 1, 1),
+)
+
+out = qsm.fit(phase, mask, image_resolution_mm=[1.0, 1.0, 1.0])
+print(out.keys())
+```
+
 ## ライセンス
 
 - `qmrpy` 本体：MIT（`LICENSE`）
