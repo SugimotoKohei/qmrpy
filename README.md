@@ -1,5 +1,7 @@
 # qmrpy
 
+[![PyPI](https://img.shields.io/pypi/v/qmrpy.svg)](https://pypi.org/project/qmrpy/)
+
 qMRLab（MATLAB実装）の概念・モデルを **Python** へ段階的に移植するためのリポジトリです。
 
 本プロジェクトは upstream の qMRLab（MIT License）に着想を得ており、モデル定義・検証方針は qMRLab を参照しつつ Python で再構成します。
