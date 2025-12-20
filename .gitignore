@@ -37,3 +37,6 @@ Thumbs.db
 # secrets (原則使わないが、万一置くなら絶対に管理しない)
 .env
 .env.*
+
+# local-only agent instructions
+AGENTS.md

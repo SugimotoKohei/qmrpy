@@ -6,7 +6,6 @@ qMRLab（MATLAB実装）の概念・モデルを **Python** へ段階的に移�
 
 ## 方針（重要）
 
-- 研究運用の規約は `AGENTS.md` に従います。
 - 実装を始める前に `docs/studyplan.md` を完成させ（`Status: active`, `Version: v0.1.0`）、そこに沿って進めます。
 - 出力（実験結果やログ）は原則 `output/` に出し、Git 管理しません。
 
