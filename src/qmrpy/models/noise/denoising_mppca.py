@@ -46,15 +46,17 @@ class MPPCA:
     def fit(self, data: ArrayLike, mask: ArrayLike | None = None) -> dict[str, Any]:
         """Denoise 4D data.
 
-        Args:
-            data: 4D array (x, y, z, t).
-            mask: Optional 3D mask (x, y, z).
+        Parameters
+        ----------
+        data : array-like
+            4D array ``(x, y, z, t)``.
+        mask : array-like, optional
+            3D mask ``(x, y, z)``.
 
-        Returns:
-            dict with:
-                "denoised": 4D array
-                "sigma": 3D noise map
-                "n_pars": 3D map of number of signal components
+        Returns
+        -------
+        dict
+            ``denoised`` (4D), ``sigma`` (3D), ``n_pars`` (3D).
         """
         data_arr = _as_4d_float_array(data, name="data")
         sx, sy, sz, m_dim = data_arr.shape

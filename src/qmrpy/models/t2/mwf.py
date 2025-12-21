@@ -85,7 +85,15 @@ class MultiComponentT2:
     def forward(self, *, weights: ArrayLike) -> NDArray[np.float64]:
         """Simulate signal from weights.
 
-        weights: array of size (n_basis,) corresponding to t2_basis_ms.
+        Parameters
+        ----------
+        weights : array-like
+            Weights of size ``(n_basis,)`` corresponding to ``t2_basis_ms``.
+
+        Returns
+        -------
+        ndarray
+            Simulated signal array.
         """
         import numpy as np
 
@@ -108,25 +116,28 @@ class MultiComponentT2:
     ) -> dict[str, Any]:
         """Fit T2 distribution using NNLS and compute MWF/T2MW/T2IEW from cutoffs.
 
-        Args:
-            signal: Observed signal array (n_te,).
-            regularization_alpha: Tikhonov regularization parameter (default: 0.0).
-                                  If > 0, solves: argmin ||Aw - y||^2 + alpha^2 ||w||^2
-            lower_cutoff_mw_ms: Lower cutoff for MW integration. If None, uses 1.5 * first echo time,
-                                following qMRLab's default (`lower_cutoff_MW = 1.5*FirstEcho`).
-            cutoff_ms: MW/IEW cutoff time [ms] (qMRLab default: 40ms).
-            upper_cutoff_iew_ms: Upper cutoff for IEW integration [ms] (qMRLab default bound: 200ms).
-            use_weighted_geometric_mean: If True, compute T2MW/T2IEW as weighted geometric means.
+        Parameters
+        ----------
+        signal : array-like
+            Observed signal array ``(n_te,)``.
+        regularization_alpha : float, optional
+            Tikhonov regularization parameter. If > 0, solves
+            ``argmin ||Aw - y||^2 + alpha^2 ||w||^2``.
+        lower_cutoff_mw_ms : float, optional
+            Lower cutoff for MW integration. If None, uses
+            ``1.5 * first echo`` (qMRLab default).
+        cutoff_ms : float, optional
+            MW/IEW cutoff time in milliseconds (default: 40 ms).
+        upper_cutoff_iew_ms : float, optional
+            Upper cutoff for IEW integration in milliseconds (default: 200 ms).
+        use_weighted_geometric_mean : bool, optional
+            If True, compute T2MW/T2IEW as weighted geometric means.
 
-        Returns:
-            dict with:
-                - weights: estimated weights (n_basis,)
-                - t2_basis_ms: the basis used
-                - mwf: Myelin Water Fraction (0..1) computed as MW / (MW + IEW) within cutoffs
-                - t2mw_ms: mean T2 for MW compartment [ms]
-                - t2iew_ms: mean T2 for IEW compartment [ms]
-                - gmt2_ms: global geometric mean T2 over all weights [ms]
-                - resid_l2: ||Aw - y||_2
+        Returns
+        -------
+        dict
+            Keys include ``weights``, ``t2_basis_ms``, ``mwf``, ``t2mw_ms``,
+            ``t2iew_ms``, ``gmt2_ms``, and ``resid_l2``.
         """
         import numpy as np
         from scipy.optimize import nnls
@@ -217,7 +228,21 @@ class MultiComponentT2:
     ) -> dict[str, Any]:
         """Voxel-wise NNLS fit on an image/volume.
 
-        Expects `data` shape (..., n_te) where n_te == len(self.te_ms).
+        Parameters
+        ----------
+        data : array-like
+            Input array with last dim as echoes.
+        mask : array-like, optional
+            Spatial mask.
+        return_weights : bool, optional
+            If True, include voxel-wise weights.
+        **kwargs
+            Passed to ``fit``.
+
+        Returns
+        -------
+        dict
+            Dict of parameter maps.
         """
         import numpy as np
 

@@ -55,9 +55,15 @@ class B1Dam:
     def fit_raw(self, signal: ArrayLike) -> dict[str, float]:
         """Fit B1 from [S(alpha), S(2*alpha)].
 
-        Returns:
-            - b1_raw: raw DAM estimate (may be <0.5 in very noisy data)
-            - spurious: 1.0 if b1_raw < 0.5 else 0.0 (qMRLab convention)
+        Parameters
+        ----------
+        signal : array-like
+            Signal array ``[S(alpha), S(2*alpha)]``.
+
+        Returns
+        -------
+        dict
+            ``b1_raw`` (raw estimate) and ``spurious`` flag.
         """
         import numpy as np
 
@@ -84,7 +90,17 @@ class B1Dam:
     ) -> dict[str, Any]:
         """Vectorized DAM B1 estimation on an image/volume.
 
-        Expects `data` shape (..., 2) as [S(alpha), S(2*alpha)].
+        Parameters
+        ----------
+        data : array-like
+            Input array with last dim 2 as ``[S(alpha), S(2*alpha)]``.
+        mask : array-like, optional
+            Spatial mask.
+
+        Returns
+        -------
+        dict
+            Maps for ``b1_raw`` and ``spurious``.
         """
         import numpy as np
 

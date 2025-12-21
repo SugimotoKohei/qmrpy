@@ -15,9 +15,26 @@ def generate_4d_phantom(
     seed: int | None = None
 ) -> tuple[NDArray[np.float64], NDArray[np.float64], float]:
     """Generate a simple 4D diffusion-like phantom with Rician noise.
-    
-    Returns:
-        noisy_data, ground_truth, sigma
+
+    Parameters
+    ----------
+    sx, sy, sz : int, optional
+        Spatial dimensions.
+    n_vol : int, optional
+        Number of volumes.
+    snr : float, optional
+        Target SNR.
+    seed : int or None, optional
+        Random seed.
+
+    Returns
+    -------
+    noisy_data : ndarray
+        Noisy 4D data.
+    ground_truth : ndarray
+        Noise-free 4D data.
+    sigma : float
+        Noise standard deviation.
     """
     rng = np.random.default_rng(seed)
     

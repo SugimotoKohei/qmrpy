@@ -20,21 +20,28 @@ def simulate_single_voxel(
 
     Parameters
     ----------
-    model:
-        qmrpy model instance with `.forward(**params)`.
-        If `fit=True`, it must also have either `.fit_linear(signal, **kwargs)` or `.fit(signal, **kwargs)`.
-    params:
-        Parameter dict passed to `model.forward`.
-    noise_model:
-        "none" | "gaussian" | "rician".
-    noise_sigma:
-        Noise standard deviation (for "gaussian" and "rician").
-    rng:
+    model : object
+        qmrpy model instance with ``forward(**params)``.
+        If ``fit=True``, it must also have either ``fit_linear`` or ``fit``.
+    params : dict
+        Parameter dict passed to ``model.forward``.
+    noise_model : {"none", "gaussian", "rician"}, optional
+        Noise model.
+    noise_sigma : float, optional
+        Noise standard deviation (for ``gaussian`` and ``rician``).
+    noise_snr : float, optional
+        If set, sigma is derived from peak/snr.
+    rng : object, optional
         NumPy Generator-compatible object.
-    fit:
+    fit : bool, optional
         If True, fit back the (noisy) signal.
-    fit_kwargs:
+    fit_kwargs : dict, optional
         Passed to the model's fit method.
+
+    Returns
+    -------
+    dict
+        ``signal_clean``, ``signal``, and optional ``fit``.
     """
     import numpy as np
 
@@ -90,10 +97,35 @@ def sensitivity_analysis(
 ) -> dict[str, Any]:
     """One-parameter-at-a-time sensitivity analysis (qMRLab: SimVary).
 
-    Returns a dict with:
-      - x: varied parameter values (shape: [n_steps])
-      - fit: per-run fitted params (dict of arrays, each shape: [n_steps, n_runs])
-      - mean/std: aggregated over runs (dict of arrays, each shape: [n_steps])
+    Parameters
+    ----------
+    model : object
+        qmrpy model instance.
+    nominal_params : dict
+        Nominal parameter values.
+    vary_param : str
+        Parameter to vary.
+    lb, ub : float
+        Lower/upper bounds for the varied parameter.
+    n_steps : int, optional
+        Number of steps.
+    n_runs : int, optional
+        Number of runs per step.
+    noise_model : {"gaussian", "rician"}, optional
+        Noise model.
+    noise_sigma : float, optional
+        Noise standard deviation.
+    noise_snr : float, optional
+        If set, sigma is derived from peak/snr.
+    rng : object, optional
+        NumPy Generator-compatible object.
+    fit_kwargs : dict, optional
+        Passed to the model's fit method.
+
+    Returns
+    -------
+    dict
+        ``x`` values, per-run ``fit``, and aggregated ``mean``/``std``.
     """
     import numpy as np
 
@@ -168,14 +200,25 @@ def simulate_parameter_distribution(
 
     Parameters
     ----------
-    true_params:
-        Mapping of parameter name -> array-like (length n_samples) OR scalar.
+    model : object
+        qmrpy model instance.
+    true_params : dict
+        Mapping of parameter name -> array-like (length n_samples) or scalar.
+    noise_model : {"gaussian", "rician"}, optional
+        Noise model.
+    noise_sigma : float, optional
+        Noise standard deviation.
+    noise_snr : float, optional
+        If set, sigma is derived from peak/snr.
+    rng : object, optional
+        NumPy Generator-compatible object.
+    fit_kwargs : dict, optional
+        Passed to the model's fit method.
 
     Returns
     -------
-    dict with keys:
-      - true, hat, err: dict[str, ndarray]
-      - metrics: dict[str, float]
+    dict
+        ``true``, ``hat``, ``err`` dicts and ``metrics``.
     """
     import numpy as np
 

@@ -27,9 +27,10 @@ class MonoT2:
     Signal model:
         S(TE) = m0 * exp(-TE / T2)
 
-    Units:
-        - te_ms: milliseconds
-        - t2_ms: milliseconds
+    Units
+    -----
+    te_ms : milliseconds
+    t2_ms : milliseconds
     """
 
     te_ms: ArrayLike
@@ -64,16 +65,19 @@ class MonoT2:
 
         Parameters
         ----------
-        signal:
-            1D signal samples at the model's `te_ms`.
-        m0_init, t2_init_ms:
-            Optional initial guesses. If omitted, they are estimated heuristically.
-        bounds_ms:
-            Optional bounds as ((m0_min, t2_min_ms), (m0_max, t2_max_ms)).
+        signal : array-like
+            1D signal samples at the model's ``te_ms``.
+        m0_init : float, optional
+            Initial guess for m0.
+        t2_init_ms : float, optional
+            Initial guess for T2 in milliseconds.
+        bounds_ms : tuple of tuple, optional
+            Bounds as ``((m0_min, t2_min_ms), (m0_max, t2_max_ms))``.
 
         Returns
         -------
-        dict with keys: "m0", "t2_ms".
+        dict
+            Fit results with keys ``m0`` and ``t2_ms``.
         """
         import numpy as np
         from scipy.optimize import least_squares
@@ -171,7 +175,19 @@ class MonoT2:
     ) -> dict[str, Any]:
         """Voxel-wise fit on an image/volume.
 
-        Expects `data` shape (..., n_te) where n_te == len(self.te_ms).
+        Parameters
+        ----------
+        data : array-like
+            Input array with last dim as echoes.
+        mask : array-like, optional
+            Spatial mask.
+        **kwargs
+            Passed to ``fit``.
+
+        Returns
+        -------
+        dict
+            Dict of parameter maps.
         """
         import numpy as np
 

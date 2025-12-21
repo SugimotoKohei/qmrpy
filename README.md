@@ -39,6 +39,21 @@ fit = model.fit_linear(signal)
 print(fit["t1_ms"], fit["m0"])
 ```
 
+関数API（オブジェクト不要）:
+
+```python
+import numpy as np
+from qmrpy import vfa_t1_fit_linear
+
+signal = np.array([0.02, 0.06, 0.12, 0.18], dtype=float)
+fit = vfa_t1_fit_linear(
+    signal,
+    flip_angle_deg=np.array([2, 5, 10, 15]),
+    tr_ms=15.0,
+)
+print(fit["t1_ms"], fit["m0"])
+```
+
 ### QSM の最小利用例
 
 ```python

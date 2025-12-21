@@ -62,6 +62,25 @@ class VfaT1:
         object.__setattr__(self, "b1", b1)
 
     def forward(self, *, m0: float, t1_ms: float) -> NDArray[np.float64]:
+        """Simulate SPGR signal.
+
+        Parameters
+        ----------
+        m0 : float
+            Proton density scale.
+        t1_ms : float
+            T1 in milliseconds.
+
+        Returns
+        -------
+        ndarray
+            Simulated signal array.
+
+        Raises
+        ------
+        ValueError
+            If ``t1_ms`` <= 0.
+        """
         import numpy as np
 
         if t1_ms <= 0:
@@ -88,6 +107,28 @@ class VfaT1:
             x = S / tan(a)
             y = intercept + slope * x
             slope = E, intercept = M0 * (1 - E)
+
+        Parameters
+        ----------
+        signal : array-like
+            Observed signal array.
+        mask : array-like, optional
+            Mask for valid points.
+        robust : bool, optional
+            Use robust regression if True.
+        huber_k : float, optional
+            Huber threshold for robust regression.
+        outlier_reject : bool, optional
+            Enable iterative outlier rejection.
+        max_iter : int, optional
+            Max iterations for outlier rejection.
+        min_points : int, optional
+            Minimum points required to fit.
+
+        Returns
+        -------
+        dict
+            Fit results dict including ``t1_ms`` and ``m0``.
         """
         import numpy as np
 
@@ -145,6 +186,20 @@ class VfaT1:
         """Voxel-wise linear VFA fit on an image/volume.
 
         Expects `data` shape (..., n_fa) where n_fa == len(self.flip_angle_deg).
+
+        Parameters
+        ----------
+        data : array-like
+            Input array with last dim as flip angles.
+        mask : array-like, optional
+            Spatial mask.
+        **kwargs
+            Passed to ``fit_linear``.
+
+        Returns
+        -------
+        dict
+            Dict of parameter maps.
         """
         import numpy as np
 

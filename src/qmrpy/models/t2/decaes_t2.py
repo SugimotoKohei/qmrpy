@@ -185,9 +185,27 @@ def epg_decay_curve(
 ) -> NDArray[np.float64]:
     """Compute normalized MSE echo decay curve using EPG backend.
 
-    backend:
-      - "epgpy": use vendored `epgpy`
-      - "decaes": use DECAES-style reduced EPG implementation (default)
+    Parameters
+    ----------
+    etl : int
+        Echo train length.
+    alpha_deg : float
+        Refocusing flip angle in degrees.
+    te_ms : float
+        Echo spacing in milliseconds.
+    t2_ms : float
+        T2 in milliseconds.
+    t1_ms : float
+        T1 in milliseconds.
+    beta_deg : float
+        Refocusing phase angle in degrees.
+    backend : {"epgpy", "decaes"}, optional
+        Backend implementation.
+
+    Returns
+    -------
+    ndarray
+        Normalized decay curve of length ``etl``.
     """
     backend_norm = str(backend).lower().strip()
     if backend_norm == "epgpy":
@@ -848,6 +866,18 @@ class DecaesT2Map:
         return float(alpha_opt), A_opt, grid, As
 
     def fit(self, signal: ArrayLike) -> dict[str, Any]:
+        """Fit T2 distribution for a single voxel.
+
+        Parameters
+        ----------
+        signal : array-like
+            Observed signal array of length ``n_te``.
+
+        Returns
+        -------
+        dict
+            Fit results including ``distribution`` and diagnostics.
+        """
         import numpy as np
 
         y = _as_1d_float_array(signal, name="signal")
@@ -933,6 +963,23 @@ class DecaesT2Map:
         mask: ArrayLike | None = None,
         alpha_map_deg: ArrayLike | None = None,
     ) -> tuple[dict[str, Any], NDArray[np.float64]]:
+        """Fit T2 distribution voxel-wise for a 4D image.
+
+        Parameters
+        ----------
+        image : array-like
+            Input image with shape ``(x, y, z, n_te)``.
+        mask : array-like, optional
+            Spatial mask.
+        alpha_map_deg : array-like, optional
+            Precomputed flip angle map in degrees.
+
+        Returns
+        -------
+        tuple
+            (maps, distributions) where ``maps`` is a dict of parameter maps
+            and ``distributions`` is a 4D array with last dim ``n_t2``.
+        """
         import numpy as np
 
         img = np.asarray(image, dtype=np.float64)

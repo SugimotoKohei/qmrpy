@@ -88,6 +88,18 @@ class DecaesT2Part:
         return _logspace_range(lo, hi, self.n_t2)
 
     def fit(self, distribution: ArrayLike) -> dict[str, float]:
+        """Compute T2 parts metrics from a 1D distribution.
+
+        Parameters
+        ----------
+        distribution : array-like
+            T2 distribution array of length ``n_t2``.
+
+        Returns
+        -------
+        dict
+            Metrics dict with ``sfr``, ``mfr``, ``sgm``, ``mgm``.
+        """
         import numpy as np
 
         dist = _as_1d_float_array(distribution, name="distribution")
@@ -131,6 +143,18 @@ class DecaesT2Part:
         return {"sfr": float(sfr), "sgm": float(sgm), "mfr": float(mfr), "mgm": float(mgm)}
 
     def fit_image(self, distributions: ArrayLike) -> dict[str, NDArray[np.float64]]:
+        """Compute T2 parts metrics for a 4D distribution volume.
+
+        Parameters
+        ----------
+        distributions : array-like
+            4D array with last dim ``n_t2``.
+
+        Returns
+        -------
+        dict
+            Maps for ``sfr``, ``mfr``, ``sgm``, ``mgm``.
+        """
         import numpy as np
 
         dist4 = np.asarray(distributions, dtype=np.float64)

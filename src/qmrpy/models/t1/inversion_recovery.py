@@ -27,9 +27,10 @@ class InversionRecovery:
     Signal model (Barral):
         S(TI) = ra + rb * exp(-TI / T1)
 
-    Units (aligned to qMRLab protocol):
-        - ti_ms: milliseconds
-        - t1_ms: milliseconds
+    Units
+    -----
+    ti_ms : milliseconds
+    t1_ms : milliseconds
 
     method:
         - "complex": fit raw model
@@ -52,6 +53,24 @@ class InversionRecovery:
     def forward(
         self, *, t1_ms: float, ra: float, rb: float, magnitude: bool = False
     ) -> NDArray[np.float64]:
+        """Simulate inversion recovery signal.
+
+        Parameters
+        ----------
+        t1_ms : float
+            T1 in milliseconds.
+        ra : float
+            Offset term.
+        rb : float
+            Amplitude term.
+        magnitude : bool, optional
+            If True, return magnitude signal.
+
+        Returns
+        -------
+        ndarray
+            Simulated signal array.
+        """
         import numpy as np
 
         if t1_ms <= 0:
@@ -72,10 +91,28 @@ class InversionRecovery:
     ) -> dict[str, float]:
         """Fit Barral model parameters.
 
-        Returns dict with keys:
-            - t1_ms, ra, rb
-            - res_rmse
-            - idx (only for method="magnitude")
+        Parameters
+        ----------
+        signal : array-like
+            Observed signal array.
+        method : {"magnitude", "complex"}, optional
+            Fitting mode.
+        t1_init_ms : float, optional
+            Initial guess for T1 in milliseconds.
+        ra_init : float, optional
+            Initial guess for ra.
+        rb_init : float, optional
+            Initial guess for rb.
+        bounds : tuple of tuple, optional
+            Bounds for parameters as ``((t1, rb, ra) min, (t1, rb, ra) max)``.
+        max_nfev : int, optional
+            Max number of function evaluations.
+
+        Returns
+        -------
+        dict
+            Fit results with keys ``t1_ms``, ``ra``, ``rb``, ``res_rmse``,
+            and ``idx`` (only for ``method="magnitude"``).
         """
         import numpy as np
         from scipy.optimize import least_squares
@@ -161,7 +198,19 @@ class InversionRecovery:
     ) -> dict[str, Any]:
         """Voxel-wise fit on an image/volume.
 
-        Expects `data` shape (..., n_ti) where n_ti == len(self.ti_ms).
+        Parameters
+        ----------
+        data : array-like
+            Input array with last dim as inversion times.
+        mask : array-like, optional
+            Spatial mask.
+        **kwargs
+            Passed to ``fit``.
+
+        Returns
+        -------
+        dict
+            Dict of parameter maps.
         """
         import numpy as np
 

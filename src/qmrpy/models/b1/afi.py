@@ -46,9 +46,15 @@ class B1Afi:
     def fit_raw(self, signal: ArrayLike) -> dict[str, float]:
         """Fit B1 from AFI signals [S(TR1), S(TR2)].
 
-        Returns:
-            - b1_raw: AFI B1 estimate
-            - spurious: 1.0 if b1_raw < 0.5 else 0.0 (qMRLab convention)
+        Parameters
+        ----------
+        signal : array-like
+            Signal array ``[S(TR1), S(TR2)]``.
+
+        Returns
+        -------
+        dict
+            ``b1_raw`` and ``spurious`` (1.0 if b1_raw < 0.5).
         """
         import numpy as np
 
@@ -80,7 +86,17 @@ class B1Afi:
     def fit_image(self, data: ArrayLike, *, mask: ArrayLike | None = None) -> dict[str, Any]:
         """Vectorized AFI B1 estimation on an image/volume.
 
-        Expects `data` shape (..., 2) as [AFIData1, AFIData2].
+        Parameters
+        ----------
+        data : array-like
+            Input array with last dim 2 as ``[AFIData1, AFIData2]``.
+        mask : array-like, optional
+            Spatial mask.
+
+        Returns
+        -------
+        dict
+            Maps for ``b1_raw`` and ``spurious``.
         """
         import numpy as np
 
