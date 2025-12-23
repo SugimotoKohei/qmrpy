@@ -117,62 +117,6 @@ def _epg_decay_curve_decaes(
     return dc
 
 
-def _epg_decay_curve_epgpy(
-    *,
-    etl: int,
-    alpha_deg: float,
-    te_ms: float,
-    t2_ms: float,
-    t1_ms: float,
-    beta_deg: float,
-) -> NDArray[np.float64]:
-    """Compute normalized MSE echo decay curve using vendored epgpy."""
-    import numpy as np
-
-    from epgpy import functions, operators
-
-    etl = int(etl)
-    if etl < 1:
-        raise ValueError("etl must be >= 1")
-    te_ms = float(te_ms)
-    if te_ms <= 0:
-        raise ValueError("te_ms must be > 0")
-    t2_ms = float(t2_ms)
-    t1_ms = float(t1_ms)
-    if t2_ms <= 0:
-        raise ValueError("t2_ms must be > 0")
-    if t1_ms <= 0:
-        raise ValueError("t1_ms must be > 0")
-
-    A = float(alpha_deg) / 180.0
-    alpha_ex = A * 90.0
-    alpha1 = A * 180.0
-    alphai = A * float(beta_deg)
-
-    tau_ms = float(te_ms) / 2.0
-    t1_ms = float(t1_ms)
-    t2_ms = float(t2_ms)
-
-    # CPMG condition (as in epgpy examples): excitation phase = 90°, refocusing phase = 0°
-    seq = [operators.T(alpha_ex, 90.0)]
-    for echo in range(etl):
-        ref = alpha1 if echo == 0 else alphai
-        seq.extend(
-            [
-                operators.S(1, duration=tau_ms),
-                operators.E(tau_ms, t1_ms, t2_ms),
-                operators.T(ref, 0.0),
-                operators.S(1, duration=tau_ms),
-                operators.E(tau_ms, t1_ms, t2_ms),
-                operators.ADC,
-            ]
-        )
-
-    values = functions.simulate(seq, asarray=True)
-    y = np.asarray(values, dtype=np.complex128).reshape(-1)
-    return np.abs(y).astype(np.float64)
-
-
 def epg_decay_curve(
     *,
     etl: int,
@@ -183,7 +127,7 @@ def epg_decay_curve(
     beta_deg: float,
     backend: str = "decaes",
 ) -> NDArray[np.float64]:
-    """Compute normalized MSE echo decay curve using EPG backend.
+    """Compute normalized MSE echo decay curve using DECAES backend.
 
     Parameters
     ----------
@@ -199,7 +143,7 @@ def epg_decay_curve(
         T1 in milliseconds.
     beta_deg : float
         Refocusing phase angle in degrees.
-    backend : {"epgpy", "decaes"}, optional
+    backend : {"decaes"}, optional
         Backend implementation.
 
     Returns
@@ -208,15 +152,6 @@ def epg_decay_curve(
         Normalized decay curve of length ``etl``.
     """
     backend_norm = str(backend).lower().strip()
-    if backend_norm == "epgpy":
-        return _epg_decay_curve_epgpy(
-            etl=etl,
-            alpha_deg=alpha_deg,
-            te_ms=te_ms,
-            t2_ms=t2_ms,
-            t1_ms=t1_ms,
-            beta_deg=beta_deg,
-        )
     if backend_norm == "decaes":
         return _epg_decay_curve_decaes(
             etl=etl,
@@ -226,7 +161,7 @@ def epg_decay_curve(
             t1_ms=t1_ms,
             beta_deg=beta_deg,
         )
-    raise ValueError("backend must be 'epgpy' or 'decaes'")
+    raise ValueError("backend must be 'decaes'")
 
 
 def _logspace_range(lo: float, hi: float, n: int) -> NDArray[np.float64]:
@@ -734,7 +669,7 @@ class DecaesT2Map:
 
     t1_ms: float = 1000.0
     refcon_angle_deg: float = 180.0
-    epg_backend: str = "decaes"  # epgpy|decaes
+    epg_backend: str = "decaes"
 
     threshold: float = 0.0
 
@@ -775,8 +710,8 @@ class DecaesT2Map:
                 raise ValueError("noise_level must be > 0 when reg='mdp'")
 
         backend = str(self.epg_backend).lower().strip()
-        if backend not in {"epgpy", "decaes"}:
-            raise ValueError("epg_backend must be 'epgpy' or 'decaes'")
+        if backend != "decaes":
+            raise ValueError("epg_backend must be 'decaes'")
         object.__setattr__(self, "epg_backend", backend)
 
         if self.n_ref_angles_min is None:

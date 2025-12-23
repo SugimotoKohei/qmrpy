@@ -1,37 +1,3 @@
-def test_epg_backends_are_close_on_grid_point():
-    import pytest
-
-    np = pytest.importorskip("numpy")
-
-    from qmrpy.models.t2.decaes_t2 import epg_decay_curve
-
-    y_epgpy = epg_decay_curve(
-        etl=16,
-        alpha_deg=180.0,
-        te_ms=10.0,
-        t2_ms=80.0,
-        t1_ms=1000.0,
-        beta_deg=180.0,
-        backend="epgpy",
-    )
-    y_decaes = epg_decay_curve(
-        etl=16,
-        alpha_deg=180.0,
-        te_ms=10.0,
-        t2_ms=80.0,
-        t1_ms=1000.0,
-        beta_deg=180.0,
-        backend="decaes",
-    )
-
-    assert y_epgpy.shape == (16,)
-    assert y_decaes.shape == (16,)
-    assert np.all(np.isfinite(y_epgpy))
-    assert np.all(np.isfinite(y_decaes))
-    # Vendored epgpy backend is expected to match DECAES backend very closely.
-    assert np.max(np.abs(y_epgpy - y_decaes)) < 1e-10
-
-
 def test_epg_decay_is_close_to_exponential_for_ideal_refocusing():
     import pytest
 
@@ -51,7 +17,7 @@ def test_epg_decay_is_close_to_exponential_for_ideal_refocusing():
         t2_ms=t2,
         t1_ms=t1,
         beta_deg=180.0,
-        backend="epgpy",
+        backend="decaes",
     )
 
     expected = np.exp(-(np.arange(1, etl + 1) * te) / t2)
@@ -74,7 +40,6 @@ def test_decaes_t2_map_fit_runs():
         n_t2=30,
         t2_range_ms=(10.0, 2000.0),
         set_flip_angle_deg=180.0,
-        epg_backend="epgpy",
         reg="gcv",
     )
 
@@ -85,3 +50,5 @@ def test_decaes_t2_map_fit_runs():
     out = m.fit(sig)
     assert "distribution" in out
     assert out["distribution"].shape == (m.n_t2,)
+    for key in ("echotimes_ms", "t2times_ms", "alpha_deg", "gdn", "ggm", "gva", "fnr", "snr"):
+        assert key in out
