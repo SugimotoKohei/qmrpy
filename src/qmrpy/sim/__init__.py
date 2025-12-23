@@ -13,6 +13,7 @@ from .simulation import (
     simulate_parameter_distribution,
     simulate_single_voxel,
 )
+from .mrzero import simulate_bloch, simulate_pdg
 
 __all__ = [
     "SimCRLB",
@@ -29,4 +30,6 @@ __all__ = [
     "sensitivity_analysis",
     "simulate_parameter_distribution",
     "simulate_single_voxel",
+    "simulate_bloch",
+    "simulate_pdg",
 ]
