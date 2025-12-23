@@ -66,6 +66,12 @@ uv add qmrpy
 - `mwf_fit`
 - `decaes_t2map_fit`, `decaes_t2map_spectrum`
 
+### MRzeroラッパー（任意）
+
+- `qmrpy.sim.simulate_pdg`: MRzeroCore の PDG/EPG シミュレーション
+- `qmrpy.sim.simulate_bloch`: MRzeroCore の Bloch（isochromat）シミュレーション
+- 依存は **任意**（`MRzeroCore` が未インストールの場合は ImportError）
+
 ### 最小利用例
 
 ```python
