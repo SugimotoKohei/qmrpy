@@ -38,3 +38,18 @@ def test_t2part_sigmoid_runs() -> None:
     dist = np.ones(40)
     out = part.fit(dist)
     assert 0.0 <= out["sfr"] <= 1.0
+
+
+def test_t2part_fit_image_keys_and_shapes() -> None:
+    part = DecaesT2Part(
+        n_t2=40,
+        t2_range_ms=(10.0, 2000.0),
+        spwin_ms=(10.0, 25.0),
+        mpwin_ms=(25.0, 200.0),
+    )
+
+    dist = np.ones((2, 1, 1, 40), dtype=float)
+    out = part.fit_image(dist)
+    for key in ("sfr", "sgm", "mfr", "mgm"):
+        assert key in out
+        assert out[key].shape == dist.shape[:3]

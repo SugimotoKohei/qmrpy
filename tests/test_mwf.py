@@ -21,15 +21,18 @@ def test_mwf_two_point_basis_recovers_exact_noise_free():
         cutoff_ms=40.0,
         upper_cutoff_iew_ms=200.0,
     )
+    for key in ("weights", "t2_basis_ms", "mwf", "t2mw_ms", "t2iew_ms", "gmt2_ms", "resid_l2"):
+        assert key in out
     assert abs(out["mwf"] - mwf_true) < 1e-12
     assert abs(out["t2mw_ms"] - 20.0) < 1e-12
     assert abs(out["t2iew_ms"] - 80.0) < 1e-12
     assert out["resid_l2"] < 1e-9
 
     img = np.stack([signal, signal], axis=0).reshape(2, 1, -1)
-    out_img = model.fit_image(img)
+    out_img = model.fit_image(img, return_weights=True)
     assert out_img["mwf"].shape == img.shape[:-1]
     assert out_img["t2mw_ms"].shape == img.shape[:-1]
+    assert "weights" in out_img
 
 
 def test_mwf_default_basis_is_reasonable_noise_free():

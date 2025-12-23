@@ -99,3 +99,18 @@ def test_vfa_t1_fit_image_shapes():
     assert out["m0"].shape == img.shape[:-1]
     assert out["t1_ms"].shape == img.shape[:-1]
     assert out["n_points"].shape == img.shape[:-1]
+
+
+def test_vfa_t1_fit_image_rejects_mask_for_1d():
+    import pytest
+
+    np = pytest.importorskip("numpy")
+
+    from qmrpy.models.t1 import VfaT1
+
+    flip_angle_deg = np.array([3.0, 8.0, 15.0, 25.0], dtype=float)
+    model = VfaT1(flip_angle_deg=flip_angle_deg, tr_ms=15.0, b1=1.0)
+    signal = model.forward(m0=2000.0, t1_ms=900.0)
+
+    with pytest.raises(ValueError, match="mask must be None for 1D data"):
+        model.fit_image(signal, mask=np.array([1], dtype=bool))

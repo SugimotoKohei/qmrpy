@@ -1,9 +1,9 @@
 import numpy as np
 
+from qmrpy.models.noise import MPPCA
+
 
 def test_mppca_runs_and_returns_expected_shapes() -> None:
-    from qmrpy.models.noise import MPPCA
-
     rng = np.random.default_rng(0)
 
     # Small 4D volume with enough interior voxels for a 3x3x3 kernel
@@ -32,3 +32,10 @@ def test_mppca_runs_and_returns_expected_shapes() -> None:
     assert np.isfinite(npars[cx, cy, cz])
     assert 0.0 <= npars[cx, cy, cz] <= float(min(data.shape[-1], 3 * 3 * 3))
 
+
+def test_mppca_fit_image_rejects_mask_for_1d() -> None:
+    import pytest
+
+    data = np.array([1.0, 2.0, 3.0], dtype=float)
+    with pytest.raises(ValueError, match="mask must be None for 1D data"):
+        MPPCA().fit_image(data, mask=np.array([1], dtype=bool))

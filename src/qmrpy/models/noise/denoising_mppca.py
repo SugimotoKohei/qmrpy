@@ -78,6 +78,9 @@ class MPPCA:
         }
 
     def fit_image(self, data: ArrayLike, mask: ArrayLike | None = None) -> dict[str, Any]:
+        if np.asarray(data).ndim == 1:
+            if mask is not None:
+                raise ValueError("mask must be None for 1D data")
         return self.fit(data, mask=mask)
 
 

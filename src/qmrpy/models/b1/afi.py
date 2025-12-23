@@ -102,6 +102,8 @@ class B1Afi:
 
         arr = np.asarray(data, dtype=np.float64)
         if arr.ndim == 1:
+            if mask is not None:
+                raise ValueError("mask must be None for 1D data")
             return self.fit_raw(arr)
         if arr.shape[-1] != 2:
             raise ValueError("data must have last dim=2 as [AFIData1, AFIData2]")

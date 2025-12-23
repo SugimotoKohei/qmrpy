@@ -106,6 +106,8 @@ class B1Dam:
 
         arr = np.asarray(data, dtype=np.float64)
         if arr.ndim == 1:
+            if mask is not None:
+                raise ValueError("mask must be None for 1D data")
             return self.fit_raw(arr)
         if arr.shape[-1] != 2:
             raise ValueError("data must have last dim=2 as [S(alpha), S(2*alpha)]")

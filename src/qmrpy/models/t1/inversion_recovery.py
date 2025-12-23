@@ -185,7 +185,7 @@ class InversionRecovery:
             "t1_ms": float(best_x[0]),
             "rb": float(best_x[1]),
             "ra": float(best_x[2]),
-            "idx": float(best_idx),
+            "idx": int(best_idx),
             "res_rmse": float(best_rmse),
         }
 
@@ -216,6 +216,8 @@ class InversionRecovery:
 
         arr = np.asarray(data, dtype=np.float64)
         if arr.ndim == 1:
+            if mask is not None:
+                raise ValueError("mask must be None for 1D data")
             return self.fit(arr, **kwargs)
         if arr.shape[-1] != self.ti_ms.shape[0]:
             raise ValueError(
@@ -241,7 +243,7 @@ class InversionRecovery:
             "res_rmse": np.full(spatial_shape, np.nan, dtype=np.float64),
         }
         if method_norm == "magnitude":
-            out["idx"] = np.full(spatial_shape, np.nan, dtype=np.float64)
+            out["idx"] = np.full(spatial_shape, -1, dtype=np.int64)
 
         for idx in np.flatnonzero(mask_flat):
             res = self.fit(flat[idx], **kwargs)
@@ -250,6 +252,6 @@ class InversionRecovery:
             out["rb"].flat[idx] = float(res["rb"])
             out["res_rmse"].flat[idx] = float(res["res_rmse"])
             if method_norm == "magnitude" and "idx" in res:
-                out["idx"].flat[idx] = float(res["idx"])
+                out["idx"].flat[idx] = int(res["idx"])
 
         return out

@@ -205,6 +205,8 @@ class VfaT1:
 
         arr = np.asarray(data, dtype=np.float64)
         if arr.ndim == 1:
+            if mask is not None:
+                raise ValueError("mask must be None for 1D data")
             return self.fit_linear(arr, **kwargs)
         if arr.shape[-1] != np.asarray(self.flip_angle_deg).shape[0]:
             raise ValueError(

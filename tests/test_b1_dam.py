@@ -18,3 +18,16 @@ def test_b1_dam_fit_raw_noise_free():
     assert out["b1_raw"].shape == img.shape[:-1]
     assert out["spurious"].shape == img.shape[:-1]
 
+
+def test_b1_dam_fit_image_rejects_mask_for_1d():
+    import pytest
+
+    np = pytest.importorskip("numpy")
+
+    from qmrpy.models.b1 import B1Dam
+
+    model = B1Dam(alpha_deg=60.0)
+    signal = np.array([1000.0, 900.0], dtype=float)
+
+    with pytest.raises(ValueError, match="mask must be None for 1D data"):
+        model.fit_image(signal, mask=np.array([1], dtype=bool))

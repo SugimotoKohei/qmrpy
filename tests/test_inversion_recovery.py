@@ -58,4 +58,20 @@ def test_inversion_recovery_fit_magnitude_noise_free():
     out = model.fit_image(img, method="magnitude")
     assert out["t1_ms"].shape == img.shape[:-1]
     assert out["idx"].shape == img.shape[:-1]
+    assert out["idx"].dtype == np.int64
 
+
+def test_inversion_recovery_fit_image_rejects_mask_for_1d():
+    import pytest
+
+    np = pytest.importorskip("numpy")
+    pytest.importorskip("scipy")
+
+    from qmrpy.models.t1 import InversionRecovery
+
+    ti = np.array([350.0, 500.0, 650.0], dtype=float)
+    model = InversionRecovery(ti_ms=ti)
+
+    signal = model.forward(t1_ms=900.0, ra=500.0, rb=-1000.0, magnitude=True)
+    with pytest.raises(ValueError, match="mask must be None for 1D data"):
+        model.fit_image(signal, mask=np.array([1], dtype=bool), method="magnitude")

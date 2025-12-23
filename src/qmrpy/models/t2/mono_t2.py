@@ -193,6 +193,8 @@ class MonoT2:
 
         arr = np.asarray(data, dtype=np.float64)
         if arr.ndim == 1:
+            if mask is not None:
+                raise ValueError("mask must be None for 1D data")
             return self.fit(arr, **kwargs)
         if arr.shape[-1] != self.te_ms.shape[0]:
             raise ValueError(
