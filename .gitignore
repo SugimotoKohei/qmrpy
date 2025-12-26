@@ -40,3 +40,7 @@ Thumbs.db
 
 # local-only agent instructions
 AGENTS.md
+
+# notebooks
+notebooks/*.ipynb
+!notebooks/mrzero_tutorial.ipynb

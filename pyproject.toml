@@ -21,7 +21,9 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Medical Science Apps.",
 ]
 dependencies = [
+  "mrzerocore>=0.4.1",
   "numpy>=1.26",
+  "pypulseq>=1.4.2.post1",
   "scipy>=1.11",
 ]
 dynamic = ["version"]

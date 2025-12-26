@@ -55,8 +55,8 @@ def simulate_pdg(
     graph = mr0.compute_graph(
         seq,
         data,
-        max_states=int(max_states),
-        min_latent_signal=float(min_latent_signal),
+        max_state_count=int(max_states),
+        min_state_mag=float(min_latent_signal),
     )
     signal = mr0.execute_graph(
         graph,
