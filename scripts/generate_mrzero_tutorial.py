@@ -190,7 +190,7 @@ s1, s2 = np.mean(sig_afi[-10:, 0]), np.mean(sig_afi[-10:, 1])
 
 # Estimate B1
 afi_model = B1Afi(nom_fa_deg=60, tr1_ms=20, tr2_ms=100)
-est_b1 = afi_model.fit_raw(np.array([s1, s2]))['b1_raw']
+est_b1 = afi_model.fit(np.array([s1, s2]))['b1_raw']
 print(f"True B1: {TRUE_B1}, Estimated B1: {est_b1:.4f}")
 
 # 2. VFA Simulation & Correction
@@ -222,8 +222,8 @@ sig_noisy = np.abs(np.array(signals) + np.random.normal(0, np.max(signals)/50, s
 vfa_nocorr = VfaT1(flip_angle_deg=np.array(flip_angles), tr_ms=15.0, b1=1.0)
 vfa_corr = VfaT1(flip_angle_deg=np.array(flip_angles), tr_ms=15.0, b1=est_b1)
 
-t1_nocorr = vfa_nocorr.fit_linear(sig_noisy)['t1_ms']
-t1_corr = vfa_corr.fit_linear(sig_noisy)['t1_ms']
+t1_nocorr = vfa_nocorr.fit(sig_noisy)['t1_ms']
+t1_corr = vfa_corr.fit(sig_noisy)['t1_ms']
 
 print(f"True T1: {TRUE_T1} ms")
 print(f"Uncorrected Fit (B1=1.0): {t1_nocorr:.1f} ms")
@@ -346,14 +346,14 @@ images = np.stack([np.exp(-te/0.1) * np.exp(-1j * 2 * np.pi * DF * te) for te in
 dPhi = np.angle(images[..., 1] * np.conj(images[..., 0]))
 field_map = dPhi # Phase at delta_TE
 qsm = QsmSplitBregman(sharp_filter=True, l1_regularized=True, lambda_l1=1e-3, pad_size=(4, 4, 4))
-res = qsm.fit(phase_gre=dPhi, mask=np.ones((N,N,N)), image_resolution_mm=np.array([dx*1000]*3))
+res = qsm.fit(phase=dPhi, mask=np.ones((N,N,N)), image_resolution_mm=np.array([dx*1000]*3))
 
 # Compare Center Slice
 sl = N//2
 plt.figure(figsize=(10,3))
 plt.subplot(131); plt.imshow(chi[:,:,sl], cmap='gray'); plt.title('True Chi')
 plt.subplot(132); plt.imshow(DF[:,:,sl], cmap='jet'); plt.title('Field Map')
-plt.subplot(133); plt.imshow(res['chiSB'][:,:,sl] * (1.0/(gamma*B0_T*(TEs[1]-TEs[0])*1e-6)), cmap='gray'); plt.title('Recon Chi')
+plt.subplot(133); plt.imshow(res['chi_sb'][:,:,sl] * (1.0/(gamma*B0_T*(TEs[1]-TEs[0])*1e-6)), cmap='gray'); plt.title('Recon Chi')
 plt.show()
 """
 nb['cells'].append(nbf.v4.new_code_cell(code))

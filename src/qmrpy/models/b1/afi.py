@@ -43,6 +43,10 @@ class B1Afi:
         if self.tr1_ms <= 0 or self.tr2_ms <= 0:
             raise ValueError("tr1_ms and tr2_ms must be > 0")
 
+    def fit(self, signal: ArrayLike) -> dict[str, float]:
+        """Fit B1 from AFI signals (alias of ``fit_raw``)."""
+        return self.fit_raw(signal)
+
     def fit_raw(self, signal: ArrayLike) -> dict[str, float]:
         """Fit B1 from AFI signals [S(TR1), S(TR2)].
 
@@ -104,7 +108,7 @@ class B1Afi:
         if arr.ndim == 1:
             if mask is not None:
                 raise ValueError("mask must be None for 1D data")
-            return self.fit_raw(arr)
+            return self.fit(arr)
         if arr.shape[-1] != 2:
             raise ValueError("data must have last dim=2 as [AFIData1, AFIData2]")
 

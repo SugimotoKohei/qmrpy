@@ -38,16 +38,16 @@ class QsmSplitBregman:
 
     def fit(
         self,
-        phase_gre: NDArray[np.float64],
+        phase: NDArray[np.float64],
         mask: NDArray[np.float64],
         *,
-        magn_gre: NDArray[np.float64] | None = None,
+        magnitude: NDArray[np.float64] | None = None,
         image_resolution_mm: NDArray[np.float64] | None = None,
     ) -> dict[str, Any]:
-        phase = np.asarray(phase_gre, dtype=np.float64)
+        phase = np.asarray(phase, dtype=np.float64)
         mask = np.asarray(mask, dtype=np.float64)
         if phase.shape != mask.shape:
-            raise ValueError("phase_gre and mask must have same shape")
+            raise ValueError("phase and mask must have same shape")
 
         if image_resolution_mm is None:
             image_resolution_mm = np.array([1.0, 1.0, 1.0], dtype=np.float64)
@@ -80,9 +80,9 @@ class QsmSplitBregman:
 
         # 3) Magnitude weighting (optional)
         magn_weight = None
-        if self.magn_weighting and magn_gre is not None:
+        if self.magn_weighting and magnitude is not None:
             magn_weight = calc_gradient_mask_from_magnitude(
-                magn=np.asarray(magn_gre, dtype=np.float64),
+                magn=np.asarray(magnitude, dtype=np.float64),
                 mask_sharp=mask_sharp,
                 pad_size=self.pad_size,
                 direction=self.direction,
@@ -109,9 +109,9 @@ class QsmSplitBregman:
                 padding_size=self.pad_size,
                 magn_weight=magn_weight,
             )
-            out["chiL2"] = chi_l2
+            out["chi_l2"] = chi_l2
             if chi_l2_pcg is not None:
-                out["chiL2pcg"] = chi_l2_pcg
+                out["chi_l2_pcg"] = chi_l2_pcg
 
         if self.l1_regularized:
             chi_sb = qsm_split_bregman(
@@ -125,6 +125,6 @@ class QsmSplitBregman:
                 precon_mag_weight=self.magn_weighting,
                 magn_weight=magn_weight,
             )
-            out["chiSB"] = chi_sb
+            out["chi_sb"] = chi_sb
 
         return out

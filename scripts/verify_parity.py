@@ -191,7 +191,7 @@ def verify_vfa_t1() -> None:
     for i in range(n_samples):
         # We must provide B1 to fit
         model_fit = VfaT1(flip_angle_deg=flip_angles, tr_ms=tr_ms, b1=b1_true[i])
-        res = model_fit.fit_linear(signals[i]) # Linear fit default
+        res = model_fit.fit(signals[i]) # Linear fit default
         fitted_t1.append(res["t1_ms"])
         fitted_m0.append(res["m0"])
         
@@ -279,7 +279,7 @@ def verify_b1_dam() -> None:
     # 4. Run Python Model
     fitted_b1 = []
     for i in range(n_samples):
-        res = model.fit_raw(signals[i])
+        res = model.fit(signals[i])
         fitted_b1.append(res["b1_raw"])
         
     df_py = pd.DataFrame({

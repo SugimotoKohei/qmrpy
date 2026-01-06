@@ -30,7 +30,7 @@ uv add qmrpy
 - `fit(signal, **kwargs)` は単一ボクセル向け推定で `dict` を返す。
 - `fit_image(data, mask=None, **kwargs)` は画像/ボリューム向け推定で `dict` を返す。
   - `data` は `(..., n_obs)` の形、`mask` は空間形状と一致。
-- 主要推定量は固定キー（例：`t1_ms`, `t2_ms`, `m0`）、補助量は意味が明確なキーで返す。
+- 主要推定量は固定キー（例：`t1_ms`, `t2_ms`, `m0`）、補助量は意味が明確な `snake_case` キーで返す。
 - 入力の shape 不一致や不正値は `ValueError` を投げる。
   - 例外として `fit_image` が 1D データを受け取る場合、`mask` は **禁止**（`ValueError`）。
 - 関数API（`qmrpy.<func>`）は対応するモデルの `forward` / `fit` と同じ入出力規約に従う。
@@ -46,21 +46,21 @@ uv add qmrpy
 
 ### 返却キー（B1 / Noise / QSM系）
 
-- `B1Afi.fit_raw` / `B1Dam.fit_raw`: `b1_raw`, `spurious`
+- `B1Afi.fit` / `B1Dam.fit`（`fit_raw` は互換エイリアス）: `b1_raw`, `spurious`
 - `B1Afi.fit_image` / `B1Dam.fit_image`: `b1_raw`, `spurious`
 - `MPPCA.fit`: `denoised`, `sigma`, `n_pars`
 - `MPPCA.fit_image`: `denoised`, `sigma`, `n_pars`
 - `QsmSplitBregman.fit`:
   - 常に `unwrapped_phase`, `mask_out`
   - `no_regularization=True` なら `nfm`
-  - `l2_regularized=True` なら `chiL2`（必要なら `chiL2pcg`）
-  - `l1_regularized=True` なら `chiSB`
+  - `l2_regularized=True` なら `chi_l2`（必要なら `chi_l2_pcg`）
+  - `l1_regularized=True` なら `chi_sb`
 - `qsm_split_bregman`: `chi`（再構成結果）
 - `calc_chi_l2`: `chi_l2`, `chi_l2_pcg`
 
 ### 関数API（functional）
 
-- `vfa_t1_forward`, `vfa_t1_fit_linear`
+- `vfa_t1_forward`, `vfa_t1_fit`（`vfa_t1_fit_linear` は互換エイリアス）
 - `inversion_recovery_forward`, `inversion_recovery_fit`
 - `mono_t2_forward`, `mono_t2_fit`
 - `mwf_fit`
@@ -84,7 +84,7 @@ model = VfaT1(
 )
 
 signal = model.forward(m0=1.0, t1_ms=1200.0)
-fit = model.fit_linear(signal)
+fit = model.fit(signal)
 print(fit["t1_ms"], fit["m0"])
 ```
 
@@ -92,10 +92,10 @@ print(fit["t1_ms"], fit["m0"])
 
 ```python
 import numpy as np
-from qmrpy import vfa_t1_fit_linear
+from qmrpy import vfa_t1_fit
 
 signal = np.array([0.02, 0.06, 0.12, 0.18], dtype=float)
-fit = vfa_t1_fit_linear(
+fit = vfa_t1_fit(
     signal,
     flip_angle_deg=np.array([2, 5, 10, 15]),
     tr_ms=15.0,
@@ -121,7 +121,7 @@ qsm = QsmSplitBregman(
     pad_size=(1, 1, 1),
 )
 
-out = qsm.fit(phase, mask, image_resolution_mm=[1.0, 1.0, 1.0])
+out = qsm.fit(phase=phase, mask=mask, image_resolution_mm=[1.0, 1.0, 1.0])
 print(out.keys())
 ```
 

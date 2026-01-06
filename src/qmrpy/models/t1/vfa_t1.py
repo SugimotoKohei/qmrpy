@@ -89,6 +89,28 @@ class VfaT1:
         e = np.exp(-float(self.tr_ms) / float(t1_ms))
         return m0 * np.sin(alpha) * (1.0 - e) / (1.0 - e * np.cos(alpha))
 
+    def fit(
+        self,
+        signal: ArrayLike,
+        *,
+        mask: ArrayLike | None = None,
+        robust: bool = False,
+        huber_k: float = 1.345,
+        outlier_reject: bool = False,
+        max_iter: int = 50,
+        min_points: int = 2,
+    ) -> dict[str, float]:
+        """Fit by linearized SPGR relation (alias of ``fit_linear``)."""
+        return self.fit_linear(
+            signal,
+            mask=mask,
+            robust=robust,
+            huber_k=huber_k,
+            outlier_reject=outlier_reject,
+            max_iter=max_iter,
+            min_points=min_points,
+        )
+
     def fit_linear(
         self,
         signal: ArrayLike,
@@ -194,7 +216,7 @@ class VfaT1:
         mask : array-like, optional
             Spatial mask.
         **kwargs
-            Passed to ``fit_linear``.
+            Passed to ``fit``.
 
         Returns
         -------
@@ -207,7 +229,7 @@ class VfaT1:
         if arr.ndim == 1:
             if mask is not None:
                 raise ValueError("mask must be None for 1D data")
-            return self.fit_linear(arr, **kwargs)
+            return self.fit(arr, **kwargs)
         if arr.shape[-1] != np.asarray(self.flip_angle_deg).shape[0]:
             raise ValueError(
                 "data last dim must match flip_angle_deg length "
@@ -232,7 +254,7 @@ class VfaT1:
         }
 
         for idx in np.flatnonzero(mask_flat):
-            res = self.fit_linear(flat[idx], **kwargs)
+            res = self.fit(flat[idx], **kwargs)
             out["m0"].flat[idx] = float(res["m0"])
             out["t1_ms"].flat[idx] = float(res["t1_ms"])
             out["n_points"].flat[idx] = int(res["n_points"])

@@ -31,6 +31,39 @@ def vfa_t1_forward(
     return VfaT1(flip_angle_deg=flip_angle_deg, tr_ms=tr_ms, b1=b1).forward(m0=m0, t1_ms=t1_ms)
 
 
+def vfa_t1_fit(
+    signal: Any,
+    *,
+    flip_angle_deg: Any,
+    tr_ms: float,
+    b1: Any | float = 1.0,
+    **kwargs: Any,
+) -> dict[str, float]:
+    """Functional wrapper for VFA T1 fit (ms).
+
+    Parameters
+    ----------
+    signal : array-like
+        Observed signal array.
+    flip_angle_deg : array-like
+        Flip angles in degrees.
+    tr_ms : float
+        Repetition time in milliseconds.
+    b1 : float or array-like, optional
+        B1 scaling (scalar or array).
+    **kwargs
+        Passed to ``VfaT1.fit``.
+
+    Returns
+    -------
+    dict
+        Fit results dict (e.g., ``t1_ms``, ``m0``, ``n_points``).
+    """
+    from qmrpy.models.t1.vfa_t1 import VfaT1
+
+    return VfaT1(flip_angle_deg=flip_angle_deg, tr_ms=tr_ms, b1=b1).fit(signal, **kwargs)
+
+
 def vfa_t1_fit_linear(
     signal: Any,
     *,

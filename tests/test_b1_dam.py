@@ -1,4 +1,4 @@
-def test_b1_dam_fit_raw_noise_free():
+def test_b1_dam_fit_noise_free():
     import pytest
 
     np = pytest.importorskip("numpy")
@@ -9,7 +9,7 @@ def test_b1_dam_fit_raw_noise_free():
     b1_true = 1.1
     m0 = 1000.0
     signal = model.forward(m0=m0, b1=b1_true)
-    fitted = model.fit_raw(signal)
+    fitted = model.fit(signal)
     assert abs(fitted["b1_raw"] - b1_true) < 1e-12
     assert fitted["spurious"] == 0.0
 

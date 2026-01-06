@@ -41,6 +41,10 @@ class B1Dam:
         if self.alpha_deg <= 0:
             raise ValueError("alpha_deg must be > 0")
 
+    def fit(self, signal: ArrayLike) -> dict[str, float]:
+        """Fit B1 from DAM signals (alias of ``fit_raw``)."""
+        return self.fit_raw(signal)
+
     def forward(self, *, m0: float, b1: float) -> NDArray[np.float64]:
         """Forward model returning [S(alpha), S(2*alpha)] under a simple sine model.
 
@@ -108,7 +112,7 @@ class B1Dam:
         if arr.ndim == 1:
             if mask is not None:
                 raise ValueError("mask must be None for 1D data")
-            return self.fit_raw(arr)
+            return self.fit(arr)
         if arr.shape[-1] != 2:
             raise ValueError("data must have last dim=2 as [S(alpha), S(2*alpha)]")
 

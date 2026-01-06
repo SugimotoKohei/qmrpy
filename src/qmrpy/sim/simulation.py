@@ -22,7 +22,7 @@ def simulate_single_voxel(
     ----------
     model : object
         qmrpy model instance with ``forward(**params)``.
-        If ``fit=True``, it must also have either ``fit_linear`` or ``fit``.
+        If ``fit=True``, it must also have ``fit`` (legacy: ``fit_linear``).
     params : dict
         Parameter dict passed to ``model.forward``.
     noise_model : {"none", "gaussian", "rician"}, optional
@@ -575,11 +575,11 @@ def SimCRLB(
 
 
 def _fit_model(model: Any, signal: Any, *, fit_kwargs: Mapping[str, Any]) -> dict[str, float]:
-    if hasattr(model, "fit_linear"):
-        fitted = model.fit_linear(signal, **dict(fit_kwargs))
-    elif hasattr(model, "fit"):
+    if hasattr(model, "fit"):
         fitted = model.fit(signal, **dict(fit_kwargs))
+    elif hasattr(model, "fit_linear"):
+        fitted = model.fit_linear(signal, **dict(fit_kwargs))
     else:
-        raise TypeError("model must provide fit_linear(...) or fit(...)")
+        raise TypeError("model must provide fit(...) or fit_linear(...)")
 
     return {k: float(v) for k, v in dict(fitted).items() if isinstance(v, (int, float))}

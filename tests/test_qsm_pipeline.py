@@ -17,11 +17,11 @@ def test_qsm_pipeline_shapes():
         pad_size=(1, 1, 1),
     )
 
-    out = model.fit(phase, mask, image_resolution_mm=np.array([1.0, 1.0, 1.0]))
+    out = model.fit(phase=phase, mask=mask, image_resolution_mm=np.array([1.0, 1.0, 1.0]))
     assert "unwrapped_phase" in out
     assert "mask_out" in out
-    assert "chiL2" in out
-    assert out["chiL2"].shape == (shape[0] - 2, shape[1] - 2, shape[2] - 2)
+    assert "chi_l2" in out
+    assert out["chi_l2"].shape == (shape[0] - 2, shape[1] - 2, shape[2] - 2)
 
 
 def test_qsm_pipeline_no_regularization_returns_nfm():
@@ -43,7 +43,7 @@ def test_qsm_pipeline_no_regularization_returns_nfm():
         pad_size=(1, 1, 1),
     )
 
-    out = model.fit(phase, mask, image_resolution_mm=np.array([1.0, 1.0, 1.0]))
+    out = model.fit(phase=phase, mask=mask, image_resolution_mm=np.array([1.0, 1.0, 1.0]))
     assert "unwrapped_phase" in out
     assert "mask_out" in out
     assert "nfm" in out

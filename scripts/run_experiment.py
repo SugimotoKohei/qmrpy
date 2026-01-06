@@ -538,7 +538,7 @@ def _run_vfa_t1(cfg: VfaT1Config, *, out_metrics: Path, out_figures: Path) -> di
             flip_angle_deg=model_nominal.flip_angle_deg,
             tr_ms=cfg.tr_ms,
             b1=float(b1_true[i]),
-        ).fit_linear(
+        ).fit(
             signal[i],
             robust=cfg.robust_linear,
             huber_k=cfg.huber_k,
@@ -641,7 +641,7 @@ def _run_b1_dam(cfg: B1DamConfig, *, out_metrics: Path, out_figures: Path) -> di
     b1_hat = np.empty(cfg.n_samples, dtype=float)
     spurious = np.empty(cfg.n_samples, dtype=float)
     for i in range(cfg.n_samples):
-        fitted = model.fit_raw(signal[i])
+        fitted = model.fit(signal[i])
         b1_hat[i] = fitted["b1_raw"]
         spurious[i] = fitted["spurious"]
 

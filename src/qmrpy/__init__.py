@@ -6,6 +6,7 @@ from .functional import (
     mono_t2_fit,
     mono_t2_forward,
     mwf_fit,
+    vfa_t1_fit,
     vfa_t1_fit_linear,
     vfa_t1_forward,
 )
@@ -19,8 +20,9 @@ __all__ = [
     "mono_t2_fit",
     "mono_t2_forward",
     "mwf_fit",
+    "vfa_t1_fit",
     "vfa_t1_fit_linear",
     "vfa_t1_forward",
 ]
 
-__version__ = "0.3.0"
+__version__ = "0.4.0"

@@ -1,4 +1,4 @@
-def test_b1_afi_fit_raw_noise_free():
+def test_b1_afi_fit_noise_free():
     import pytest
 
     np = pytest.importorskip("numpy")
@@ -17,7 +17,7 @@ def test_b1_afi_fit_raw_noise_free():
     s1 = 1000.0
     s2 = r * s1
 
-    fitted = model.fit_raw([s1, s2])
+    fitted = model.fit([s1, s2])
     assert abs(fitted["b1_raw"] - b1_true) < 1e-6
     assert fitted["spurious"] == 0.0
 
