@@ -13,7 +13,7 @@ def test_generate_4d_phantom_shapes() -> None:
 
 def test_simulate_single_voxel_with_fit_runs() -> None:
     from qmrpy.models.t2 import MonoT2
-    from qmrpy.sim import simulate_single_voxel
+    from qmrpy.sim import SimulationProtocol, simulate_single_voxel
 
     model = MonoT2(te_ms=np.array([10.0, 20.0, 40.0, 80.0], dtype=np.float64))
 
@@ -29,3 +29,14 @@ def test_simulate_single_voxel_with_fit_runs() -> None:
     assert out["signal"].shape == (4,)
     assert out["signal_clean"].shape == (4,)
     assert "t2_ms" in out["fit"]
+
+    proto = SimulationProtocol(noise_model="none", fit=True)
+    out_proto = simulate_single_voxel(
+        model,
+        params={"m0": 1000.0, "t2_ms": 60.0},
+        protocol=proto,
+        noise_model="gaussian",
+        noise_sigma=10.0,
+    )
+    assert "fit" in out_proto
+    assert out_proto["signal"].shape == out_proto["signal_clean"].shape

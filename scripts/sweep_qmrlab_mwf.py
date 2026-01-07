@@ -48,7 +48,7 @@ def _maybe_plot(df: Any, *, out_dir: Path) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="Sweep qMRLab(mwf) vs qmrpy comparison parameters.")
-    p.add_argument("--qmrlab-path", type=Path, default=Path("qMRLab"))
+    p.add_argument("--qmrlab-path", type=Path, default=None, help="Path to qMRLab checkout (or set QMRLAB_PATH).")
     p.add_argument("--out-dir", type=Path, default=Path("output/reports/qmrlab_parity_sweeps"))
 
     p.add_argument("--mwf-percent", type=float, default=15.0)
@@ -68,6 +68,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--noise-sigma", type=str, default="0,0.001,0.002,0.005,0.01")
     p.add_argument("--plot", action="store_true", help="Also write a quick diagnostic plot (requires plotnine).")
     args = p.parse_args(argv)
+    qmrlab_path = args.qmrlab_path or (Path(os.environ["QMRLAB_PATH"]) if "QMRLAB_PATH" in os.environ else None)
+    if qmrlab_path is None:
+        raise FileNotFoundError("qMRLab path is required. Set --qmrlab-path or QMRLAB_PATH.")
 
     def _parse_floats(s: str) -> list[float]:
         out: list[float] = []
@@ -130,7 +133,7 @@ def main(argv: list[str] | None = None) -> int:
         )
 
         report_path = run_case(
-            qmrlab_path=args.qmrlab_path,
+                qmrlab_path=qmrlab_path,
             out_dir=out_dir / "cases",
             case=case,
             regularization_alpha=float(alpha),

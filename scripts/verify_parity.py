@@ -8,6 +8,7 @@ Usage:
 import argparse
 import csv
 import json
+import os
 import subprocess
 import sys
 from dataclasses import dataclass
@@ -18,8 +19,7 @@ import numpy as np
 import pandas as pd
 
 ROOT_DIR = Path(__file__).parent.parent
-# Path to qMRLab (gitignored; user must place/clone it locally if parity check is needed)
-QMRLAB_PATH = ROOT_DIR / "qMRLab"
+QMRLAB_PATH: Path | None = None
 PARITY_DATA_DIR = ROOT_DIR / "data/parity"
 OCTAVE_SCRIPT = ROOT_DIR / "scripts/octave/verify_models.m"
 
@@ -28,8 +28,23 @@ def _ensure_dir():
     PARITY_DATA_DIR.mkdir(parents=True, exist_ok=True)
 
 
+def _resolve_qmrlab_path(path: str | None) -> Path:
+    if path is None:
+        env_path = os.environ.get("QMRLAB_PATH")
+        if env_path:
+            path = env_path
+    if not path:
+        raise FileNotFoundError("qMRLab path is required. Set --qmrlab-path or QMRLAB_PATH.")
+    resolved = Path(path)
+    if not resolved.exists():
+        raise FileNotFoundError(f"qMRLab not found at: {resolved}")
+    return resolved
+
+
 def run_octave(model_name: str, input_csv: Path, output_csv: Path) -> None:
     """Run the Octave verification script."""
+    if QMRLAB_PATH is None:
+        raise FileNotFoundError("qMRLab path is not configured.")
     cmd = [
         "octave",
         "--no-gui",
@@ -477,10 +492,18 @@ def verify_mwf() -> None:
 
 def main():
     parser = argparse.ArgumentParser()
+    parser.add_argument(
+        "--qmrlab-path",
+        type=str,
+        default=None,
+        help="Path to qMRLab checkout (or set QMRLAB_PATH env var).",
+    )
     parser.add_argument("--model", type=str, required=True, choices=["mono_t2", "vfa_t1", "b1_dam", "inversion_recovery", "mwf"])
     args = parser.parse_args()
     
     _ensure_dir()
+    global QMRLAB_PATH
+    QMRLAB_PATH = _resolve_qmrlab_path(args.qmrlab_path)
     
     if args.model == "mono_t2":
         verify_mono_t2()

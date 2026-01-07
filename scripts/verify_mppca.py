@@ -5,10 +5,10 @@ Generates a 4D phantom, adds Rician noise, runs Python MPPCA,
 calls Octave MPPCA, and compares.
 """
 
-import os
 import subprocess
 import tempfile
 from pathlib import Path
+import os
 
 import numpy as np
 import scipy.io as sio
@@ -59,7 +59,12 @@ def generate_phantom(sx=20, sy=20, sz=5, n_vol=30, snr=20):
 
 def run_octave(mat_path_in, mat_path_out):
     """Call Octave script to run MP-PCA."""
-    qMRLab_path = ROOT_DIR / "qMRLab"
+    qMRLab_path = os.environ.get("QMRLAB_PATH")
+    if not qMRLab_path:
+        raise FileNotFoundError("qMRLab path is required. Set QMRLAB_PATH.")
+    qMRLab_path = Path(qMRLab_path)
+    if not qMRLab_path.exists():
+        raise FileNotFoundError(f"qMRLab not found at: {qMRLab_path}")
     
     cmd = [
         "octave",

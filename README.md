@@ -2,9 +2,7 @@
 
 [![PyPI](https://img.shields.io/pypi/v/qmrpy.svg)](https://pypi.org/project/qmrpy/)
 
-qMRLab（MATLAB実装）の概念・モデルを **Python** へ段階的に移植するためのリポジトリです。
-
-本プロジェクトは upstream の qMRLab（MIT License）に着想を得ており、モデル定義・検証方針は qMRLab を参照しつつ Python で再構成します。
+定量MRIのモデル化・推定・シミュレーションを行う Python パッケージです。
 
 
 ## 開発（ローカル）
@@ -34,6 +32,7 @@ uv add qmrpy
 - 入力の shape 不一致や不正値は `ValueError` を投げる。
   - 例外として `fit_image` が 1D データを受け取る場合、`mask` は **禁止**（`ValueError`）。
 - 関数API（`qmrpy.<func>`）は対応するモデルの `forward` / `fit` と同じ入出力規約に従う。
+- シミュレーション系は `qmrpy.sim.SimulationProtocol` でノイズ/推定の設定を共通化できる。
 
 ### 返却キー（T2系）
 
@@ -128,10 +127,4 @@ print(out.keys())
 ## ライセンス
 
 - `qmrpy` 本体：MIT（`LICENSE`）
-- 参照元 `qMRLab/`：MIT（upstream、ローカル参照用）
-- 翻訳・参考実装・vendor の詳細は `THIRD_PARTY_NOTICES.md` を参照
-
-## 第三者由来コードの扱い
-
-- `qMRLab`（MATLAB）および `DECAES.jl` の概念・アルゴリズムを翻訳/再構成しています。
-- ライセンス表記・出自は `THIRD_PARTY_NOTICES.md` に集約しています。
+- 第三者由来のライセンス表記・出自は `THIRD_PARTY_NOTICES.md` を参照

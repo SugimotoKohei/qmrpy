@@ -1,12 +1,55 @@
 from __future__ import annotations
 
+from dataclasses import dataclass, field
 from typing import Any, Callable, Mapping
+
+
+@dataclass(frozen=True, slots=True)
+class SimulationProtocol:
+    """Unified simulation input configuration."""
+
+    noise_model: str = "none"
+    noise_sigma: float = 0.0
+    noise_snr: float | None = None
+    rng: Any | None = None
+    fit: bool = False
+    fit_kwargs: Mapping[str, Any] = field(default_factory=dict)
+
+
+def _resolve_protocol(
+    protocol: SimulationProtocol | None,
+    *,
+    noise_model: str,
+    noise_sigma: float,
+    noise_snr: float | None,
+    rng: Any | None,
+    fit: bool,
+    fit_kwargs: Mapping[str, Any] | None,
+) -> SimulationProtocol:
+    if protocol is None:
+        return SimulationProtocol(
+            noise_model=str(noise_model),
+            noise_sigma=float(noise_sigma),
+            noise_snr=noise_snr,
+            rng=rng,
+            fit=bool(fit),
+            fit_kwargs=dict(fit_kwargs or {}),
+        )
+    return SimulationProtocol(
+        noise_model=str(protocol.noise_model),
+        noise_sigma=float(protocol.noise_sigma),
+        noise_snr=protocol.noise_snr,
+        rng=protocol.rng if protocol.rng is not None else rng,
+        fit=bool(fit),
+        fit_kwargs=dict(fit_kwargs) if fit_kwargs is not None else dict(protocol.fit_kwargs or {}),
+    )
 
 
 def simulate_single_voxel(
     model: Any,
     *,
     params: Mapping[str, float],
+    protocol: SimulationProtocol | None = None,
     noise_model: str = "none",
     noise_sigma: float = 0.0,
     noise_snr: float | None = None,
@@ -25,6 +68,8 @@ def simulate_single_voxel(
         If ``fit=True``, it must also have ``fit`` (legacy: ``fit_linear``).
     params : dict
         Parameter dict passed to ``model.forward``.
+    protocol : SimulationProtocol, optional
+        Unified simulation input configuration. If provided, overrides the noise/fit arguments.
     noise_model : {"none", "gaussian", "rician"}, optional
         Noise model.
     noise_sigma : float, optional
@@ -47,21 +92,32 @@ def simulate_single_voxel(
 
     from .noise import add_gaussian_noise, add_rician_noise
 
-    if fit_kwargs is None:
-        fit_kwargs = {}
+    proto = _resolve_protocol(
+        protocol,
+        noise_model=noise_model,
+        noise_sigma=noise_sigma,
+        noise_snr=noise_snr,
+        rng=rng,
+        fit=protocol.fit if protocol is not None else fit,
+        fit_kwargs=fit_kwargs,
+    )
+
+    fit_kwargs = dict(proto.fit_kwargs or {})
 
     signal_clean = np.asarray(model.forward(**{k: float(v) for k, v in params.items()}), dtype=np.float64)
 
-    nm = noise_model.lower().strip()
+    nm = proto.noise_model.lower().strip()
     if nm in {"none", "", "no"}:
         signal = signal_clean
     else:
-        if rng is None:
+        if proto.rng is None:
             rng = np.random.default_rng(0)
+        else:
+            rng = proto.rng
 
-        sigma = float(noise_sigma)
-        if noise_snr is not None:
-            snr = float(noise_snr)
+        sigma = float(proto.noise_sigma)
+        if proto.noise_snr is not None:
+            snr = float(proto.noise_snr)
             if snr <= 0:
                 raise ValueError("noise_snr must be > 0")
             peak = float(np.max(np.abs(signal_clean)))
@@ -72,10 +128,10 @@ def simulate_single_voxel(
         elif nm == "rician":
             signal = add_rician_noise(signal_clean, sigma=sigma, rng=rng)
         else:
-            raise ValueError(f"unknown noise_model: {noise_model}")
+            raise ValueError(f"unknown noise_model: {proto.noise_model}")
 
     out: dict[str, Any] = {"signal_clean": signal_clean, "signal": signal}
-    if fit:
+    if proto.fit:
         out["fit"] = _fit_model(model, signal, fit_kwargs=fit_kwargs)
     return out
 
@@ -89,6 +145,7 @@ def sensitivity_analysis(
     ub: float,
     n_steps: int = 10,
     n_runs: int = 20,
+    protocol: SimulationProtocol | None = None,
     noise_model: str = "gaussian",
     noise_sigma: float = 0.0,
     noise_snr: float | None = None,
@@ -111,6 +168,8 @@ def sensitivity_analysis(
         Number of steps.
     n_runs : int, optional
         Number of runs per step.
+    protocol : SimulationProtocol, optional
+        Unified simulation input configuration. If provided, overrides the noise/fit arguments.
     noise_model : {"gaussian", "rician"}, optional
         Noise model.
     noise_sigma : float, optional
@@ -134,10 +193,20 @@ def sensitivity_analysis(
     if n_runs <= 0:
         raise ValueError("n_runs must be >= 1")
 
-    if fit_kwargs is None:
-        fit_kwargs = {}
-    if rng is None:
+    proto = _resolve_protocol(
+        protocol,
+        noise_model=noise_model,
+        noise_sigma=noise_sigma,
+        noise_snr=noise_snr,
+        rng=rng,
+        fit=True,
+        fit_kwargs=fit_kwargs,
+    )
+    fit_kwargs = dict(proto.fit_kwargs or {})
+    if proto.rng is None:
         rng = np.random.default_rng(0)
+    else:
+        rng = proto.rng
 
     x = np.linspace(float(lb), float(ub), int(n_steps), dtype=np.float64)
 
@@ -147,12 +216,7 @@ def sensitivity_analysis(
     probe = simulate_single_voxel(
         model,
         params=probe_params,
-        noise_model=noise_model,
-        noise_sigma=noise_sigma,
-        noise_snr=noise_snr,
-        rng=rng,
-        fit=True,
-        fit_kwargs=fit_kwargs,
+        protocol=proto,
     )["fit"]
 
     fit_store: dict[str, Any] = {k: np.full((n_steps, n_runs), np.nan, dtype=np.float64) for k in probe}
@@ -164,12 +228,7 @@ def sensitivity_analysis(
             fitted = simulate_single_voxel(
                 model,
                 params=params,
-                noise_model=noise_model,
-                noise_sigma=noise_sigma,
-                noise_snr=noise_snr,
-                rng=rng,
-                fit=True,
-                fit_kwargs=fit_kwargs,
+                protocol=proto,
             )["fit"]
             for k, v in fitted.items():
                 fit_store[k][i, r] = float(v)
@@ -190,6 +249,7 @@ def simulate_parameter_distribution(
     model: Any,
     *,
     true_params: Mapping[str, Any],
+    protocol: SimulationProtocol | None = None,
     noise_model: str = "gaussian",
     noise_sigma: float = 0.0,
     noise_snr: float | None = None,
@@ -204,6 +264,8 @@ def simulate_parameter_distribution(
         qmrpy model instance.
     true_params : dict
         Mapping of parameter name -> array-like (length n_samples) or scalar.
+    protocol : SimulationProtocol, optional
+        Unified simulation input configuration. If provided, overrides the noise/fit arguments.
     noise_model : {"gaussian", "rician"}, optional
         Noise model.
     noise_sigma : float, optional
@@ -222,10 +284,20 @@ def simulate_parameter_distribution(
     """
     import numpy as np
 
-    if fit_kwargs is None:
-        fit_kwargs = {}
-    if rng is None:
+    proto = _resolve_protocol(
+        protocol,
+        noise_model=noise_model,
+        noise_sigma=noise_sigma,
+        noise_snr=noise_snr,
+        rng=rng,
+        fit=True,
+        fit_kwargs=fit_kwargs,
+    )
+    fit_kwargs = dict(proto.fit_kwargs or {})
+    if proto.rng is None:
         rng = np.random.default_rng(0)
+    else:
+        rng = proto.rng
 
     keys = list(true_params.keys())
     values = [np.asarray(true_params[k], dtype=np.float64) for k in keys]
@@ -263,12 +335,7 @@ def simulate_parameter_distribution(
         fitted = simulate_single_voxel(
             model,
             params=params,
-            noise_model=noise_model,
-            noise_sigma=noise_sigma,
-            noise_snr=noise_snr,
-            rng=rng,
-            fit=True,
-            fit_kwargs=fit_kwargs,
+            protocol=proto,
         )["fit"]
         for k, v in fitted.items():
             hat[k][i] = float(v)

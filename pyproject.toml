@@ -4,14 +4,14 @@ build-backend = "hatchling.build"
 
 [project]
 name = "qmrpy"
-description = "Python implementation (translation) of qMRLab models for quantitative MRI."
+description = "Python toolkit for quantitative MRI modeling, fitting, and simulation."
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 authors = [
   { name = "Kohei Sugimoto" },
 ]
-keywords = ["qMRI", "MRI", "qMRLab", "relaxometry", "diffusion"]
+keywords = ["qMRI", "MRI", "quantitative", "relaxometry", "diffusion", "simulation"]
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",
   "Intended Audience :: Science/Research",

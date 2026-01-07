@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 import json
 import subprocess
 import sys
@@ -174,7 +175,12 @@ def run_case(
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="qMRLab(mwf) vs qmrpy(MWF) fixed-vector comparison (Octave required).")
-    p.add_argument("--qmrlab-path", type=Path, default=Path("qMRLab"), help="Path to qMRLab checkout (default: ./qMRLab)")
+    p.add_argument(
+        "--qmrlab-path",
+        type=Path,
+        default=None,
+        help="Path to qMRLab checkout (or set QMRLAB_PATH env var).",
+    )
     p.add_argument("--mwf-percent", type=float, default=15.0, help="Ground-truth MWF in percent (qMRLab convention).")
     p.add_argument("--t2mw-ms", type=float, default=20.0, help="Ground-truth T2MW [ms].")
     p.add_argument("--t2iew-ms", type=float, default=80.0, help="Ground-truth T2IEW [ms].")
@@ -215,9 +221,13 @@ def main(argv: list[str] | None = None) -> int:
         seed=int(args.seed),
     )
 
+    qmrlab_path = args.qmrlab_path or (Path(os.environ["QMRLAB_PATH"]) if "QMRLAB_PATH" in os.environ else None)
+    if qmrlab_path is None:
+        raise FileNotFoundError("qMRLab path is required. Set --qmrlab-path or QMRLAB_PATH.")
+
     try:
         report_path = run_case(
-            qmrlab_path=args.qmrlab_path,
+            qmrlab_path=qmrlab_path,
             out_dir=args.out_dir,
             case=case,
             regularization_alpha=float(args.regularization_alpha),

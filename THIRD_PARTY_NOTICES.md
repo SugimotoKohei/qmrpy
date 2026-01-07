@@ -9,7 +9,7 @@
 - Upstream: `qMRLab`（MATLAB 実装）
 - Copyright (c) 2017 NeuroPoly
 - License: MIT License
-- Reference path: `qMRLab/`（ローカル参照用・Git 管理外）
+- Reference materials: ローカル参照（同梱なし）
 - Notes: 本リポジトリは qMRLab の概念・モデル定義を **翻訳/再構成** しています。
   qMRLab 本体や `External/` 配下の第三者コードは同梱しておらず、取り込みが発生した場合は
   その都度ライセンス表記を追加します。
@@ -43,7 +43,7 @@ SOFTWARE.
 - Upstream: `DECAES.jl`
 - Copyright (c) 2019 Jonathan Doucette
 - License: MIT License
-- Reference path: `DECAES.jl/`（ローカル参照用）
+- Reference materials: ローカル参照（同梱なし）
 - Notes: 一部アルゴリズム/実装の **翻訳・参考** を含む
 
 ```
