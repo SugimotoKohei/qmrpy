@@ -8,6 +8,8 @@ from typing import Any, Callable, Mapping
 class SimulationProtocol:
     """Unified simulation input configuration."""
 
+    model_protocol: Mapping[str, Any] = field(default_factory=dict)
+    simulation_backend: str = "mrzero_bloch"
     noise_model: str = "none"
     noise_sigma: float = 0.0
     noise_snr: float | None = None
@@ -19,6 +21,8 @@ class SimulationProtocol:
 def _resolve_protocol(
     protocol: SimulationProtocol | None,
     *,
+    model_protocol: Mapping[str, Any] | None = None,
+    simulation_backend: str,
     noise_model: str,
     noise_sigma: float,
     noise_snr: float | None,
@@ -28,6 +32,8 @@ def _resolve_protocol(
 ) -> SimulationProtocol:
     if protocol is None:
         return SimulationProtocol(
+            model_protocol=dict(model_protocol or {}),
+            simulation_backend=str(simulation_backend),
             noise_model=str(noise_model),
             noise_sigma=float(noise_sigma),
             noise_snr=noise_snr,
@@ -36,6 +42,8 @@ def _resolve_protocol(
             fit_kwargs=dict(fit_kwargs or {}),
         )
     return SimulationProtocol(
+        model_protocol=dict(protocol.model_protocol or {}),
+        simulation_backend=str(protocol.simulation_backend),
         noise_model=str(protocol.noise_model),
         noise_sigma=float(protocol.noise_sigma),
         noise_snr=protocol.noise_snr,
@@ -45,11 +53,29 @@ def _resolve_protocol(
     )
 
 
+def _ensure_model_instance(model: Any, protocol: SimulationProtocol | None) -> Any:
+    if model is None:
+        raise ValueError("model must not be None")
+    if protocol is None or not protocol.model_protocol:
+        if isinstance(model, type):
+            raise ValueError("model is a class; provide protocol.model_protocol to instantiate it")
+        return model
+
+    model_kwargs = dict(protocol.model_protocol or {})
+    if isinstance(model, type):
+        return model(**model_kwargs)
+    if callable(model) and not hasattr(model, "forward"):
+        return model(**model_kwargs)
+    return model
+
+
 def simulate_single_voxel(
     model: Any,
     *,
     params: Mapping[str, float],
     protocol: SimulationProtocol | None = None,
+    model_protocol: Mapping[str, Any] | None = None,
+    simulation_backend: str = "mrzero_bloch",
     noise_model: str = "none",
     noise_sigma: float = 0.0,
     noise_snr: float | None = None,
@@ -64,12 +90,17 @@ def simulate_single_voxel(
     Parameters
     ----------
     model : object
-        qmrpy model instance with ``forward(**params)``.
+        qmrpy model instance with ``forward(**params)``, or a model class/factory
+        if ``protocol.model_protocol`` is provided.
         If ``fit=True``, it must also have ``fit`` (legacy: ``fit_linear``).
     params : dict
         Parameter dict passed to ``model.forward``.
     protocol : SimulationProtocol, optional
         Unified simulation input configuration. If provided, overrides the noise/fit arguments.
+    model_protocol : dict, optional
+        Model construction parameters (e.g., TE/TR/FA/TI). Used only when ``protocol`` is None.
+    simulation_backend : {"mrzero_bloch", "analytic"}, optional
+        Simulation backend. Defaults to MRzero Bloch simulation.
     noise_model : {"none", "gaussian", "rician"}, optional
         Noise model.
     noise_sigma : float, optional
@@ -87,6 +118,11 @@ def simulate_single_voxel(
     -------
     dict
         ``signal_clean``, ``signal``, and optional ``fit``.
+
+    Notes
+    -----
+    - ``mrzero_bloch`` requires ``model_protocol`` to include ``seq_or_path`` (or ``sequence``)
+      and either ``data`` or ``data_factory``.
     """
     import numpy as np
 
@@ -94,6 +130,8 @@ def simulate_single_voxel(
 
     proto = _resolve_protocol(
         protocol,
+        model_protocol=model_protocol,
+        simulation_backend=simulation_backend,
         noise_model=noise_model,
         noise_sigma=noise_sigma,
         noise_snr=noise_snr,
@@ -103,8 +141,45 @@ def simulate_single_voxel(
     )
 
     fit_kwargs = dict(proto.fit_kwargs or {})
+    backend = str(proto.simulation_backend).lower().strip()
+    model_instance = None
+    if backend == "analytic":
+        model_instance = _ensure_model_instance(model, proto)
+    elif backend == "mrzero_bloch":
+        if proto.fit:
+            model_instance = _ensure_model_instance(model, proto)
+    else:
+        raise ValueError(f"unknown simulation_backend: {proto.simulation_backend}")
 
-    signal_clean = np.asarray(model.forward(**{k: float(v) for k, v in params.items()}), dtype=np.float64)
+    if backend == "analytic":
+        assert model_instance is not None
+        signal_clean = np.asarray(
+            model_instance.forward(**{k: float(v) for k, v in params.items()}),
+            dtype=np.float64,
+        )
+    else:
+        from .mrzero import simulate_bloch
+
+        mp = dict(proto.model_protocol or {})
+        seq_or_path = mp.get("seq_or_path", mp.get("sequence"))
+        data_factory = mp.get("data_factory")
+        data = mp.get("data")
+        if callable(data_factory):
+            data = data_factory({k: float(v) for k, v in params.items()})
+        if seq_or_path is None or data is None:
+            raise ValueError("mrzero_bloch requires model_protocol['seq_or_path' or 'sequence'] and data/data_factory")
+
+        mrzero_kwargs = {
+            "spin_count": mp.get("spin_count", 5000),
+            "perfect_spoiling": mp.get("perfect_spoiling", False),
+            "print_progress": mp.get("print_progress", True),
+            "spin_dist": mp.get("spin_dist", "rand"),
+            "r2_seed": mp.get("r2_seed"),
+        }
+        signal_clean = np.asarray(simulate_bloch(seq_or_path, data, **mrzero_kwargs))
+        if np.iscomplexobj(signal_clean):
+            signal_clean = np.abs(signal_clean)
+        signal_clean = np.asarray(signal_clean, dtype=np.float64)
 
     nm = proto.noise_model.lower().strip()
     if nm in {"none", "", "no"}:
@@ -132,7 +207,9 @@ def simulate_single_voxel(
 
     out: dict[str, Any] = {"signal_clean": signal_clean, "signal": signal}
     if proto.fit:
-        out["fit"] = _fit_model(model, signal, fit_kwargs=fit_kwargs)
+        if model_instance is None:
+            raise ValueError("fit=True requires a model instance")
+        out["fit"] = _fit_model(model_instance, signal, fit_kwargs=fit_kwargs)
     return out
 
 
@@ -146,6 +223,8 @@ def sensitivity_analysis(
     n_steps: int = 10,
     n_runs: int = 20,
     protocol: SimulationProtocol | None = None,
+    model_protocol: Mapping[str, Any] | None = None,
+    simulation_backend: str = "mrzero_bloch",
     noise_model: str = "gaussian",
     noise_sigma: float = 0.0,
     noise_snr: float | None = None,
@@ -170,6 +249,10 @@ def sensitivity_analysis(
         Number of runs per step.
     protocol : SimulationProtocol, optional
         Unified simulation input configuration. If provided, overrides the noise/fit arguments.
+    model_protocol : dict, optional
+        Model construction parameters (e.g., TE/TR/FA/TI). Used only when ``protocol`` is None.
+    simulation_backend : {"mrzero_bloch", "analytic"}, optional
+        Simulation backend. Defaults to MRzero Bloch simulation.
     noise_model : {"gaussian", "rician"}, optional
         Noise model.
     noise_sigma : float, optional
@@ -195,6 +278,8 @@ def sensitivity_analysis(
 
     proto = _resolve_protocol(
         protocol,
+        model_protocol=model_protocol,
+        simulation_backend=simulation_backend,
         noise_model=noise_model,
         noise_sigma=noise_sigma,
         noise_snr=noise_snr,
@@ -207,6 +292,7 @@ def sensitivity_analysis(
         rng = np.random.default_rng(0)
     else:
         rng = proto.rng
+    model_instance = _ensure_model_instance(model, proto) if proto.fit else None
 
     x = np.linspace(float(lb), float(ub), int(n_steps), dtype=np.float64)
 
@@ -214,7 +300,7 @@ def sensitivity_analysis(
     probe_params = dict(nominal_params)
     probe_params[vary_param] = float(x[0])
     probe = simulate_single_voxel(
-        model,
+        model_instance,
         params=probe_params,
         protocol=proto,
     )["fit"]
@@ -226,7 +312,7 @@ def sensitivity_analysis(
             params = dict(nominal_params)
             params[vary_param] = float(xv)
             fitted = simulate_single_voxel(
-                model,
+                model_instance,
                 params=params,
                 protocol=proto,
             )["fit"]
@@ -250,6 +336,8 @@ def simulate_parameter_distribution(
     *,
     true_params: Mapping[str, Any],
     protocol: SimulationProtocol | None = None,
+    model_protocol: Mapping[str, Any] | None = None,
+    simulation_backend: str = "mrzero_bloch",
     noise_model: str = "gaussian",
     noise_sigma: float = 0.0,
     noise_snr: float | None = None,
@@ -266,6 +354,10 @@ def simulate_parameter_distribution(
         Mapping of parameter name -> array-like (length n_samples) or scalar.
     protocol : SimulationProtocol, optional
         Unified simulation input configuration. If provided, overrides the noise/fit arguments.
+    model_protocol : dict, optional
+        Model construction parameters (e.g., TE/TR/FA/TI). Used only when ``protocol`` is None.
+    simulation_backend : {"mrzero_bloch", "analytic"}, optional
+        Simulation backend. Defaults to MRzero Bloch simulation.
     noise_model : {"gaussian", "rician"}, optional
         Noise model.
     noise_sigma : float, optional
@@ -286,6 +378,8 @@ def simulate_parameter_distribution(
 
     proto = _resolve_protocol(
         protocol,
+        model_protocol=model_protocol,
+        simulation_backend=simulation_backend,
         noise_model=noise_model,
         noise_sigma=noise_sigma,
         noise_snr=noise_snr,
@@ -298,6 +392,7 @@ def simulate_parameter_distribution(
         rng = np.random.default_rng(0)
     else:
         rng = proto.rng
+    model_instance = _ensure_model_instance(model, proto) if proto.fit else None
 
     keys = list(true_params.keys())
     values = [np.asarray(true_params[k], dtype=np.float64) for k in keys]
@@ -318,14 +413,9 @@ def simulate_parameter_distribution(
     # Determine output keys from one fit.
     p0 = {k: float(true[k][0]) for k in keys}
     probe = simulate_single_voxel(
-        model,
+        model_instance,
         params=p0,
-        noise_model=noise_model,
-        noise_sigma=noise_sigma,
-        noise_snr=noise_snr,
-        rng=rng,
-        fit=True,
-        fit_kwargs=fit_kwargs,
+        protocol=proto,
     )["fit"]
     for k in probe:
         hat[k] = np.full(n_samples, np.nan, dtype=np.float64)
@@ -333,7 +423,7 @@ def simulate_parameter_distribution(
     for i in range(n_samples):
         params = {k: float(true[k][i]) for k in keys}
         fitted = simulate_single_voxel(
-            model,
+            model_instance,
             params=params,
             protocol=proto,
         )["fit"]
@@ -517,6 +607,7 @@ def SimVary(
             ub=float(ub[i]),
             n_steps=n_steps,
             n_runs=int(runs),
+            simulation_backend="analytic",
             noise_model="gaussian",
             noise_sigma=0.0,
             noise_snr=(snr if snr > 0 else None),
@@ -542,6 +633,7 @@ def SimRnd(Model: Any, RndParam: Mapping[str, Any], Opt: Mapping[str, Any] | Non
     out = simulate_parameter_distribution(
         Model,
         true_params=RndParam,
+        simulation_backend="analytic",
         noise_model="gaussian",
         noise_sigma=0.0,
         noise_snr=(snr if snr > 0 else None),

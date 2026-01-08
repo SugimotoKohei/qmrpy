@@ -20,6 +20,7 @@ def test_simulate_single_voxel_with_fit_runs() -> None:
     out = simulate_single_voxel(
         model,
         params={"m0": 1000.0, "t2_ms": 60.0},
+        simulation_backend="analytic",
         noise_model="gaussian",
         noise_snr=50.0,
         fit=True,
@@ -30,7 +31,7 @@ def test_simulate_single_voxel_with_fit_runs() -> None:
     assert out["signal_clean"].shape == (4,)
     assert "t2_ms" in out["fit"]
 
-    proto = SimulationProtocol(noise_model="none", fit=True)
+    proto = SimulationProtocol(simulation_backend="analytic", noise_model="none", fit=True)
     out_proto = simulate_single_voxel(
         model,
         params={"m0": 1000.0, "t2_ms": 60.0},
@@ -40,3 +41,15 @@ def test_simulate_single_voxel_with_fit_runs() -> None:
     )
     assert "fit" in out_proto
     assert out_proto["signal"].shape == out_proto["signal_clean"].shape
+
+    proto_model = SimulationProtocol(
+        simulation_backend="analytic",
+        model_protocol={"te_ms": [10.0, 20.0, 40.0, 80.0]},
+        fit=True,
+    )
+    out_from_class = simulate_single_voxel(
+        MonoT2,
+        params={"m0": 1000.0, "t2_ms": 60.0},
+        protocol=proto_model,
+    )
+    assert "fit" in out_from_class
