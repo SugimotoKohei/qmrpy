@@ -1,5 +1,5 @@
 from .noise import add_gaussian_noise, add_rician_noise
-from .phantoms import generate_4d_phantom
+from .phantoms import generate_4d_phantom, shepp_logan_2d, shepp_logan_2d_maps
 from .templates import (
     build_cpmg_sequence,
     build_se_sequence,
@@ -40,6 +40,8 @@ __all__ = [
     "crlb_from_fisher",
     "fisher_information_gaussian",
     "generate_4d_phantom",
+    "shepp_logan_2d",
+    "shepp_logan_2d_maps",
     "mrzero_protocol_cpmg",
     "mrzero_protocol_se",
     "mrzero_protocol_spgr",
