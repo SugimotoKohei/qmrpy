@@ -34,6 +34,11 @@ Thumbs.db
 # logs
 *.log
 
+# notebooks artifacts
+notebooks/output/
+notebooks/*.seq
+notebooks/*.mat
+
 # secrets (原則使わないが、万一置くなら絶対に管理しない)
 .env
 .env.*
