@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from pathlib import Path
 from typing import Any, Callable, Mapping
 
 from .simulation import SimulationProtocol
@@ -46,6 +47,22 @@ def _quantize(t: float, raster: float) -> float:
 
     return float(np.round(float(t) / float(raster)) * float(raster))
 
+
+def _format_token(value: float) -> str:
+    return f"{value:.2f}".replace(".", "p")
+
+
+def _default_seq_path(name: str) -> Path:
+    out_dir = Path("output/seq")
+    out_dir.mkdir(parents=True, exist_ok=True)
+    return out_dir / f"{name}.seq"
+
+
+def _write_sequence(seq: Any, path: str | Path | None, *, fallback_name: str) -> str:
+    seq_path = _default_seq_path(fallback_name) if path is None else Path(path)
+    seq_path.parent.mkdir(parents=True, exist_ok=True)
+    seq.write(str(seq_path))
+    return str(seq_path)
 
 def build_cpmg_sequence(
     *,
@@ -257,16 +274,22 @@ def mrzero_protocol_se(
     perfect_spoiling: bool = False,
     print_progress: bool = True,
     data_factory: Callable[[Mapping[str, float]], Any] = mrzero_single_voxel_data_factory,
+    seq_path: str | Path | None = None,
 ) -> SimulationProtocol:
     """Standard MRzero SE protocol template."""
     seq = build_se_sequence(te_ms=te_ms, adc_samples=adc_samples)
+    seq_or_path = _write_sequence(
+        seq,
+        seq_path,
+        fallback_name=f"se_te{_format_token(te_ms)}",
+    )
     return SimulationProtocol(
         simulation_backend="mrzero_bloch",
         fit=True,
         model_protocol={
             "model": {"te_ms": [float(te_ms)]},
             "mrzero": {
-                "seq_or_path": seq,
+                "seq_or_path": seq_or_path,
                 "data_factory": data_factory,
                 "spin_count": int(spin_count),
                 "perfect_spoiling": bool(perfect_spoiling),
@@ -286,6 +309,7 @@ def mrzero_protocol_cpmg(
     perfect_spoiling: bool = False,
     print_progress: bool = True,
     data_factory: Callable[[Mapping[str, float]], Any] = mrzero_single_voxel_data_factory,
+    seq_path: str | Path | None = None,
 ) -> SimulationProtocol:
     """Standard MRzero CPMG protocol template."""
     seq = build_cpmg_sequence(
@@ -294,6 +318,11 @@ def mrzero_protocol_cpmg(
         adc_samples=adc_samples,
         refoc_angle_deg=refoc_angle_deg,
     )
+    seq_or_path = _write_sequence(
+        seq,
+        seq_path,
+        fallback_name=f"cpmg_te{_format_token(te_ms)}_n{int(n_echo)}_ref{_format_token(refoc_angle_deg)}",
+    )
     te_list = [float(te_ms) * (i + 1) for i in range(int(n_echo))]
     return SimulationProtocol(
         simulation_backend="mrzero_bloch",
@@ -301,7 +330,7 @@ def mrzero_protocol_cpmg(
         model_protocol={
             "model": {"te_ms": te_list},
             "mrzero": {
-                "seq_or_path": seq,
+                "seq_or_path": seq_or_path,
                 "data_factory": data_factory,
                 "spin_count": int(spin_count),
                 "perfect_spoiling": bool(perfect_spoiling),
@@ -321,6 +350,7 @@ def mrzero_protocol_spgr(
     perfect_spoiling: bool = False,
     print_progress: bool = True,
     data_factory: Callable[[Mapping[str, float]], Any] = mrzero_single_voxel_data_factory,
+    seq_path: str | Path | None = None,
 ) -> SimulationProtocol:
     """Standard MRzero SPGR protocol template."""
     seq = build_spgr_sequence(
@@ -329,13 +359,18 @@ def mrzero_protocol_spgr(
         adc_samples=adc_samples,
         n_reps=n_reps,
     )
+    seq_or_path = _write_sequence(
+        seq,
+        seq_path,
+        fallback_name=f"spgr_fa{_format_token(flip_angle_deg)}_tr{_format_token(tr_ms)}",
+    )
     return SimulationProtocol(
         simulation_backend="mrzero_bloch",
         fit=True,
         model_protocol={
             "model": {"flip_angle_deg": [float(flip_angle_deg)], "tr_ms": float(tr_ms)},
             "mrzero": {
-                "seq_or_path": seq,
+                "seq_or_path": seq_or_path,
                 "data_factory": data_factory,
                 "spin_count": int(spin_count),
                 "perfect_spoiling": bool(perfect_spoiling),

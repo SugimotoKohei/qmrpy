@@ -193,6 +193,12 @@ def simulate_single_voxel(
         if np.iscomplexobj(signal_clean):
             signal_clean = np.abs(signal_clean)
         signal_clean = np.asarray(signal_clean, dtype=np.float64)
+        if signal_clean.ndim > 1:
+            signal_clean = signal_clean.reshape(signal_clean.shape[0], -1)
+            if signal_clean.shape[1] > 1:
+                signal_clean = signal_clean.mean(axis=1)
+            else:
+                signal_clean = signal_clean[:, 0]
 
     nm = proto.noise_model.lower().strip()
     if nm in {"none", "", "no"}:
