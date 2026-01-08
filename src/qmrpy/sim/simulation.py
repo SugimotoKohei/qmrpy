@@ -8,6 +8,8 @@ from typing import Any, Callable, Mapping
 class SimulationProtocol:
     """Unified simulation input configuration."""
 
+    # model_protocol can optionally be nested:
+    #   {"model": {...}, "mrzero": {...}}
     model_protocol: Mapping[str, Any] = field(default_factory=dict)
     simulation_backend: str = "mrzero_bloch"
     noise_model: str = "none"
@@ -61,7 +63,14 @@ def _ensure_model_instance(model: Any, protocol: SimulationProtocol | None) -> A
             raise ValueError("model is a class; provide protocol.model_protocol to instantiate it")
         return model
 
-    model_kwargs = dict(protocol.model_protocol or {})
+    proto_dict = dict(protocol.model_protocol or {})
+    model_block = proto_dict.get("model")
+    if model_block is None:
+        model_kwargs = proto_dict
+    else:
+        if not isinstance(model_block, Mapping):
+            raise ValueError("model_protocol['model'] must be a mapping")
+        model_kwargs = dict(model_block)
     if isinstance(model, type):
         return model(**model_kwargs)
     if callable(model) and not hasattr(model, "forward"):
@@ -161,20 +170,24 @@ def simulate_single_voxel(
         from .mrzero import simulate_bloch
 
         mp = dict(proto.model_protocol or {})
-        seq_or_path = mp.get("seq_or_path", mp.get("sequence"))
-        data_factory = mp.get("data_factory")
-        data = mp.get("data")
+        mrzero_block = mp.get("mrzero", mp)
+        if not isinstance(mrzero_block, Mapping):
+            raise ValueError("model_protocol['mrzero'] must be a mapping")
+        mrzero_cfg = dict(mrzero_block)
+        seq_or_path = mrzero_cfg.get("seq_or_path", mrzero_cfg.get("sequence"))
+        data_factory = mrzero_cfg.get("data_factory")
+        data = mrzero_cfg.get("data")
         if callable(data_factory):
             data = data_factory({k: float(v) for k, v in params.items()})
         if seq_or_path is None or data is None:
             raise ValueError("mrzero_bloch requires model_protocol['seq_or_path' or 'sequence'] and data/data_factory")
 
         mrzero_kwargs = {
-            "spin_count": mp.get("spin_count", 5000),
-            "perfect_spoiling": mp.get("perfect_spoiling", False),
-            "print_progress": mp.get("print_progress", True),
-            "spin_dist": mp.get("spin_dist", "rand"),
-            "r2_seed": mp.get("r2_seed"),
+            "spin_count": mrzero_cfg.get("spin_count", 5000),
+            "perfect_spoiling": mrzero_cfg.get("perfect_spoiling", False),
+            "print_progress": mrzero_cfg.get("print_progress", True),
+            "spin_dist": mrzero_cfg.get("spin_dist", "rand"),
+            "r2_seed": mrzero_cfg.get("r2_seed"),
         }
         signal_clean = np.asarray(simulate_bloch(seq_or_path, data, **mrzero_kwargs))
         if np.iscomplexobj(signal_clean):

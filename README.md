@@ -34,6 +34,7 @@ uv add qmrpy
 - 関数API（`qmrpy.<func>`）は対応するモデルの `forward` / `fit` と同じ入出力規約に従う。
 - シミュレーション系は `qmrpy.sim.SimulationProtocol` でノイズ/推定の設定を共通化し、`model_protocol` で TE/TR/FA/TI などのモデル固有プロトコルも保持できる。
 - `simulation_backend` で `mrzero_bloch`（デフォルト）/`analytic` を切り替えられる。
+- MRzero 用の標準テンプレ（SE/CPMG/SPGR）は `qmrpy.sim.templates` 経由で利用可能。
 
 ### 返却キー（T2系）
 
