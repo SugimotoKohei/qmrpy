@@ -30,3 +30,8 @@
 - v0.6.3: `functional.py` に型ヒント (NDArray, ArrayLike) を追加
 - v0.7.0: 全 `fit_image` に `verbose` パラメータ追加、tqdm 進捗バー + logging サポート
 - v0.7.1: mkdocs-material ドキュメント基盤追加、GitHub Pages 自動デプロイ設定
+- v0.8.0: PEP 8 厳密準拠のため破壊的変更を実施
+  - クラス名: `VfaT1`→`VFAT1`, `EpgT2`→`EPGT2`, `DecaesT2Map`→`DECAEST2Map`, `DecaesT2Part`→`DECAEST2Part`
+  - 関数名: `SimVary`→`sim_vary`, `SimRnd`→`sim_rnd`, `SimFisherMatrix`→`sim_fisher_matrix`, `SimCRLB`→`sim_crlb`
+  - パラメータ名・戻り値キーも snake_case 化
+- `docs/index.md` のライセンス表記を BSD-2-Clause → MIT に修正（LICENSE ファイルと統一）
