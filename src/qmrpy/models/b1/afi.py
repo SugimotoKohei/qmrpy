@@ -87,7 +87,9 @@ class B1Afi:
         spurious = 1.0 if (not np.isfinite(b1_raw) or b1_raw < 0.5) else 0.0
         return {"b1_raw": float(b1_raw), "spurious": float(spurious)}
 
-    def fit_image(self, data: ArrayLike, *, mask: ArrayLike | str | None = None) -> dict[str, Any]:
+    def fit_image(
+        self, data: ArrayLike, *, mask: ArrayLike | str | None = None, n_jobs: int = 1
+    ) -> dict[str, Any]:
         """Vectorized AFI B1 estimation on an image/volume.
 
         Parameters
@@ -96,6 +98,9 @@ class B1Afi:
             Input array with last dim 2 as ``[AFIData1, AFIData2]``.
         mask : array-like, optional
             Spatial mask. If "otsu", Otsu thresholding is applied.
+        n_jobs : int, default=1
+            Number of parallel jobs. -1 uses all CPUs.
+            Note: This model is fully vectorized and does not use n_jobs.
 
         Returns
         -------

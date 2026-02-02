@@ -403,6 +403,7 @@ class InversionRecovery:
         data: ArrayLike,
         *,
         mask: ArrayLike | str | None = None,
+        n_jobs: int = 1,
         **kwargs: Any,
     ) -> dict[str, Any]:
         """Voxel-wise fit on an image/volume.
@@ -413,6 +414,8 @@ class InversionRecovery:
             Input array with last dim as inversion times.
         mask : array-like, optional
             Spatial mask. If "otsu", Otsu thresholding is applied.
+        n_jobs : int, default=1
+            Number of parallel jobs. -1 uses all CPUs.
         **kwargs
             Passed to ``fit``.
 
@@ -424,6 +427,7 @@ class InversionRecovery:
         import numpy as np
 
         from qmrpy._mask import resolve_mask
+        from qmrpy._parallel import parallel_fit
 
         arr = np.asarray(data, dtype=np.float64)
         if arr.ndim == 1:
@@ -447,22 +451,21 @@ class InversionRecovery:
             mask_flat = resolved_mask.reshape((-1,))
 
         method_norm = str(kwargs.get("method", "magnitude")).lower().strip()
-        out: dict[str, Any] = {
-            "t1_ms": np.full(spatial_shape, np.nan, dtype=np.float64),
-            "ra": np.full(spatial_shape, np.nan, dtype=np.float64),
-            "rb": np.full(spatial_shape, np.nan, dtype=np.float64),
-            "res_rmse": np.full(spatial_shape, np.nan, dtype=np.float64),
-        }
+        output_keys = ["t1_ms", "ra", "rb", "res_rmse"]
         if method_norm == "magnitude":
-            out["idx"] = np.full(spatial_shape, -1, dtype=np.int64)
+            output_keys.append("idx")
 
-        for idx in np.flatnonzero(mask_flat):
-            res = self.fit(flat[idx], **kwargs)
-            out["t1_ms"].flat[idx] = float(res["t1_ms"])
-            out["ra"].flat[idx] = float(res["ra"])
-            out["rb"].flat[idx] = float(res["rb"])
-            out["res_rmse"].flat[idx] = float(res["res_rmse"])
-            if method_norm == "magnitude" and "idx" in res:
-                out["idx"].flat[idx] = int(res["idx"])
+        def fit_func(signal: NDArray[Any]) -> dict[str, float]:
+            return self.fit(signal, **kwargs)
 
-        return out
+        result = parallel_fit(
+            fit_func, flat, mask_flat, output_keys, spatial_shape, n_jobs=n_jobs
+        )
+
+        # Convert idx to int64
+        if "idx" in result:
+            idx_arr = result["idx"]
+            idx_arr[np.isnan(idx_arr)] = -1
+            result["idx"] = idx_arr.astype(np.int64)
+
+        return result

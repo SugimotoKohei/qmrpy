@@ -203,6 +203,7 @@ class VfaT1:
         data: ArrayLike,
         *,
         mask: ArrayLike | str | None = None,
+        n_jobs: int = 1,
         **kwargs: Any,
     ) -> dict[str, Any]:
         """Voxel-wise linear VFA fit on an image/volume.
@@ -215,6 +216,8 @@ class VfaT1:
             Input array with last dim as flip angles.
         mask : array-like, "otsu", or None
             Spatial mask. If "otsu", Otsu thresholding is applied.
+        n_jobs : int, default=1
+            Number of parallel jobs. -1 uses all CPUs.
         **kwargs
             Passed to ``fit``.
 
@@ -226,6 +229,7 @@ class VfaT1:
         import numpy as np
 
         from qmrpy._mask import resolve_mask
+        from qmrpy._parallel import parallel_fit
 
         arr = np.asarray(data, dtype=np.float64)
         if arr.ndim == 1:
@@ -249,19 +253,14 @@ class VfaT1:
                 raise ValueError(f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}")
             mask_flat = resolved_mask.reshape((-1,))
 
-        out: dict[str, Any] = {
-            "m0": np.full(spatial_shape, np.nan, dtype=np.float64),
-            "t1_ms": np.full(spatial_shape, np.nan, dtype=np.float64),
-            "n_points": np.zeros(spatial_shape, dtype=np.int64),
-        }
+        output_keys = ["m0", "t1_ms", "n_points"]
 
-        for idx in np.flatnonzero(mask_flat):
-            res = self.fit(flat[idx], **kwargs)
-            out["m0"].flat[idx] = float(res["m0"])
-            out["t1_ms"].flat[idx] = float(res["t1_ms"])
-            out["n_points"].flat[idx] = int(res["n_points"])
+        def fit_func(signal: NDArray[Any]) -> dict[str, float]:
+            return self.fit(signal, **kwargs)
 
-        return out
+        return parallel_fit(
+            fit_func, flat, mask_flat, output_keys, spatial_shape, n_jobs=n_jobs
+        )
 
 
 def _fit_line(

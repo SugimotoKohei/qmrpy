@@ -196,12 +196,33 @@ class EpgT2:
         *,
         mask: ArrayLike | str | None = None,
         b1_map: ArrayLike | None = None,
+        n_jobs: int = 1,
         **kwargs: Any,
     ) -> dict[str, Any]:
-        """Voxel-wise fit on an image/volume."""
+        """Voxel-wise fit on an image/volume.
+
+        Parameters
+        ----------
+        data : array-like
+            Input array with last dim as echoes.
+        mask : array-like, "otsu", or None
+            Spatial mask. If "otsu", Otsu thresholding is applied.
+        b1_map : array-like, optional
+            B1 inhomogeneity map.
+        n_jobs : int, default=1
+            Number of parallel jobs. -1 uses all CPUs.
+        **kwargs
+            Passed to ``fit``.
+
+        Returns
+        -------
+        dict
+            Dict of parameter maps.
+        """
         import numpy as np
 
         from qmrpy._mask import resolve_mask
+        from qmrpy._parallel import parallel_fit
 
         arr = np.asarray(data, dtype=np.float64)
         if arr.ndim == 1:
@@ -232,21 +253,60 @@ class EpgT2:
             b1_flat = b1_arr.reshape((-1,))
 
         offset_term = bool(kwargs.get("offset_term", False))
-        out: dict[str, Any] = {
-            "m0": np.full(spatial_shape, np.nan, dtype=np.float64),
-            "t2_ms": np.full(spatial_shape, np.nan, dtype=np.float64),
-        }
+        output_keys = ["m0", "t2_ms"]
         if offset_term:
-            out["offset"] = np.full(spatial_shape, np.nan, dtype=np.float64)
+            output_keys.append("offset")
 
-        for idx in np.flatnonzero(mask_flat):
-            if b1_flat is None:
-                res = self.fit(flat[idx], **kwargs)
+        # Create a wrapper function that handles b1_flat for parallel_fit
+        def make_fit_func(b1_flat_closure: NDArray[Any] | None) -> Any:
+            if b1_flat_closure is None:
+                def fit_func(signal: NDArray[Any]) -> dict[str, float]:
+                    return self.fit(signal, **kwargs)
             else:
-                res = self.fit(flat[idx], b1=float(b1_flat[idx]), **kwargs)
-            out["m0"].flat[idx] = float(res["m0"])
-            out["t2_ms"].flat[idx] = float(res["t2_ms"])
-            if offset_term and "offset" in res:
-                out["offset"].flat[idx] = float(res["offset"])
+                # We need to pass indices through parallel_fit to handle b1 per voxel
+                # For now, we'll use a custom parallel loop
+                def fit_func(signal: NDArray[Any]) -> dict[str, float]:
+                    return self.fit(signal, **kwargs)
+            return fit_func
 
-        return out
+        # If b1_map is provided, we need custom parallel logic
+        if b1_flat is not None:
+            # Custom parallel fitting for b1_map
+            from joblib import Parallel, delayed
+
+            out: dict[str, Any] = {
+                key: np.full(spatial_shape, np.nan, dtype=np.float64)
+                for key in output_keys
+            }
+            indices = np.flatnonzero(mask_flat)
+
+            if len(indices) == 0:
+                return out
+
+            def fit_with_b1(idx: int) -> tuple[int, dict[str, float]]:
+                return idx, self.fit(flat[idx], b1=float(b1_flat[idx]), **kwargs)
+
+            if n_jobs == 1:
+                for idx in indices:
+                    res = self.fit(flat[idx], b1=float(b1_flat[idx]), **kwargs)
+                    for key in output_keys:
+                        if key in res:
+                            out[key].flat[idx] = float(res[key])
+            else:
+                results = Parallel(n_jobs=n_jobs)(
+                    delayed(fit_with_b1)(idx) for idx in indices
+                )
+                for idx, res in results:
+                    for key in output_keys:
+                        if key in res:
+                            out[key].flat[idx] = float(res[key])
+
+            return out
+        else:
+            # Use standard parallel_fit
+            def fit_func(signal: NDArray[Any]) -> dict[str, float]:
+                return self.fit(signal, **kwargs)
+
+            return parallel_fit(
+                fit_func, flat, mask_flat, output_keys, spatial_shape, n_jobs=n_jobs
+            )

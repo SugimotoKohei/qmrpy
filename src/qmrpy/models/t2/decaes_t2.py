@@ -897,6 +897,7 @@ class DecaesT2Map:
         *,
         mask: ArrayLike | str | None = None,
         alpha_map_deg: ArrayLike | None = None,
+        n_jobs: int = 1,
     ) -> tuple[dict[str, Any], NDArray[np.float64]]:
         """Fit T2 distribution voxel-wise for a 4D image.
 
@@ -908,6 +909,8 @@ class DecaesT2Map:
             Spatial mask. If "otsu", Otsu thresholding is applied.
         alpha_map_deg : array-like, optional
             Precomputed flip angle map in degrees.
+        n_jobs : int, default=1
+            Number of parallel jobs. -1 uses all CPUs.
 
         Returns
         -------
@@ -990,11 +993,12 @@ class DecaesT2Map:
 
         from qmrpy._decaes.nnls import nnls_tikhonov
 
-        for idx in np.ndindex(shape3):
+        # Helper function for processing single voxel
+        def process_voxel(idx: tuple[int, ...]) -> tuple[tuple[int, ...], dict[str, Any]]:
             if not bool(m[idx]):
-                continue
+                return idx, {}
             if float(img[idx + (0,)]) <= float(self.threshold):
-                continue
+                return idx, {}
 
             y = img[idx]
             max_signal = float(np.max(y))
@@ -1035,29 +1039,92 @@ class DecaesT2Map:
 
             sumx = float(np.sum(x_hat))
             logt2 = np.log(t2s)
+            ggm_val = float("nan")
+            gva_val = float("nan")
             if sumx > 0:
                 log_ggm = float(np.dot(x_hat, logt2) / sumx)
                 log1p_gva = float(np.dot(x_hat, (logt2 - log_ggm) ** 2) / sumx)
-                ggm[idx] = float(np.exp(log_ggm))
-                gva[idx] = float(np.expm1(log1p_gva))
-                gdn[idx] = float(sumx)
+                ggm_val = float(np.exp(log_ggm))
+                gva_val = float(np.expm1(log1p_gva))
 
             res2 = float(np.dot(resid, resid))
             sigma_res = float(np.std(resid))
-            fnr[idx] = float(sumx / np.sqrt(res2 / max(self.n_te - 1, 1))) if res2 > 0 else float("inf")
-            snr[idx] = float(max_signal / sigma_res) if sigma_res > 0 else float("inf")
-            alpha[idx] = float(alpha_deg)
-            dist[idx] = x_hat
+            fnr_val = float(sumx / np.sqrt(res2 / max(self.n_te - 1, 1))) if res2 > 0 else float("inf")
+            snr_val = float(max_signal / sigma_res) if sigma_res > 0 else float("inf")
 
-            if resnorm is not None:
-                resnorm[idx] = float(np.linalg.norm(resid))
-            if mu_map is not None and chi2_map is not None:
-                mu_map[idx] = float(mu_i)
-                chi2_map[idx] = float(chi2_i)
-            if decaycurve is not None:
-                decaycurve[idx] = decay_fit
-            if decaybasis is not None:
-                decaybasis[idx] = A
+            result = {
+                "gdn": float(sumx),
+                "ggm": ggm_val,
+                "gva": gva_val,
+                "fnr": fnr_val,
+                "snr": snr_val,
+                "alpha": float(alpha_deg),
+                "x_hat": x_hat,
+            }
+            if self.save_residual_norm:
+                result["resnorm"] = float(np.linalg.norm(resid))
+            if self.save_reg_param:
+                result["mu"] = float(mu_i)
+                result["chi2"] = float(chi2_i)
+            if self.save_decay_curve:
+                result["decay_fit"] = decay_fit
+            if self.save_nnls_basis and self.set_flip_angle_deg is None:
+                result["basis"] = A
+
+            return idx, result
+
+        # Collect indices to process
+        indices = list(np.ndindex(shape3))
+
+        if n_jobs == 1:
+            # Serial execution
+            for idx in indices:
+                _idx, res = process_voxel(idx)
+                if not res:
+                    continue
+                gdn[_idx] = float(res["gdn"])
+                ggm[_idx] = float(res["ggm"])
+                gva[_idx] = float(res["gva"])
+                fnr[_idx] = float(res["fnr"])
+                snr[_idx] = float(res["snr"])
+                alpha[_idx] = float(res["alpha"])
+                dist[_idx] = res["x_hat"]
+                if resnorm is not None:
+                    resnorm[_idx] = float(res["resnorm"])
+                if mu_map is not None and chi2_map is not None:
+                    mu_map[_idx] = float(res["mu"])
+                    chi2_map[_idx] = float(res["chi2"])
+                if decaycurve is not None:
+                    decaycurve[_idx] = res["decay_fit"]
+                if decaybasis is not None:
+                    decaybasis[_idx] = res["basis"]
+        else:
+            # Parallel execution
+            from joblib import Parallel, delayed
+
+            results = Parallel(n_jobs=n_jobs)(
+                delayed(process_voxel)(idx) for idx in indices
+            )
+
+            for _idx, res in results:
+                if not res:
+                    continue
+                gdn[_idx] = float(res["gdn"])
+                ggm[_idx] = float(res["ggm"])
+                gva[_idx] = float(res["gva"])
+                fnr[_idx] = float(res["fnr"])
+                snr[_idx] = float(res["snr"])
+                alpha[_idx] = float(res["alpha"])
+                dist[_idx] = res["x_hat"]
+                if resnorm is not None:
+                    resnorm[_idx] = float(res["resnorm"])
+                if mu_map is not None and chi2_map is not None:
+                    mu_map[_idx] = float(res["mu"])
+                    chi2_map[_idx] = float(res["chi2"])
+                if decaycurve is not None:
+                    decaycurve[_idx] = res["decay_fit"]
+                if decaybasis is not None:
+                    decaybasis[_idx] = res["basis"]
 
         maps: dict[str, Any] = {
             "echotimes_ms": echotimes,

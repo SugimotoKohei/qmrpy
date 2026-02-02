@@ -169,6 +169,7 @@ class MonoT2:
         data: ArrayLike,
         *,
         mask: ArrayLike | str | None = None,
+        n_jobs: int = 1,
         **kwargs: Any,
     ) -> dict[str, Any]:
         """Voxel-wise fit on an image/volume.
@@ -179,6 +180,8 @@ class MonoT2:
             Input array with last dim as echoes.
         mask : array-like, "otsu", or None
             Spatial mask. If "otsu", Otsu thresholding is applied.
+        n_jobs : int, default=1
+            Number of parallel jobs. -1 uses all CPUs.
         **kwargs
             Passed to ``fit``.
 
@@ -190,6 +193,7 @@ class MonoT2:
         import numpy as np
 
         from qmrpy._mask import resolve_mask
+        from qmrpy._parallel import parallel_fit
 
         arr = np.asarray(data, dtype=np.float64)
         if arr.ndim == 1:
@@ -213,18 +217,13 @@ class MonoT2:
             mask_flat = resolved_mask.reshape((-1,))
 
         offset_term = bool(kwargs.get("offset_term", False))
-        out: dict[str, Any] = {
-            "m0": np.full(spatial_shape, np.nan, dtype=np.float64),
-            "t2_ms": np.full(spatial_shape, np.nan, dtype=np.float64),
-        }
+        output_keys = ["m0", "t2_ms"]
         if offset_term:
-            out["offset"] = np.full(spatial_shape, np.nan, dtype=np.float64)
+            output_keys.append("offset")
 
-        for idx in np.flatnonzero(mask_flat):
-            res = self.fit(flat[idx], **kwargs)
-            out["m0"].flat[idx] = float(res["m0"])
-            out["t2_ms"].flat[idx] = float(res["t2_ms"])
-            if offset_term and "offset" in res:
-                out["offset"].flat[idx] = float(res["offset"])
+        def fit_func(signal: NDArray[Any]) -> dict[str, float]:
+            return self.fit(signal, **kwargs)
 
-        return out
+        return parallel_fit(
+            fit_func, flat, mask_flat, output_keys, spatial_shape, n_jobs=n_jobs
+        )

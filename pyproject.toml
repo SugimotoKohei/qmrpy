@@ -21,6 +21,7 @@ classifiers = [
   "Topic :: Scientific/Engineering :: Medical Science Apps.",
 ]
 dependencies = [
+  "joblib>=1.5.3",
   "mrzerocore>=0.4.1",
   "numpy>=1.26",
   "pypulseq>=1.4.2.post1",

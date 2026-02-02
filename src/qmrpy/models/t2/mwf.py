@@ -307,6 +307,7 @@ class MultiComponentT2:
         data: ArrayLike,
         *,
         mask: ArrayLike | str | None = None,
+        n_jobs: int = 1,
         return_weights: bool = False,
         **kwargs: Any,
     ) -> dict[str, Any]:
@@ -318,6 +319,8 @@ class MultiComponentT2:
             Input array with last dim as echoes.
         mask : array-like, optional
             Spatial mask. If "otsu", Otsu thresholding is applied.
+        n_jobs : int, default=1
+            Number of parallel jobs. -1 uses all CPUs.
         return_weights : bool, optional
             If True, include voxel-wise weights.
         **kwargs
@@ -369,19 +372,45 @@ class MultiComponentT2:
                 dtype=np.float64,
             )
 
-        for idx in np.flatnonzero(mask_flat):
-            res = self.fit(flat[idx], **kwargs)
-            out["mwf"].flat[idx] = float(res["mwf"])
-            out["t2mw_ms"].flat[idx] = float(res["t2mw_ms"])
-            out["t2iew_ms"].flat[idx] = float(res["t2iew_ms"])
-            out["gmt2_ms"].flat[idx] = float(res["gmt2_ms"])
-            out["mw_weight"].flat[idx] = float(res["mw_weight"])
-            out["iew_weight"].flat[idx] = float(res["iew_weight"])
-            out["total_weight"].flat[idx] = float(res["total_weight"])
-            out["resid_l2"].flat[idx] = float(res["resid_l2"])
-            if return_weights:
-                out["weights"].reshape((-1, out["t2_basis_ms"].shape[0]))[idx, :] = np.asarray(
-                    res["weights"], dtype=np.float64
-                )
+        # Parallel execution for MWF
+        if n_jobs == 1:
+            for idx in np.flatnonzero(mask_flat):
+                res = self.fit(flat[idx], **kwargs)
+                out["mwf"].flat[idx] = float(res["mwf"])
+                out["t2mw_ms"].flat[idx] = float(res["t2mw_ms"])
+                out["t2iew_ms"].flat[idx] = float(res["t2iew_ms"])
+                out["gmt2_ms"].flat[idx] = float(res["gmt2_ms"])
+                out["mw_weight"].flat[idx] = float(res["mw_weight"])
+                out["iew_weight"].flat[idx] = float(res["iew_weight"])
+                out["total_weight"].flat[idx] = float(res["total_weight"])
+                out["resid_l2"].flat[idx] = float(res["resid_l2"])
+                if return_weights:
+                    out["weights"].reshape((-1, out["t2_basis_ms"].shape[0]))[idx, :] = np.asarray(
+                        res["weights"], dtype=np.float64
+                    )
+        else:
+            from joblib import Parallel, delayed
+
+            def fit_single(idx: int) -> tuple[int, dict[str, Any]]:
+                return idx, self.fit(flat[idx], **kwargs)
+
+            indices = np.flatnonzero(mask_flat)
+            results = Parallel(n_jobs=n_jobs)(
+                delayed(fit_single)(idx) for idx in indices
+            )
+
+            for idx, res in results:
+                out["mwf"].flat[idx] = float(res["mwf"])
+                out["t2mw_ms"].flat[idx] = float(res["t2mw_ms"])
+                out["t2iew_ms"].flat[idx] = float(res["t2iew_ms"])
+                out["gmt2_ms"].flat[idx] = float(res["gmt2_ms"])
+                out["mw_weight"].flat[idx] = float(res["mw_weight"])
+                out["iew_weight"].flat[idx] = float(res["iew_weight"])
+                out["total_weight"].flat[idx] = float(res["total_weight"])
+                out["resid_l2"].flat[idx] = float(res["resid_l2"])
+                if return_weights:
+                    out["weights"].reshape((-1, out["t2_basis_ms"].shape[0]))[idx, :] = np.asarray(
+                        res["weights"], dtype=np.float64
+                    )
 
         return out

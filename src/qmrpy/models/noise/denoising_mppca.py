@@ -81,7 +81,27 @@ class MPPCA:
             "n_pars": n_pars,
         }
 
-    def fit_image(self, data: ArrayLike, mask: ArrayLike | str | None = None) -> dict[str, Any]:
+    def fit_image(
+        self, data: ArrayLike, mask: ArrayLike | str | None = None, n_jobs: int = 1
+    ) -> dict[str, Any]:
+        """Denoise an image/volume.
+
+        Parameters
+        ----------
+        data : array-like
+            4D array ``(x, y, z, t)``.
+        mask : array-like, optional
+            Spatial mask. If "otsu", Otsu thresholding is applied.
+        n_jobs : int, default=1
+            Number of parallel jobs. -1 uses all CPUs.
+            Note: This model uses sliding window processing internally
+            and does not support per-voxel parallelization with n_jobs.
+
+        Returns
+        -------
+        dict
+            ``denoised`` (4D), ``sigma`` (3D), ``n_pars`` (3D).
+        """
         if np.asarray(data).ndim == 1:
             if mask is not None:
                 raise ValueError("mask must be None for 1D data")

@@ -90,7 +90,7 @@ class B1Dam:
         return {"b1_raw": float(b1_raw), "spurious": float(spurious)}
 
     def fit_image(
-        self, data: ArrayLike, *, mask: ArrayLike | str | None = None
+        self, data: ArrayLike, *, mask: ArrayLike | str | None = None, n_jobs: int = 1
     ) -> dict[str, Any]:
         """Vectorized DAM B1 estimation on an image/volume.
 
@@ -100,6 +100,9 @@ class B1Dam:
             Input array with last dim 2 as ``[S(alpha), S(2*alpha)]``.
         mask : array-like, optional
             Spatial mask. If "otsu", Otsu thresholding is applied.
+        n_jobs : int, default=1
+            Number of parallel jobs. -1 uses all CPUs.
+            Note: This model is fully vectorized and does not use n_jobs.
 
         Returns
         -------
