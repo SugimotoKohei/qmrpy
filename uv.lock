@@ -1781,6 +1781,7 @@ dependencies = [
     { name = "joblib" },
     { name = "mrzerocore" },
     { name = "numpy" },
+    { name = "pillow" },
     { name = "pypulseq" },
     { name = "scipy" },
 ]
@@ -1811,6 +1812,7 @@ requires-dist = [
     { name = "nbformat", marker = "extra == 'dev'", specifier = ">=5.10.4" },
     { name = "numpy", specifier = ">=1.26" },
     { name = "pandas", marker = "extra == 'viz'", specifier = ">=2.3.3" },
+    { name = "pillow", specifier = ">=12.0.0" },
     { name = "plotnine", marker = "extra == 'viz'", specifier = ">=0.13" },
     { name = "pypulseq", specifier = ">=1.4.2.post1" },
     { name = "pytest", marker = "extra == 'dev'", specifier = ">=8" },
