@@ -29,3 +29,4 @@
 - v0.6.2: README を英語+日本語セクションに刷新、Pillow 依存を正式追加
 - v0.6.3: `functional.py` に型ヒント (NDArray, ArrayLike) を追加
 - v0.7.0: 全 `fit_image` に `verbose` パラメータ追加、tqdm 進捗バー + logging サポート
+- v0.7.1: mkdocs-material ドキュメント基盤追加、GitHub Pages 自動デプロイ設定
