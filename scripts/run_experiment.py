@@ -877,6 +877,7 @@ class InversionRecoveryConfig:
     ra: float
     rb: float
     method: str
+    solver: str
     noise_model: str
     noise_sigma: float
     seed: int
@@ -904,6 +905,7 @@ def _parse_inversion_recovery_config(config: dict[str, object]) -> InversionReco
     ra = float(ir_cfg.get("ra", 500.0))
     rb = float(ir_cfg.get("rb", -1000.0))
     method = str(ir_cfg.get("method", "magnitude"))
+    solver = str(ir_cfg.get("solver", "least_squares"))
     noise_model = str(ir_cfg.get("noise_model", "rician" if method.lower() == "magnitude" else "gaussian"))
     noise_sigma = float(ir_cfg.get("noise_sigma", 5.0))
     seed = int(run_cfg.get("seed", 0))
@@ -915,6 +917,7 @@ def _parse_inversion_recovery_config(config: dict[str, object]) -> InversionReco
         ra=ra,
         rb=rb,
         method=method,
+        solver=solver,
         noise_model=noise_model,
         noise_sigma=noise_sigma,
         seed=seed,
@@ -957,7 +960,7 @@ def _run_inversion_recovery(
     fitted_idx = np.full(cfg.n_samples, np.nan, dtype=float)
     fitted_rmse = np.empty(cfg.n_samples, dtype=float)
     for i in range(cfg.n_samples):
-        fitted = model.fit(signal[i], method=cfg.method)
+        fitted = model.fit(signal[i], method=cfg.method, solver=cfg.solver)
         fitted_t1[i] = fitted["t1_ms"]
         fitted_rmse[i] = fitted["res_rmse"]
         if "idx" in fitted:
@@ -968,6 +971,7 @@ def _run_inversion_recovery(
         "n_samples": int(cfg.n_samples),
         "ti_ms": [float(x) for x in cfg.ti_ms],
         "method": str(cfg.method),
+        "solver": str(cfg.solver),
         "ra": float(cfg.ra),
         "rb": float(cfg.rb),
         "noise_model": str(cfg.noise_model),

@@ -14,3 +14,21 @@ def test_shepp_logan_2d_maps_shapes_and_ranges():
     assert np.max(pd) <= 1.0 + 1e-6
     assert np.all(t1_ms[pd == 0] == 0.0)
     assert np.all(t2_ms[pd == 0] == 0.0)
+
+
+def test_shepp_logan_3d_maps_shapes_and_ranges():
+    import numpy as np
+
+    from qmrpy.sim.phantoms import shepp_logan_3d, shepp_logan_3d_maps
+
+    phantom = shepp_logan_3d(nx=32, ny=24, nz=16)
+    assert phantom.shape == (16, 24, 32)
+
+    pd, t1_ms, t2_ms = shepp_logan_3d_maps(nx=32, ny=24, nz=16)
+    assert pd.shape == (16, 24, 32)
+    assert t1_ms.shape == pd.shape
+    assert t2_ms.shape == pd.shape
+    assert np.min(pd) >= 0.0
+    assert np.max(pd) <= 1.0 + 1e-6
+    assert np.all(t1_ms[pd == 0] == 0.0)
+    assert np.all(t2_ms[pd == 0] == 0.0)

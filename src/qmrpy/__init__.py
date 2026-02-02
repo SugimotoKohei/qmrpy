@@ -1,6 +1,8 @@
 from .functional import (
     decaes_t2map_fit,
     decaes_t2map_spectrum,
+    epg_t2_fit,
+    epg_t2_forward,
     inversion_recovery_fit,
     inversion_recovery_forward,
     mono_t2_fit,
@@ -15,6 +17,8 @@ __all__ = [
     "__version__",
     "decaes_t2map_fit",
     "decaes_t2map_spectrum",
+    "epg_t2_fit",
+    "epg_t2_forward",
     "inversion_recovery_fit",
     "inversion_recovery_forward",
     "mono_t2_fit",

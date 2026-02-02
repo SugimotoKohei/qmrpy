@@ -346,7 +346,7 @@ def verify_inversion_recovery() -> None:
     model = InversionRecovery(ti_ms=ti_ms)
     signals = []
     for i in range(n_samples):
-        s = model.forward(t1_ms=t1_true[i], ra=ra[i], rb=rb[i], magnitude=False)
+        s = model.forward(t1_ms=t1_true[i], ra=ra[i], rb=rb[i], magnitude=True)
         signals.append(s)
     signals = np.stack(signals)
     
@@ -375,12 +375,8 @@ def verify_inversion_recovery() -> None:
     # 4. Run Python Model
     fitted_t1 = []
     for i in range(n_samples):
-        # We assume magnitude fit often used, but here we used complex signal?
-        # Let's simple fit complex for parity if possible, or magnitude
-        # qMRLab inversion_recovery uses magnitude usually with Barral?
-        # Let's try complex fit if signal is signed.
-        # My InversionRecovery supports 'complex' method.
-        res = model.fit(signals[i], method="complex")
+        # qMRLab default is magnitude; align to magnitude fit.
+        res = model.fit(signals[i], method="magnitude", solver="rdnls")
         fitted_t1.append(res["t1_ms"])
         
     df_py = pd.DataFrame({

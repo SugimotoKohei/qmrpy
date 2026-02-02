@@ -55,27 +55,34 @@ def _run_octave_generate_and_fit(
     case: QmrlabMwfCase,
     script_path: Path,
     qmrlab_sigma: float | None = None,
+    qmrlab_var_myelin: float | None = None,
+    qmrlab_var_iew: float | None = None,
 ) -> None:
     sigma_value = case.noise_sigma if qmrlab_sigma is None else float(qmrlab_sigma)
+    cmd_str = (
+        "warning('off','all'); "
+        f"qMRLab_path='{qmrlab_path.resolve()}'; "
+        f"out_mat='{out_mat.resolve()}'; "
+        f"MWF_percent={case.mwf_percent}; "
+        f"T2MW_ms={case.t2mw_ms}; "
+        f"T2IEW_ms={case.t2iew_ms}; "
+        f"Cutoff_ms={case.cutoff_ms}; "
+        f"NoiseModel='{case.noise_model}'; "
+        f"NoiseSigma={case.noise_sigma}; "
+        f"Seed={case.seed}; "
+        f"QmrlabSigma={sigma_value}; "
+    )
+    if qmrlab_var_myelin is not None:
+        cmd_str += f"T2Spectrumvariance_Myelin={float(qmrlab_var_myelin)}; "
+    if qmrlab_var_iew is not None:
+        cmd_str += f"T2Spectrumvariance_IEW={float(qmrlab_var_iew)}; "
+    cmd_str += f"source('{script_path.resolve()}');"
     cmd = [
         "octave",
         "--no-gui",
         "--quiet",
         "--eval",
-        (
-            "warning('off','all'); "
-            f"qMRLab_path='{qmrlab_path.resolve()}'; "
-            f"out_mat='{out_mat.resolve()}'; "
-            f"MWF_percent={case.mwf_percent}; "
-            f"T2MW_ms={case.t2mw_ms}; "
-            f"T2IEW_ms={case.t2iew_ms}; "
-            f"Cutoff_ms={case.cutoff_ms}; "
-            f"NoiseModel='{case.noise_model}'; "
-            f"NoiseSigma={case.noise_sigma}; "
-            f"Seed={case.seed}; "
-            f"QmrlabSigma={sigma_value}; "
-            f"source('{script_path.resolve()}');"
-        ),
+        cmd_str,
     ]
     subprocess.check_call(cmd)
 
@@ -86,10 +93,13 @@ def run_case(
     out_dir: Path,
     case: QmrlabMwfCase,
     regularization_alpha: float,
+    regularization_mode: str = "qmrlab_regnnls",
     t2_basis_n: int = 120,
     t2_basis_max_ms: float = 400.0,
     upper_cutoff_iew_ms: float = 200.0,
     qmrlab_sigma: float | None = None,
+    qmrlab_var_myelin: float | None = None,
+    qmrlab_var_iew: float | None = None,
 ) -> Path:
     """Run one qMRLab-vs-qmrpy MWF comparison and write report.json; returns report path."""
     if not qmrlab_path.exists():
@@ -110,6 +120,8 @@ def run_case(
         case=case,
         script_path=octave_script,
         qmrlab_sigma=qmrlab_sigma,
+        qmrlab_var_myelin=qmrlab_var_myelin,
+        qmrlab_var_iew=qmrlab_var_iew,
     )
 
     import numpy as np
@@ -128,6 +140,8 @@ def run_case(
     py = model.fit(
         signal,
         regularization_alpha=float(regularization_alpha),
+        regularization_mode=str(regularization_mode),
+        qmrlab_sigma=float(qmrlab_sigma if qmrlab_sigma is not None else case.noise_sigma if case.noise_sigma > 0 else 20.0),
         lower_cutoff_mw_ms=lower_basis,
         cutoff_ms=float(case.cutoff_ms),
         upper_cutoff_iew_ms=float(upper_cutoff_iew_ms),
@@ -149,6 +163,10 @@ def run_case(
             "seed": int(case.seed),
         },
         "protocol": {"echo_times_ms": echo_times_ms.tolist()},
+        "generation": {
+            "qmrlab_var_myelin": None if qmrlab_var_myelin is None else float(qmrlab_var_myelin),
+            "qmrlab_var_iew": None if qmrlab_var_iew is None else float(qmrlab_var_iew),
+        },
         "qmrlab": {"mwf_percent": qmrlab_mwf_percent, "t2mw_ms": qmrlab_t2mw_ms, "t2iew_ms": qmrlab_t2iew_ms},
         "qmrpy": {
             "mwf_percent": float(100.0 * py["mwf"]),
@@ -157,6 +175,7 @@ def run_case(
             "gmt2_ms": float(py["gmt2_ms"]),
             "resid_l2": float(py["resid_l2"]),
             "regularization_alpha": float(regularization_alpha),
+            "regularization_mode": str(regularization_mode),
             "basis": {"t2_min_ms": lower_basis, "t2_max_ms": float(t2_basis_max_ms), "n": int(t2_basis_n)},
             "upper_cutoff_iew_ms": float(upper_cutoff_iew_ms),
         },
@@ -167,6 +186,9 @@ def run_case(
         },
         "artifacts": {"qmrlab_out_mat": str(out_mat)},
     }
+    for key in ("reg_nnls_mu", "chi2_nnls", "chi2_reg", "chi2_diff_percent"):
+        if key in py:
+            report["qmrpy"][key] = float(py[key])
 
     report_path = out_dir / "report.json"
     report_path.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
@@ -195,10 +217,28 @@ def main(argv: list[str] | None = None) -> int:
         help="Sigma used in qMRLab fitting (default: same as noise-sigma)",
     )
     p.add_argument(
+        "--qmrlab-var-myelin",
+        type=float,
+        default=None,
+        help="Override qMRLab Myelin T2 spectrum variance (default: qMRLab 5).",
+    )
+    p.add_argument(
+        "--qmrlab-var-iew",
+        type=float,
+        default=None,
+        help="Override qMRLab IEW T2 spectrum variance (default: qMRLab 20).",
+    )
+    p.add_argument(
         "--regularization-alpha",
         type=float,
         default=0.0,
         help="qmrpy NNLS Tikhonov regularization alpha (default: 0.0).",
+    )
+    p.add_argument(
+        "--regularization-mode",
+        type=str,
+        default="qmrlab_regnnls",
+        help="none|tikhonov|qmrlab_regnnls (default: qmrlab_regnnls).",
     )
     p.add_argument("--t2-basis-n", type=int, default=120, help="qMRLab-like basis points (default: 120)")
     p.add_argument("--t2-basis-max-ms", type=float, default=400.0, help="qMRLab-like basis max [ms] (default: 400)")
@@ -231,10 +271,13 @@ def main(argv: list[str] | None = None) -> int:
             out_dir=args.out_dir,
             case=case,
             regularization_alpha=float(args.regularization_alpha),
+            regularization_mode=str(args.regularization_mode),
             t2_basis_n=int(args.t2_basis_n),
             t2_basis_max_ms=float(args.t2_basis_max_ms),
             upper_cutoff_iew_ms=float(args.upper_cutoff_iew_ms),
             qmrlab_sigma=(None if args.qmrlab_sigma is None else float(args.qmrlab_sigma)),
+            qmrlab_var_myelin=(None if args.qmrlab_var_myelin is None else float(args.qmrlab_var_myelin)),
+            qmrlab_var_iew=(None if args.qmrlab_var_iew is None else float(args.qmrlab_var_iew)),
         )
     except Exception as e:  # noqa: BLE001
         print(str(e), file=sys.stderr)

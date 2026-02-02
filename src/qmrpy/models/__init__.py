@@ -9,7 +9,7 @@ from .qsm import (
     QsmSplitBregman,
 )
 from .t1 import InversionRecovery, VfaT1
-from .t2 import DecaesT2Map, DecaesT2Part, MonoT2, MultiComponentT2
+from .t2 import DecaesT2Map, DecaesT2Part, EpgT2, MonoT2, MultiComponentT2
 
 __all__ = [
     "B1Dam",
@@ -18,6 +18,7 @@ __all__ = [
     "background_removal_sharp",
     "DecaesT2Map",
     "DecaesT2Part",
+    "EpgT2",
     "InversionRecovery",
     "MonoT2",
     "MultiComponentT2",

@@ -15,6 +15,8 @@
 %   NoiseSigma (scalar)    (default: 0)
 %   Seed (scalar)          RNG seed (default: 0)
 %   QmrlabSigma (scalar)   overrides Model.options.Sigma used in fitting (default: NoiseSigma)
+%   T2Spectrumvariance_Myelin (scalar) overrides default 5
+%   T2Spectrumvariance_IEW (scalar) overrides default 20
 %
 % Output saved to out_mat:
 %   EchoTimes_ms, Signal_clean, Signal, FitResults, Spectrum_fit, T2vals
@@ -63,8 +65,16 @@ Model.options.Sigma = QmrlabSigma;
 
 % Equation options (variances) — match defaults used in mwf.m when not provided
 Opt = struct();
-Opt.T2Spectrumvariance_Myelin = 5;
-Opt.T2Spectrumvariance_IEIntraExtracellularWater = 20;
+if exist('T2Spectrumvariance_Myelin', 'var') ~= 0
+  Opt.T2Spectrumvariance_Myelin = T2Spectrumvariance_Myelin;
+else
+  Opt.T2Spectrumvariance_Myelin = 5;
+end
+if exist('T2Spectrumvariance_IEW', 'var') ~= 0
+  Opt.T2Spectrumvariance_IEIntraExtracellularWater = T2Spectrumvariance_IEW;
+else
+  Opt.T2Spectrumvariance_IEIntraExtracellularWater = 20;
+end
 
 % Generate signal using qMRLab's own equation (MWF in %)
 [Signal_clean, Spectrum_true] = Model.equation([MWF_percent, T2MW_ms, T2IEW_ms], Opt);

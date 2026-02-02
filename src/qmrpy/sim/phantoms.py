@@ -112,6 +112,26 @@ def _shepp_logan_ellipses(*, modified: bool = True) -> list[tuple[float, float, 
     ]
 
 
+def _shepp_logan_ellipsoids_3d(
+    *,
+    modified: bool = True,
+    z_scale: float = 1.0,
+) -> list[tuple[float, float, float, float, float, float, float, float]]:
+    """Simple 3D extension of the 2D Shepp-Logan ellipses.
+
+    Each 2D ellipse is extruded into a 3D ellipsoid by assigning a z-radius
+    proportional to its y-radius (b * z_scale) and centering at z=0.
+    """
+    ellipses_2d = _shepp_logan_ellipses(modified=modified)
+    ellipsoids: list[tuple[float, float, float, float, float, float, float, float]] = []
+    z_scale = float(z_scale)
+    for amp, a, b, x0, y0, phi_deg in ellipses_2d:
+        c = float(b) * z_scale
+        z0 = 0.0
+        ellipsoids.append((float(amp), float(a), float(b), float(c), float(x0), float(y0), z0, float(phi_deg)))
+    return ellipsoids
+
+
 def shepp_logan_2d(
     nx: int = 128,
     ny: int = 128,
@@ -126,7 +146,8 @@ def shepp_logan_2d(
         ellipses = _shepp_logan_ellipses(modified=modified)
 
     x = np.linspace(-1.0, 1.0, int(nx), dtype=np.float64)
-    y = np.linspace(-1.0, 1.0, int(ny), dtype=np.float64)
+    # Match array row direction to image coordinates (top -> bottom).
+    y = np.linspace(1.0, -1.0, int(ny), dtype=np.float64)
     xx, yy = np.meshgrid(x, y, indexing="xy")
 
     phantom = np.zeros((ny, nx), dtype=np.float64)
@@ -135,6 +156,38 @@ def shepp_logan_2d(
         x_rot = (xx - x0) * np.cos(phi) + (yy - y0) * np.sin(phi)
         y_rot = -(xx - x0) * np.sin(phi) + (yy - y0) * np.cos(phi)
         mask = (x_rot / a) ** 2 + (y_rot / b) ** 2 <= 1.0
+        phantom[mask] += float(amp)
+
+    return phantom
+
+
+def shepp_logan_3d(
+    nx: int = 128,
+    ny: int = 128,
+    nz: int = 64,
+    *,
+    modified: bool = True,
+    ellipsoids: Sequence[tuple[float, float, float, float, float, float, float, float]] | None = None,
+    z_scale: float = 1.0,
+) -> NDArray[np.float64]:
+    """Generate a 3D Shepp-Logan phantom (simple 3D extension by default)."""
+    if nx <= 0 or ny <= 0 or nz <= 0:
+        raise ValueError("nx, ny, nz must be positive")
+    if ellipsoids is None:
+        ellipsoids = _shepp_logan_ellipsoids_3d(modified=modified, z_scale=z_scale)
+
+    x = np.linspace(-1.0, 1.0, int(nx), dtype=np.float64)
+    # Match array row direction to image coordinates (top -> bottom).
+    y = np.linspace(1.0, -1.0, int(ny), dtype=np.float64)
+    z = np.linspace(1.0, -1.0, int(nz), dtype=np.float64)
+    zz, yy, xx = np.meshgrid(z, y, x, indexing="ij")
+
+    phantom = np.zeros((nz, ny, nx), dtype=np.float64)
+    for amp, a, b, c, x0, y0, z0, phi_deg in ellipsoids:
+        phi = np.deg2rad(phi_deg)
+        x_rot = (xx - x0) * np.cos(phi) + (yy - y0) * np.sin(phi)
+        y_rot = -(xx - x0) * np.sin(phi) + (yy - y0) * np.cos(phi)
+        mask = (x_rot / a) ** 2 + (y_rot / b) ** 2 + ((zz - z0) / c) ** 2 <= 1.0
         phantom[mask] += float(amp)
 
     return phantom
@@ -151,6 +204,34 @@ def shepp_logan_2d_maps(
 ) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
     """Generate PD/T1/T2 maps from a 2D Shepp-Logan phantom."""
     phantom = shepp_logan_2d(nx=nx, ny=ny, modified=modified)
+    pd = np.clip(phantom, 0.0, None)
+    if np.max(pd) > 0:
+        pd = pd / float(np.max(pd))
+    pd = pd * float(pd_max)
+
+    t1_min, t1_max = float(t1_range_ms[0]), float(t1_range_ms[1])
+    t2_min, t2_max = float(t2_range_ms[0]), float(t2_range_ms[1])
+    t1_ms = t1_min + (t1_max - t1_min) * pd
+    t2_ms = t2_min + (t2_max - t2_min) * pd
+
+    t1_ms = np.where(pd > 0, t1_ms, 0.0)
+    t2_ms = np.where(pd > 0, t2_ms, 0.0)
+    return pd, t1_ms, t2_ms
+
+
+def shepp_logan_3d_maps(
+    nx: int = 128,
+    ny: int = 128,
+    nz: int = 64,
+    *,
+    t1_range_ms: tuple[float, float] = (600.0, 1400.0),
+    t2_range_ms: tuple[float, float] = (40.0, 120.0),
+    pd_max: float = 1.0,
+    modified: bool = True,
+    z_scale: float = 1.0,
+) -> tuple[NDArray[np.float64], NDArray[np.float64], NDArray[np.float64]]:
+    """Generate PD/T1/T2 maps from a 3D Shepp-Logan phantom."""
+    phantom = shepp_logan_3d(nx=nx, ny=ny, nz=nz, modified=modified, z_scale=z_scale)
     pd = np.clip(phantom, 0.0, None)
     if np.max(pd) > 0:
         pd = pd / float(np.max(pd))

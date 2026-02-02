@@ -61,6 +61,47 @@ def test_inversion_recovery_fit_magnitude_noise_free():
     assert out["idx"].dtype == np.int64
 
 
+def test_inversion_recovery_fit_complex_rdnls_noise_free():
+    import pytest
+
+    np = pytest.importorskip("numpy")
+
+    from qmrpy.models.t1 import InversionRecovery
+
+    ti = np.array([350.0, 500.0, 650.0, 800.0, 950.0, 1100.0, 1250.0, 1400.0, 1700.0], dtype=float)
+    model = InversionRecovery(ti_ms=ti)
+
+    t1_true = 900.0
+    ra_true = 500.0
+    rb_true = -1000.0
+    signal = model.forward(t1_ms=t1_true, ra=ra_true, rb=rb_true, magnitude=False)
+
+    fitted = model.fit(signal, method="complex", solver="rdnls")
+    assert abs(fitted["t1_ms"] - t1_true) < 1e-6
+    assert abs(fitted["ra"] - ra_true) < 1e-6
+    assert abs(fitted["rb"] - rb_true) < 1e-6
+
+
+def test_inversion_recovery_fit_magnitude_rdnls_noise_free():
+    import pytest
+
+    np = pytest.importorskip("numpy")
+
+    from qmrpy.models.t1 import InversionRecovery
+
+    ti = np.array([350.0, 500.0, 650.0, 800.0, 950.0, 1100.0, 1250.0, 1400.0, 1700.0], dtype=float)
+    model = InversionRecovery(ti_ms=ti)
+
+    t1_true = 900.0
+    ra_true = 500.0
+    rb_true = -1000.0
+    signal_mag = model.forward(t1_ms=t1_true, ra=ra_true, rb=rb_true, magnitude=True)
+
+    fitted = model.fit(signal_mag, method="magnitude", solver="rdnls")
+    assert abs(fitted["t1_ms"] - t1_true) < 1e-6
+    assert 0 <= int(fitted["idx"]) <= ti.size
+
+
 def test_inversion_recovery_fit_image_rejects_mask_for_1d():
     import pytest
 

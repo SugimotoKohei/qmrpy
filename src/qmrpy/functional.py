@@ -193,6 +193,114 @@ def mono_t2_fit(signal: Any, *, te_ms: Any, **kwargs: Any) -> dict[str, float]:
     return MonoT2(te_ms=te_ms).fit(signal, **kwargs)
 
 
+def epg_t2_forward(
+    *,
+    m0: float,
+    t2_ms: float,
+    n_te: int,
+    te_ms: float,
+    t1_ms: float = 1000.0,
+    alpha_deg: float = 180.0,
+    beta_deg: float = 180.0,
+    b1: float | None = None,
+    offset: float = 0.0,
+    epg_backend: str = "decaes",
+):
+    """Functional wrapper for EPG-corrected T2 forward model (ms).
+
+    Parameters
+    ----------
+    m0 : float
+        Proton density scale.
+    t2_ms : float
+        T2 in milliseconds.
+    n_te : int
+        Number of echoes.
+    te_ms : float
+        Echo spacing in milliseconds.
+    t1_ms : float, optional
+        T1 in milliseconds.
+    alpha_deg : float, optional
+        Refocusing flip angle in degrees.
+    beta_deg : float, optional
+        Refocusing phase angle in degrees.
+    b1 : float, optional
+        B1 scaling factor.
+    offset : float, optional
+        Constant offset term.
+    epg_backend : {"decaes"}, optional
+        Backend for EPG decay computation.
+
+    Returns
+    -------
+    ndarray
+        Simulated multi-echo signal array.
+    """
+    from qmrpy.models.t2.epg_t2 import EpgT2
+
+    return EpgT2(
+        n_te=n_te,
+        te_ms=te_ms,
+        t1_ms=t1_ms,
+        alpha_deg=alpha_deg,
+        beta_deg=beta_deg,
+        epg_backend=epg_backend,
+    ).forward(m0=m0, t2_ms=t2_ms, offset=offset, b1=b1)
+
+
+def epg_t2_fit(
+    signal: Any,
+    *,
+    n_te: int,
+    te_ms: float,
+    t1_ms: float = 1000.0,
+    alpha_deg: float = 180.0,
+    beta_deg: float = 180.0,
+    b1: float | None = None,
+    epg_backend: str = "decaes",
+    **kwargs: Any,
+) -> dict[str, float]:
+    """Functional wrapper for EPG-corrected T2 fit (ms).
+
+    Parameters
+    ----------
+    signal : array-like
+        Observed signal array (length ``n_te``).
+    n_te : int
+        Number of echoes.
+    te_ms : float
+        Echo spacing in milliseconds.
+    t1_ms : float, optional
+        T1 in milliseconds.
+    alpha_deg : float, optional
+        Refocusing flip angle in degrees.
+    beta_deg : float, optional
+        Refocusing phase angle in degrees.
+    b1 : float, optional
+        B1 scaling factor.
+    epg_backend : {"decaes"}, optional
+        Backend for EPG decay computation.
+    **kwargs
+        Passed to ``EpgT2.fit``.
+
+    Returns
+    -------
+    dict
+        Fit results dict (e.g., ``t2_ms``, ``m0``).
+    """
+    from qmrpy.models.t2.epg_t2 import EpgT2
+
+    model = EpgT2(
+        n_te=n_te,
+        te_ms=te_ms,
+        t1_ms=t1_ms,
+        alpha_deg=alpha_deg,
+        beta_deg=beta_deg,
+        epg_backend=epg_backend,
+    )
+    return model.fit(signal, b1=b1, **kwargs)
+
+
 def mwf_fit(signal: Any, *, te_ms: Any, **kwargs: Any) -> dict[str, Any]:
     """Functional wrapper for multi-component T2 (MWF) fit (ms).
 

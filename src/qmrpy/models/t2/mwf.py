@@ -32,7 +32,8 @@ class MultiComponentT2:
 
     Basis:
         t2_basis_ms: Fixed basis of T2 values.
-                     If None provided in __init__, defaults to log-spaced 10ms to 2000ms (40 points).
+                     If None provided in __init__, defaults to a qMRLab-like log-spaced basis
+                     from 1.5*TE1 to 400ms (120 points).
 
     Notes
     -----
@@ -53,7 +54,11 @@ class MultiComponentT2:
         object.__setattr__(self, "te_ms", te)
 
         if self.t2_basis_ms is None:
-            basis = self.default_t2_basis_ms()
+            if te.size > 0 and float(te[0]) > 0:
+                t2_min_ms = 1.5 * float(te[0])
+            else:
+                t2_min_ms = 10.0
+            basis = self.default_t2_basis_ms(t2_min_ms=t2_min_ms, t2_max_ms=400.0, n=120)
         else:
             basis = _as_1d_float_array(self.t2_basis_ms, name="t2_basis_ms")
             if np.any(basis <= 0):
@@ -109,10 +114,16 @@ class MultiComponentT2:
         signal: ArrayLike,
         *,
         regularization_alpha: float = 0.0,
+        regularization_mode: str | None = None,
+        qmrlab_sigma: float = 20.0,
+        qmrlab_mu: float = 0.25,
+        qmrlab_chi2_min: float = 2.0,
+        qmrlab_chi2_max: float = 2.5,
+        qmrlab_max_iter: int = 50,
         lower_cutoff_mw_ms: float | None = None,
         cutoff_ms: float = 40.0,
         upper_cutoff_iew_ms: float = 200.0,
-        use_weighted_geometric_mean: bool = False,
+        use_weighted_geometric_mean: bool = True,
     ) -> dict[str, Any]:
         """Fit T2 distribution using NNLS and compute MWF/T2MW/T2IEW from cutoffs.
 
@@ -123,6 +134,19 @@ class MultiComponentT2:
         regularization_alpha : float, optional
             Tikhonov regularization parameter. If > 0, solves
             ``argmin ||Aw - y||^2 + alpha^2 ||w||^2``.
+        regularization_mode : {"none", "tikhonov", "qmrlab_regnnls"}, optional
+            Select the regularization strategy. If None, uses "tikhonov" when
+            ``regularization_alpha > 0`` otherwise "none".
+        qmrlab_sigma : float, optional
+            Sigma used by qMRLab-style regNNLS (default: 20.0).
+        qmrlab_mu : float, optional
+            Initial mu for qMRLab-style regNNLS (default: 0.25).
+        qmrlab_chi2_min : float, optional
+            Minimum chi2 diff percentage for qMRLab regNNLS (default: 2.0).
+        qmrlab_chi2_max : float, optional
+            Maximum chi2 diff percentage for qMRLab regNNLS (default: 2.5).
+        qmrlab_max_iter : int, optional
+            Maximum iterations for qMRLab regNNLS (default: 50).
         lower_cutoff_mw_ms : float, optional
             Lower cutoff for MW integration. If None, uses
             ``1.5 * first echo`` (qMRLab default).
@@ -131,7 +155,7 @@ class MultiComponentT2:
         upper_cutoff_iew_ms : float, optional
             Upper cutoff for IEW integration in milliseconds (default: 200 ms).
         use_weighted_geometric_mean : bool, optional
-            If True, compute T2MW/T2IEW as weighted geometric means.
+            If True, compute T2MW/T2IEW as weighted geometric means (qMRLab default).
 
         Returns
         -------
@@ -160,16 +184,74 @@ class MultiComponentT2:
 
         A = self._design_matrix()
 
-        if regularization_alpha > 0:
+        if regularization_mode is None:
+            regularization_mode = "tikhonov" if regularization_alpha > 0 else "none"
+        regularization_mode = str(regularization_mode).lower()
+        if regularization_mode not in {"none", "tikhonov", "qmrlab_regnnls"}:
+            raise ValueError(f"regularization_mode must be one of none/tikhonov/qmrlab_regnnls, got {regularization_mode}")
+
+        def _do_nnls(matrix: Any, data: Any) -> NDArray[np.float64]:
+            w, _ = nnls(matrix, data)
+            return w
+
+        def _chi2(matrix: Any, data: Any, weights: Any, sigma: float) -> float:
+            if sigma <= 0:
+                return float("inf")
+            resid = matrix @ weights - data
+            return float(np.sum(resid * resid) / (sigma**2))
+
+        reg_info: dict[str, float] = {}
+        if regularization_mode == "tikhonov" and regularization_alpha > 0:
             # Tikhonov regularization: augment A and y
             # [     A      ] w = [ y ]
             # [ alpha * I  ]     [ 0 ]
             n_basis = len(self.t2_basis_ms)
             A_aug = np.vstack([A, regularization_alpha * np.eye(n_basis)])
             y_aug = np.concatenate([y, np.zeros(n_basis)])
-            w_hat, _ = nnls(A_aug, y_aug)
+            w_hat = _do_nnls(A_aug, y_aug)
+        elif regularization_mode == "qmrlab_regnnls":
+            sigma = float(qmrlab_sigma)
+            mu = float(qmrlab_mu)
+            chi2_min = float(qmrlab_chi2_min)
+            chi2_max = float(qmrlab_chi2_max)
+            max_iter = int(qmrlab_max_iter)
+
+            w_nnls = _do_nnls(A, y)
+            chi2_nnls = _chi2(A, y, w_nnls, sigma)
+
+            n_basis = len(self.t2_basis_ms)
+            A_aug = np.vstack([A, mu * np.eye(n_basis)])
+            y_aug = np.concatenate([y, np.zeros(n_basis)])
+            w_reg = _do_nnls(A_aug, y_aug)
+            chi2_reg = _chi2(A_aug, y_aug, w_reg, sigma)
+
+            if np.isfinite(chi2_nnls):
+                diff = 100.0 * (chi2_reg - chi2_nnls) / chi2_nnls
+            else:
+                diff = float("nan")
+
+            n_iter = 0
+            while n_iter < max_iter and np.isfinite(diff) and (diff > chi2_max or diff < chi2_min):
+                if diff > chi2_max:
+                    mu = mu / 2.0
+                else:
+                    mu = 1.9 * mu
+                A_aug = np.vstack([A, mu * np.eye(n_basis)])
+                y_aug = np.concatenate([y, np.zeros(n_basis)])
+                w_reg = _do_nnls(A_aug, y_aug)
+                chi2_reg = _chi2(A_aug, y_aug, w_reg, sigma)
+                diff = 100.0 * (chi2_reg - chi2_nnls) / chi2_nnls if np.isfinite(chi2_nnls) else float("nan")
+                n_iter += 1
+
+            w_hat = w_reg
+            reg_info = {
+                "reg_nnls_mu": float(mu),
+                "chi2_nnls": float(chi2_nnls),
+                "chi2_reg": float(chi2_reg),
+                "chi2_diff_percent": float(diff),
+            }
         else:
-            w_hat, _ = nnls(A, y)
+            w_hat = _do_nnls(A, y)
 
         resid_l2 = float(np.linalg.norm(A @ w_hat - y))
 
@@ -205,7 +287,7 @@ class MultiComponentT2:
         t2iew_ms = _weighted_mean(t2[iew_mask], w_hat[iew_mask])
         gmt2_ms = _weighted_geometric_mean(t2, w_hat)
 
-        return {
+        out = {
             "weights": w_hat,
             "t2_basis_ms": self.t2_basis_ms,
             "mwf": float(mwf),
@@ -217,6 +299,8 @@ class MultiComponentT2:
             "total_weight": float(total_w),
             "resid_l2": float(resid_l2),
         }
+        out.update(reg_info)
+        return out
 
     def fit_image(
         self,
