@@ -226,7 +226,7 @@ def _run_mono_t2(cfg: MonoT2Config, *, out_metrics: Path, out_figures: Path) -> 
 
 
 @dataclass(frozen=True)
-class VfaT1Config:
+class VFAT1Config:
     flip_angle_deg: list[float]
     tr_ms: float
     n_samples: int
@@ -293,7 +293,7 @@ class InversionRecoveryConfig:
 
 
 
-def _parse_vfa_t1_config(config: dict[str, object]) -> VfaT1Config:
+def _parse_vfat1_config(config: dict[str, object]) -> VFAT1Config:
     run_cfg = config.get("run", {})
     vfa_cfg = config.get("vfa_t1", {})
     if not isinstance(run_cfg, dict) or not isinstance(vfa_cfg, dict):
@@ -333,7 +333,7 @@ def _parse_vfa_t1_config(config: dict[str, object]) -> VfaT1Config:
     min_signal_parsed = None if min_signal is None else float(min_signal)
     outlier_reject = bool(vfa_cfg.get("outlier_reject", False))
     seed = int(run_cfg.get("seed", 0))
-    return VfaT1Config(
+    return VFAT1Config(
         flip_angle_deg=[float(x) for x in fa],
         tr_ms=tr_ms,
         n_samples=n_samples,
@@ -490,14 +490,14 @@ def _parse_inversion_recovery_config(config: dict[str, object]) -> InversionReco
 
 
 
-def _run_vfa_t1(cfg: VfaT1Config, *, out_metrics: Path, out_figures: Path) -> dict[str, object]:
+def _run_vfat1(cfg: VFAT1Config, *, out_metrics: Path, out_figures: Path) -> dict[str, object]:
     import numpy as np
 
     _require_plotnine()
     from plotnine import aes, geom_abline, geom_histogram, geom_point, ggplot, labs, theme_bw
     from plotnine import ggsave
 
-    from qmrpy.models.t1 import VfaT1
+    from qmrpy.models.t1 import VFAT1
     from qmrpy.sim.noise import add_gaussian_noise, add_rician_noise
 
     rng = np.random.default_rng(cfg.seed)
@@ -508,10 +508,10 @@ def _run_vfa_t1(cfg: VfaT1Config, *, out_metrics: Path, out_figures: Path) -> di
     else:
         b1_true = np.full(cfg.n_samples, cfg.b1, dtype=float)
 
-    model_nominal = VfaT1(flip_angle_deg=np.array(cfg.flip_angle_deg, dtype=float), tr_ms=cfg.tr_ms, b1=1.0)
+    model_nominal = VFAT1(flip_angle_deg=np.array(cfg.flip_angle_deg, dtype=float), tr_ms=cfg.tr_ms, b1=1.0)
     signal_clean = np.stack(
         [
-            VfaT1(
+            VFAT1(
                 flip_angle_deg=model_nominal.flip_angle_deg,
                 tr_ms=cfg.tr_ms,
                 b1=float(b1_true[i]),
@@ -534,7 +534,7 @@ def _run_vfa_t1(cfg: VfaT1Config, *, out_metrics: Path, out_figures: Path) -> di
             fitted_m0[i] = np.nan
             fitted_t1[i] = np.nan
             continue
-        fitted = VfaT1(
+        fitted = VFAT1(
             flip_angle_deg=model_nominal.flip_angle_deg,
             tr_ms=cfg.tr_ms,
             b1=float(b1_true[i]),
@@ -1064,8 +1064,8 @@ def main(argv: list[str] | None = None) -> int:
         )
         model_cfg_dict = asdict(model_cfg)
     elif model_name == "vfa_t1":
-        model_cfg = _parse_vfa_t1_config(config)
-        result = _run_vfa_t1(
+        model_cfg = _parse_vfat1_config(config)
+        result = _run_vfat1(
             model_cfg,
             out_metrics=paths["metrics"] / "vfa_t1_metrics.json",
             out_figures=paths["figures"],

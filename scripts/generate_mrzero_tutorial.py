@@ -35,7 +35,7 @@ from pypulseq.calc_duration import calc_duration
 from pypulseq.opts import Opts
 
 from qmrpy.sim import simulate_bloch
-from qmrpy.models.t1 import VfaT1
+from qmrpy.models.t1 import VFAT1
 from qmrpy.models.b1 import B1Afi
 from qmrpy.models.t2 import MonoT2
 try:
@@ -219,8 +219,8 @@ np.random.seed(42)
 sig_noisy = np.abs(np.array(signals) + np.random.normal(0, np.max(signals)/50, size=len(signals)))
 
 # Fit (Uncorrected vs Corrected)
-vfa_nocorr = VfaT1(flip_angle_deg=np.array(flip_angles), tr_ms=15.0, b1=1.0)
-vfa_corr = VfaT1(flip_angle_deg=np.array(flip_angles), tr_ms=15.0, b1=est_b1)
+vfa_nocorr = VFAT1(flip_angle_deg=np.array(flip_angles), tr_ms=15.0, b1=1.0)
+vfa_corr = VFAT1(flip_angle_deg=np.array(flip_angles), tr_ms=15.0, b1=est_b1)
 
 t1_nocorr = vfa_nocorr.fit(sig_noisy)['t1_ms']
 t1_corr = vfa_corr.fit(sig_noisy)['t1_ms']

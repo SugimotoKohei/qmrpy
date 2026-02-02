@@ -149,8 +149,8 @@ def verify_mono_t2() -> None:
         print("❌ M0 Parity FAIL")
 
 
-def verify_vfa_t1() -> None:
-    from qmrpy.models.t1 import VfaT1
+def verify_vfat1() -> None:
+    from qmrpy.models.t1 import VFAT1
 
     model_name = "vfa_t1"
     input_csv = PARITY_DATA_DIR / f"{model_name}_input.csv"
@@ -167,11 +167,11 @@ def verify_vfa_t1() -> None:
     b1_true = rng.uniform(0.8, 1.2, n_samples)
     
     # Python Forward
-    model_nominal = VfaT1(flip_angle_deg=flip_angles, tr_ms=tr_ms, b1=1.0)
+    model_nominal = VFAT1(flip_angle_deg=flip_angles, tr_ms=tr_ms, b1=1.0)
     signals = []
     for i in range(n_samples):
         # Forward with actual B1
-        model_act = VfaT1(flip_angle_deg=flip_angles, tr_ms=tr_ms, b1=b1_true[i])
+        model_act = VFAT1(flip_angle_deg=flip_angles, tr_ms=tr_ms, b1=b1_true[i])
         s = model_act.forward(m0=m0_true[i], t1_ms=t1_true[i])
         signals.append(s)
     signals = np.stack(signals)
@@ -205,7 +205,7 @@ def verify_vfa_t1() -> None:
     
     for i in range(n_samples):
         # We must provide B1 to fit
-        model_fit = VfaT1(flip_angle_deg=flip_angles, tr_ms=tr_ms, b1=b1_true[i])
+        model_fit = VFAT1(flip_angle_deg=flip_angles, tr_ms=tr_ms, b1=b1_true[i])
         res = model_fit.fit(signals[i]) # Linear fit default
         fitted_t1.append(res["t1_ms"])
         fitted_m0.append(res["m0"])
@@ -504,7 +504,7 @@ def main():
     if args.model == "mono_t2":
         verify_mono_t2()
     elif args.model == "vfa_t1":
-        verify_vfa_t1()
+        verify_vfat1()
     elif args.model == "b1_dam":
         verify_b1_dam()
     elif args.model == "inversion_recovery":

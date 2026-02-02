@@ -58,7 +58,7 @@ def _safe_relpath(path: Path) -> str:
 
 
 def _decaes_parity_rows() -> list[dict[str, Any]]:
-    from qmrpy.models.t2.decaes_t2 import DecaesT2Map
+    from qmrpy.models.t2.decaes_t2 import DECAEST2Map
 
     rows: list[dict[str, Any]] = []
     signal = _load_csv_1d(TEST_DATA_DIR / "decaes_ref_signal.csv")
@@ -69,7 +69,7 @@ def _decaes_parity_rows() -> list[dict[str, Any]]:
     alpha_ref = float(_load_csv_1d(TEST_DATA_DIR / "decaes_ref_alpha.csv")[0])
     dist_ref = _load_csv_1d(TEST_DATA_DIR / "decaes_ref_dist.csv")
 
-    model = DecaesT2Map(
+    model = DECAEST2Map(
         n_te=len(echotimes),
         te_ms=float(echotimes[0]),
         n_t2=len(t2times),
@@ -98,7 +98,7 @@ def _decaes_parity_rows() -> list[dict[str, Any]]:
     alpha_ref = float(_load_csv_1d(TEST_DATA_DIR / "decaes_ref2_alpha.csv")[0])
     mu_ref = float(_load_csv_1d(TEST_DATA_DIR / "decaes_ref2_mu.csv")[0])
     dist_ref = _load_csv_1d(TEST_DATA_DIR / "decaes_ref2_dist.csv")
-    model = DecaesT2Map(
+    model = DECAEST2Map(
         n_te=16,
         te_ms=10.0,
         n_t2=30,
@@ -129,7 +129,7 @@ def _decaes_parity_rows() -> list[dict[str, Any]]:
         mu_ref = float(_load_csv_1d(TEST_DATA_DIR / f"decaes_ref_{reg}_mu.csv")[0])
         chi2_ref = float(_load_csv_1d(TEST_DATA_DIR / f"decaes_ref_{reg}_chi2factor.csv")[0])
         dist_ref = _load_csv_1d(TEST_DATA_DIR / f"decaes_ref_{reg}_dist.csv")
-        model = DecaesT2Map(
+        model = DECAEST2Map(
             n_te=16,
             te_ms=10.0,
             n_t2=30,

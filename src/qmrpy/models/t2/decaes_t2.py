@@ -217,7 +217,6 @@ def _basis_matrix_dalpha_fd(
 ):
     """Finite-difference derivative dA/dalpha matching DECAES' ∇A intent."""
 
-    import numpy as np
 
     a = float(alpha_deg)
     h = float(h_deg)

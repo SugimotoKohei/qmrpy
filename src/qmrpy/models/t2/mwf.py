@@ -100,7 +100,6 @@ class MultiComponentT2:
         ndarray
             Simulated signal array.
         """
-        import numpy as np
 
         w = _as_1d_float_array(weights, name="weights")
         if w.shape != (len(self.t2_basis_ms),):

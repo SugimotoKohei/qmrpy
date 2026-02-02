@@ -5,12 +5,12 @@ def main() -> None:
     import numpy as np
 
     from qmrpy import epg_t2_fit, epg_t2_forward
-    from qmrpy.models.t2 import EpgT2
+    from qmrpy.models.t2 import EPGT2
 
     t2_true = 80.0
     b1_scale = 0.95
 
-    model = EpgT2(n_te=16, te_ms=10.0, t1_ms=1000.0, alpha_deg=180.0)
+    model = EPGT2(n_te=16, te_ms=10.0, t1_ms=1000.0, alpha_deg=180.0)
 
     signal = model.forward(m0=1.0, t2_ms=t2_true, b1=b1_scale)
     fit = model.fit(signal, b1=b1_scale)
