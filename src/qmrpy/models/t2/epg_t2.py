@@ -194,12 +194,14 @@ class EpgT2:
         self,
         data: ArrayLike,
         *,
-        mask: ArrayLike | None = None,
+        mask: ArrayLike | str | None = None,
         b1_map: ArrayLike | None = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
         """Voxel-wise fit on an image/volume."""
         import numpy as np
+
+        from qmrpy._mask import resolve_mask
 
         arr = np.asarray(data, dtype=np.float64)
         if arr.ndim == 1:
@@ -212,13 +214,13 @@ class EpgT2:
         spatial_shape = arr.shape[:-1]
         flat = arr.reshape((-1, arr.shape[-1]))
 
-        if mask is None:
+        resolved_mask = resolve_mask(mask, arr)
+        if resolved_mask is None:
             mask_flat = np.ones((flat.shape[0],), dtype=bool)
         else:
-            m = np.asarray(mask, dtype=bool)
-            if m.shape != spatial_shape:
-                raise ValueError(f"mask shape {m.shape} must match spatial shape {spatial_shape}")
-            mask_flat = m.reshape((-1,))
+            if resolved_mask.shape != spatial_shape:
+                raise ValueError(f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}")
+            mask_flat = resolved_mask.reshape((-1,))
 
         if b1_map is not None and "b1" in kwargs:
             raise ValueError("use either b1_map or b1, not both")

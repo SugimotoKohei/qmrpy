@@ -895,7 +895,7 @@ class DecaesT2Map:
         self,
         image: ArrayLike,
         *,
-        mask: ArrayLike | None = None,
+        mask: ArrayLike | str | None = None,
         alpha_map_deg: ArrayLike | None = None,
     ) -> tuple[dict[str, Any], NDArray[np.float64]]:
         """Fit T2 distribution voxel-wise for a 4D image.
@@ -905,7 +905,7 @@ class DecaesT2Map:
         image : array-like
             Input image with shape ``(x, y, z, n_te)``.
         mask : array-like, optional
-            Spatial mask.
+            Spatial mask. If "otsu", Otsu thresholding is applied.
         alpha_map_deg : array-like, optional
             Precomputed flip angle map in degrees.
 
@@ -917,16 +917,20 @@ class DecaesT2Map:
         """
         import numpy as np
 
+        from qmrpy._mask import resolve_mask
+
         img = np.asarray(image, dtype=np.float64)
         if img.ndim != 4 or img.shape[-1] != self.n_te:
             raise ValueError(f"image must be 4D with last dim n_te={self.n_te}, got {img.shape}")
 
-        if mask is None:
-            m = np.ones(img.shape[:3], dtype=bool)
+        spatial_shape = img.shape[:3]
+        resolved_mask = resolve_mask(mask, img)
+        if resolved_mask is None:
+            m = np.ones(spatial_shape, dtype=bool)
         else:
-            m = np.asarray(mask, dtype=bool)
-            if m.shape != img.shape[:3]:
-                raise ValueError(f"mask shape {m.shape} must match image spatial shape {img.shape[:3]}")
+            if resolved_mask.shape != spatial_shape:
+                raise ValueError(f"mask shape {resolved_mask.shape} must match image spatial shape {spatial_shape}")
+            m = resolved_mask
 
         if alpha_map_deg is not None:
             alpha_map = np.asarray(alpha_map_deg, dtype=np.float64)

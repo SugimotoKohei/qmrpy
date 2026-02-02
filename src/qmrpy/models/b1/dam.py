@@ -90,7 +90,7 @@ class B1Dam:
         return {"b1_raw": float(b1_raw), "spurious": float(spurious)}
 
     def fit_image(
-        self, data: ArrayLike, *, mask: ArrayLike | None = None
+        self, data: ArrayLike, *, mask: ArrayLike | str | None = None
     ) -> dict[str, Any]:
         """Vectorized DAM B1 estimation on an image/volume.
 
@@ -99,7 +99,7 @@ class B1Dam:
         data : array-like
             Input array with last dim 2 as ``[S(alpha), S(2*alpha)]``.
         mask : array-like, optional
-            Spatial mask.
+            Spatial mask. If "otsu", Otsu thresholding is applied.
 
         Returns
         -------
@@ -107,6 +107,8 @@ class B1Dam:
             Maps for ``b1_raw`` and ``spurious``.
         """
         import numpy as np
+
+        from qmrpy._mask import resolve_mask
 
         arr = np.asarray(data, dtype=np.float64)
         if arr.ndim == 1:
@@ -120,12 +122,13 @@ class B1Dam:
         s1 = arr[..., 0]
         s2 = arr[..., 1]
 
-        if mask is None:
+        resolved_mask = resolve_mask(mask, arr)
+        if resolved_mask is None:
             m = np.ones(spatial_shape, dtype=bool)
         else:
-            m = np.asarray(mask, dtype=bool)
-            if m.shape != spatial_shape:
-                raise ValueError(f"mask shape {m.shape} must match spatial shape {spatial_shape}")
+            if resolved_mask.shape != spatial_shape:
+                raise ValueError(f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}")
+            m = resolved_mask
 
         b1_raw = np.full(spatial_shape, np.nan, dtype=np.float64)
         spurious = np.ones(spatial_shape, dtype=np.float64)

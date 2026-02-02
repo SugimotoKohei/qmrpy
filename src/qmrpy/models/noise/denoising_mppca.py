@@ -43,7 +43,7 @@ class MPPCA:
 
     kernel: tuple[int, int, int] = (5, 5, 5)
 
-    def fit(self, data: ArrayLike, mask: ArrayLike | None = None) -> dict[str, Any]:
+    def fit(self, data: ArrayLike, mask: ArrayLike | str | None = None) -> dict[str, Any]:
         """Denoise 4D data.
 
         Parameters
@@ -51,22 +51,26 @@ class MPPCA:
         data : array-like
             4D array ``(x, y, z, t)``.
         mask : array-like, optional
-            3D mask ``(x, y, z)``.
+            Spatial mask. If "otsu", Otsu thresholding is applied.
 
         Returns
         -------
         dict
             ``denoised`` (4D), ``sigma`` (3D), ``n_pars`` (3D).
         """
+        from qmrpy._mask import resolve_mask
+
         data_arr = _as_4d_float_array(data, name="data")
         sx, sy, sz, m_dim = data_arr.shape
-        
-        if mask is None:
-            mask_arr = np.ones((sx, sy, sz), dtype=bool)
+        spatial_shape = (sx, sy, sz)
+
+        resolved_mask = resolve_mask(mask, data_arr)
+        if resolved_mask is None:
+            mask_arr = np.ones(spatial_shape, dtype=bool)
         else:
-            mask_arr = np.asarray(mask, dtype=bool)
-            if mask_arr.shape != (sx, sy, sz):
-                raise ValueError("mask shape must match spatial dims of data")
+            if resolved_mask.shape != spatial_shape:
+                raise ValueError(f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}")
+            mask_arr = resolved_mask
 
         # Sliding window implementation (equivalent to qMRLab 'full' sampling)
         denoised, sigma, n_pars = _mp_denoising(data_arr, mask_arr, self.kernel)
@@ -77,7 +81,7 @@ class MPPCA:
             "n_pars": n_pars,
         }
 
-    def fit_image(self, data: ArrayLike, mask: ArrayLike | None = None) -> dict[str, Any]:
+    def fit_image(self, data: ArrayLike, mask: ArrayLike | str | None = None) -> dict[str, Any]:
         if np.asarray(data).ndim == 1:
             if mask is not None:
                 raise ValueError("mask must be None for 1D data")

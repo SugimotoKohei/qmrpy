@@ -402,7 +402,7 @@ class InversionRecovery:
         self,
         data: ArrayLike,
         *,
-        mask: ArrayLike | None = None,
+        mask: ArrayLike | str | None = None,
         **kwargs: Any,
     ) -> dict[str, Any]:
         """Voxel-wise fit on an image/volume.
@@ -412,7 +412,7 @@ class InversionRecovery:
         data : array-like
             Input array with last dim as inversion times.
         mask : array-like, optional
-            Spatial mask.
+            Spatial mask. If "otsu", Otsu thresholding is applied.
         **kwargs
             Passed to ``fit``.
 
@@ -422,6 +422,8 @@ class InversionRecovery:
             Dict of parameter maps.
         """
         import numpy as np
+
+        from qmrpy._mask import resolve_mask
 
         arr = np.asarray(data, dtype=np.float64)
         if arr.ndim == 1:
@@ -436,13 +438,13 @@ class InversionRecovery:
         spatial_shape = arr.shape[:-1]
         flat = arr.reshape((-1, arr.shape[-1]))
 
-        if mask is None:
+        resolved_mask = resolve_mask(mask, arr)
+        if resolved_mask is None:
             mask_flat = np.ones((flat.shape[0],), dtype=bool)
         else:
-            m = np.asarray(mask, dtype=bool)
-            if m.shape != spatial_shape:
-                raise ValueError(f"mask shape {m.shape} must match spatial shape {spatial_shape}")
-            mask_flat = m.reshape((-1,))
+            if resolved_mask.shape != spatial_shape:
+                raise ValueError(f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}")
+            mask_flat = resolved_mask.reshape((-1,))
 
         method_norm = str(kwargs.get("method", "magnitude")).lower().strip()
         out: dict[str, Any] = {

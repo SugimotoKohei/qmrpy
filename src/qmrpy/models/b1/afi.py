@@ -87,7 +87,7 @@ class B1Afi:
         spurious = 1.0 if (not np.isfinite(b1_raw) or b1_raw < 0.5) else 0.0
         return {"b1_raw": float(b1_raw), "spurious": float(spurious)}
 
-    def fit_image(self, data: ArrayLike, *, mask: ArrayLike | None = None) -> dict[str, Any]:
+    def fit_image(self, data: ArrayLike, *, mask: ArrayLike | str | None = None) -> dict[str, Any]:
         """Vectorized AFI B1 estimation on an image/volume.
 
         Parameters
@@ -95,7 +95,7 @@ class B1Afi:
         data : array-like
             Input array with last dim 2 as ``[AFIData1, AFIData2]``.
         mask : array-like, optional
-            Spatial mask.
+            Spatial mask. If "otsu", Otsu thresholding is applied.
 
         Returns
         -------
@@ -103,6 +103,8 @@ class B1Afi:
             Maps for ``b1_raw`` and ``spurious``.
         """
         import numpy as np
+
+        from qmrpy._mask import resolve_mask
 
         arr = np.asarray(data, dtype=np.float64)
         if arr.ndim == 1:
@@ -116,12 +118,13 @@ class B1Afi:
         s1 = arr[..., 0]
         s2 = arr[..., 1]
 
-        if mask is None:
+        resolved_mask = resolve_mask(mask, arr)
+        if resolved_mask is None:
             m = np.ones(spatial_shape, dtype=bool)
         else:
-            m = np.asarray(mask, dtype=bool)
-            if m.shape != spatial_shape:
-                raise ValueError(f"mask shape {m.shape} must match spatial shape {spatial_shape}")
+            if resolved_mask.shape != spatial_shape:
+                raise ValueError(f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}")
+            m = resolved_mask
 
         b1_raw = np.full(spatial_shape, np.nan, dtype=np.float64)
         spurious = np.ones(spatial_shape, dtype=np.float64)
