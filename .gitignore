@@ -2,7 +2,9 @@
 /output/
 /data/
 /configs/local/
-docs/
+
+# mkdocs build output
+/site/
 
 # upstream reference (MATLAB)
 qMRLab/

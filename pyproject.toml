@@ -70,3 +70,8 @@ testpaths = ["tests"]
 dev = [
     "twine>=6.2.0",
 ]
+docs = [
+    "mkdocs-material>=9.7.1",
+    "mkdocstrings>=1.0.2",
+    "mkdocstrings-python>=2.0.1",
+]

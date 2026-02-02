@@ -1,0 +1,68 @@
+site_name: qmrpy
+site_description: Quantitative MRI modeling library for Python
+site_url: https://sugimotokohei.github.io/qmrpy/
+repo_url: https://github.com/SugimotoKohei/qmrpy
+repo_name: SugimotoKohei/qmrpy
+
+theme:
+  name: material
+  language: en
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-7
+        name: Switch to dark mode
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/brightness-4
+        name: Switch to light mode
+  features:
+    - navigation.instant
+    - navigation.tabs
+    - navigation.sections
+    - navigation.expand
+    - search.highlight
+    - content.code.copy
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          options:
+            docstring_style: numpy
+            show_source: true
+            show_root_heading: true
+            heading_level: 2
+
+markdown_extensions:
+  - admonition
+  - pymdownx.highlight:
+      anchor_linenums: true
+  - pymdownx.superfences
+  - pymdownx.tabbed:
+      alternate_style: true
+  - toc:
+      permalink: true
+
+nav:
+  - Home: index.md
+  - Getting Started:
+      - Installation: getting-started/installation.md
+      - Quick Start: getting-started/quickstart.md
+  - User Guide:
+      - T1 Mapping: guide/t1-mapping.md
+      - T2 Mapping: guide/t2-mapping.md
+      - B1 Mapping: guide/b1-mapping.md
+  - API Reference:
+      - Overview: api/index.md
+      - T1 Models: api/t1.md
+      - T2 Models: api/t2.md
+      - B1 Models: api/b1.md
+      - Functional API: api/functional.md
+      - I/O Utilities: api/io.md
+      - Simulation: api/simulation.md
