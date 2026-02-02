@@ -90,13 +90,13 @@ class B1Dam:
         return {"b1_raw": float(b1_raw), "spurious": float(spurious)}
 
     def fit_image(
-        self, data: ArrayLike, *, mask: ArrayLike | str | None = None, n_jobs: int = 1
+        self, signal: ArrayLike, *, mask: ArrayLike | str | None = None, n_jobs: int = 1
     ) -> dict[str, Any]:
         """Vectorized DAM B1 estimation on an image/volume.
 
         Parameters
         ----------
-        data : array-like
+        signal : array-like
             Input array with last dim 2 as ``[S(alpha), S(2*alpha)]``.
         mask : array-like, optional
             Spatial mask. If "otsu", Otsu thresholding is applied.
@@ -113,7 +113,7 @@ class B1Dam:
 
         from qmrpy._mask import resolve_mask
 
-        arr = np.asarray(data, dtype=np.float64)
+        arr = np.asarray(signal, dtype=np.float64)
         if arr.ndim == 1:
             if mask is not None:
                 raise ValueError("mask must be None for 1D data")

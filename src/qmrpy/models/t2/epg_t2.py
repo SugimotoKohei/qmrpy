@@ -192,7 +192,7 @@ class EpgT2:
 
     def fit_image(
         self,
-        data: ArrayLike,
+        signal: ArrayLike,
         *,
         mask: ArrayLike | str | None = None,
         b1_map: ArrayLike | None = None,
@@ -203,7 +203,7 @@ class EpgT2:
 
         Parameters
         ----------
-        data : array-like
+        signal : array-like
             Input array with last dim as echoes.
         mask : array-like, "otsu", or None
             Spatial mask. If "otsu", Otsu thresholding is applied.
@@ -224,7 +224,7 @@ class EpgT2:
         from qmrpy._mask import resolve_mask
         from qmrpy._parallel import parallel_fit
 
-        arr = np.asarray(data, dtype=np.float64)
+        arr = np.asarray(signal, dtype=np.float64)
         if arr.ndim == 1:
             if mask is not None:
                 raise ValueError("mask must be None for 1D data")

@@ -200,7 +200,7 @@ class VfaT1:
 
     def fit_image(
         self,
-        data: ArrayLike,
+        signal: ArrayLike,
         *,
         mask: ArrayLike | str | None = None,
         n_jobs: int = 1,
@@ -208,11 +208,11 @@ class VfaT1:
     ) -> dict[str, Any]:
         """Voxel-wise linear VFA fit on an image/volume.
 
-        Expects `data` shape (..., n_fa) where n_fa == len(self.flip_angle_deg).
+        Expects `signal` shape (..., n_fa) where n_fa == len(self.flip_angle_deg).
 
         Parameters
         ----------
-        data : array-like
+        signal : array-like
             Input array with last dim as flip angles.
         mask : array-like, "otsu", or None
             Spatial mask. If "otsu", Otsu thresholding is applied.
@@ -231,7 +231,7 @@ class VfaT1:
         from qmrpy._mask import resolve_mask
         from qmrpy._parallel import parallel_fit
 
-        arr = np.asarray(data, dtype=np.float64)
+        arr = np.asarray(signal, dtype=np.float64)
         if arr.ndim == 1:
             if mask is not None:
                 raise ValueError("mask must be None for 1D data")

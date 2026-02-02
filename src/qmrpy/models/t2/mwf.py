@@ -304,7 +304,7 @@ class MultiComponentT2:
 
     def fit_image(
         self,
-        data: ArrayLike,
+        signal: ArrayLike,
         *,
         mask: ArrayLike | str | None = None,
         n_jobs: int = 1,
@@ -315,7 +315,7 @@ class MultiComponentT2:
 
         Parameters
         ----------
-        data : array-like
+        signal : array-like
             Input array with last dim as echoes.
         mask : array-like, optional
             Spatial mask. If "otsu", Otsu thresholding is applied.
@@ -335,7 +335,7 @@ class MultiComponentT2:
 
         from qmrpy._mask import resolve_mask
 
-        arr = np.asarray(data, dtype=np.float64)
+        arr = np.asarray(signal, dtype=np.float64)
         if arr.ndim == 1:
             return self.fit(arr, **kwargs)
         if arr.shape[-1] != self.te_ms.shape[0]:

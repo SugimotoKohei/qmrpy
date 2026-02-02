@@ -82,13 +82,13 @@ class MPPCA:
         }
 
     def fit_image(
-        self, data: ArrayLike, mask: ArrayLike | str | None = None, n_jobs: int = 1
+        self, signal: ArrayLike, mask: ArrayLike | str | None = None, n_jobs: int = 1
     ) -> dict[str, Any]:
         """Denoise an image/volume.
 
         Parameters
         ----------
-        data : array-like
+        signal : array-like
             4D array ``(x, y, z, t)``.
         mask : array-like, optional
             Spatial mask. If "otsu", Otsu thresholding is applied.
@@ -102,10 +102,10 @@ class MPPCA:
         dict
             ``denoised`` (4D), ``sigma`` (3D), ``n_pars`` (3D).
         """
-        if np.asarray(data).ndim == 1:
+        if np.asarray(signal).ndim == 1:
             if mask is not None:
                 raise ValueError("mask must be None for 1D data")
-        return self.fit(data, mask=mask)
+        return self.fit(signal, mask=mask)
 
 
 def _mp_denoising(

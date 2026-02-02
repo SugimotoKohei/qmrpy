@@ -893,7 +893,7 @@ class DecaesT2Map:
 
     def fit_image(
         self,
-        image: ArrayLike,
+        signal: ArrayLike,
         *,
         mask: ArrayLike | str | None = None,
         alpha_map_deg: ArrayLike | None = None,
@@ -903,7 +903,7 @@ class DecaesT2Map:
 
         Parameters
         ----------
-        image : array-like
+        signal : array-like
             Input image with shape ``(x, y, z, n_te)``.
         mask : array-like, optional
             Spatial mask. If "otsu", Otsu thresholding is applied.
@@ -922,7 +922,7 @@ class DecaesT2Map:
 
         from qmrpy._mask import resolve_mask
 
-        img = np.asarray(image, dtype=np.float64)
+        img = np.asarray(signal, dtype=np.float64)
         if img.ndim != 4 or img.shape[-1] != self.n_te:
             raise ValueError(f"image must be 4D with last dim n_te={self.n_te}, got {img.shape}")
 
