@@ -7,7 +7,7 @@ This section provides detailed API documentation for all qmrpy modules.
 | Module | Description |
 |--------|-------------|
 | [T1 Models](t1.md) | VFA T1, Inversion Recovery |
-| [T2 Models](t2.md) | MonoT2, EpgT2, MWF, DECAES |
+| [T2 Models](t2.md) | MonoT2, EPGT2, MWF, DECAES |
 | [B1 Models](b1.md) | DAM, AFI |
 
 ## Utilities

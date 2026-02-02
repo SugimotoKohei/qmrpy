@@ -42,7 +42,7 @@ result = model.fit_image(image_data, mask="otsu", n_jobs=-1)
 ## API
 
 ```python
-from qmrpy.models import MonoT2, EpgT2, VfaT1, InversionRecovery
+from qmrpy.models import MonoT2, EPGT2, VFAT1, InversionRecovery
 from qmrpy import save_tiff, load_tiff
 
 # All models follow the same pattern:

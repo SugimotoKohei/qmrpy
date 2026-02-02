@@ -74,18 +74,18 @@ b1_map = maps["b1_raw"]
 ### VFA T1 with B1 Correction
 
 ```python
-from qmrpy.models.t1 import VfaT1
+from qmrpy.models.t1 import VFAT1
 
-model = VfaT1(flip_angle_deg=[3, 15], tr_ms=20.0, b1=b1_map)
+model = VFAT1(flip_angle_deg=[3, 15], tr_ms=20.0, b1=b1_map)
 t1_maps = model.fit_image(vfa_data)
 ```
 
 ### EPG T2 with B1 Correction
 
 ```python
-from qmrpy.models.t2 import EpgT2
+from qmrpy.models.t2 import EPGT2
 
-model = EpgT2(n_te=32, te_ms=10.0)
+model = EPGT2(n_te=32, te_ms=10.0)
 t2_maps = model.fit_image(t2_data, b1_map=b1_map)
 ```
 

@@ -3,9 +3,9 @@
 qmrpy provides several T2 mapping methods:
 
 - **MonoT2**: Simple mono-exponential decay
-- **EpgT2**: EPG-corrected T2 with stimulated echo compensation
+- **EPGT2**: EPG-corrected T2 with stimulated echo compensation
 - **MultiComponentT2**: Multi-exponential T2 for myelin water fraction (MWF)
-- **DecaesT2Map**: DECAES-style regularized NNLS fitting
+- **DECAEST2Map**: DECAES-style regularized NNLS fitting
 
 ## Mono-exponential T2
 
@@ -41,10 +41,10 @@ print(f"T2 = {result['t2_ms']:.1f} ms, offset = {result['offset']:.1f}")
 Accounts for stimulated echoes in multi-echo spin-echo sequences:
 
 ```python
-from qmrpy.models.t2 import EpgT2
+from qmrpy.models.t2 import EPGT2
 
 # Create model
-model = EpgT2(
+model = EPGT2(
     n_te=32,           # Number of echoes
     te_ms=10.0,        # Echo spacing
     t1_ms=1000.0,      # T1 (needed for EPG)
@@ -93,9 +93,9 @@ print(f"T2 myelin water = {result['t2mw_ms']:.1f} ms")
 Advanced T2 distribution fitting with regularization:
 
 ```python
-from qmrpy.models.t2 import DecaesT2Map
+from qmrpy.models.t2 import DECAEST2Map
 
-model = DecaesT2Map(
+model = DECAEST2Map(
     n_te=32,
     te_ms=10.0,
     n_t2=60,                    # Number of T2 bins
@@ -125,6 +125,6 @@ signal = epg_t2_forward(
 ## API Reference
 
 - [MonoT2](../api/t2.md#qmrpy.models.t2.MonoT2)
-- [EpgT2](../api/t2.md#qmrpy.models.t2.EpgT2)
+- [EPGT2](../api/t2.md#qmrpy.models.t2.EPGT2)
 - [MultiComponentT2](../api/t2.md#qmrpy.models.t2.MultiComponentT2)
-- [DecaesT2Map](../api/t2.md#qmrpy.models.t2.DecaesT2Map)
+- [DECAEST2Map](../api/t2.md#qmrpy.models.t2.DECAEST2Map)

@@ -1,4 +1,4 @@
-from .b1 import B1Dam
+from .b1 import B1Dam, B1Afi
 from .noise import MPPCA
 from .qsm import (
     qsm_split_bregman,
@@ -12,6 +12,7 @@ from .t1 import InversionRecovery, VFAT1
 from .t2 import DECAEST2Map, DECAEST2Part, EPGT2, MonoT2, MultiComponentT2
 
 __all__ = [
+    "B1Afi",
     "B1Dam",
     "calc_chi_l2",
     "calc_gradient_mask_from_magnitude",

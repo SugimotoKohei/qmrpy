@@ -72,5 +72,5 @@ For detailed API documentation, see the source code in `qmrpy.sim`.
 
 ### Analysis
 
-- `SimCRLB`: Cramér-Rao lower bound calculator
-- `SimFisherMatrix`: Fisher information matrix
+- `sim_crlb`: Cramér-Rao lower bound calculator
+- `sim_fisher_matrix`: Fisher information matrix

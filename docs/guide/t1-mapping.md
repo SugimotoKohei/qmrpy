@@ -11,14 +11,14 @@ qmrpy provides two T1 mapping methods:
 
 ```python
 import numpy as np
-from qmrpy.models.t1 import VfaT1
+from qmrpy.models.t1 import VFAT1
 
 # Acquisition parameters
 flip_angles = np.array([3, 15])  # degrees
 tr_ms = 20.0  # milliseconds
 
 # Create model
-model = VfaT1(flip_angle_deg=flip_angles, tr_ms=tr_ms)
+model = VFAT1(flip_angle_deg=flip_angles, tr_ms=tr_ms)
 
 # Fit single voxel
 signal = np.array([50, 200])
@@ -32,7 +32,7 @@ VFA requires B1 correction for accurate results:
 
 ```python
 # With B1 map (per-voxel)
-model = VfaT1(flip_angle_deg=flip_angles, tr_ms=tr_ms, b1=0.95)
+model = VFAT1(flip_angle_deg=flip_angles, tr_ms=tr_ms, b1=0.95)
 
 # Or pass B1 during fit
 result = model.fit(signal)  # Uses model's b1
@@ -100,5 +100,5 @@ signal = inversion_recovery_forward(
 
 ## API Reference
 
-- [VfaT1](../api/t1.md#qmrpy.models.t1.VfaT1)
+- [VFAT1](../api/t1.md#qmrpy.models.t1.VFAT1)
 - [InversionRecovery](../api/t1.md#qmrpy.models.t1.InversionRecovery)
