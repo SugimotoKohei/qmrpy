@@ -1,18 +1,18 @@
 # Third-Party Notices
 
-このリポジトリには、第三者が著作権を有するソフトウェアの **同梱（vendor）** および
-**翻訳・参考実装** が含まれます。配布物（wheel / sdist）には、各ライセンス条項に従い
-必要な表記を含めます。
+This repository contains **translations and reference implementations** of algorithms
+from third-party software. Distribution artifacts (wheel/sdist) include the required
+license attributions.
 
 ## qMRLab
 
-- Upstream: `qMRLab`（MATLAB 実装）
+- Upstream: `qMRLab` (MATLAB implementation)
 - Copyright (c) 2017 NeuroPoly
 - License: MIT License
-- Reference materials: ローカル参照（同梱なし）
-- Notes: 本リポジトリは qMRLab の概念・モデル定義を **翻訳/再構成** しています。
-  qMRLab 本体や `External/` 配下の第三者コードは同梱しておらず、取り込みが発生した場合は
-  その都度ライセンス表記を追加します。
+- Reference materials: Local reference (not bundled)
+- Notes: This repository **translates/restructures** concepts and model definitions from qMRLab.
+  The qMRLab source code and `External/` third-party code are not bundled.
+  If any code is incorporated, license attribution will be added accordingly.
 
 ```
 MIT License
@@ -43,8 +43,8 @@ SOFTWARE.
 - Upstream: `DECAES.jl`
 - Copyright (c) 2019 Jonathan Doucette
 - License: MIT License
-- Reference materials: ローカル参照（同梱なし）
-- Notes: 一部アルゴリズム/実装の **翻訳・参考** を含む
+- Reference materials: Local reference (not bundled)
+- Notes: Contains **translations and reference implementations** of some algorithms
 
 ```
 Copyright (c) 2019 Jonathan Doucette
