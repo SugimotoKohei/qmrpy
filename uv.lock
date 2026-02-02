@@ -1784,6 +1784,7 @@ dependencies = [
     { name = "pillow" },
     { name = "pypulseq" },
     { name = "scipy" },
+    { name = "tqdm" },
 ]
 
 [package.optional-dependencies]
@@ -1819,6 +1820,7 @@ requires-dist = [
     { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5" },
     { name = "ruff", marker = "extra == 'dev'", specifier = ">=0.6" },
     { name = "scipy", specifier = ">=1.11" },
+    { name = "tqdm", specifier = ">=4.67.1" },
 ]
 provides-extras = ["dev", "viz"]
 

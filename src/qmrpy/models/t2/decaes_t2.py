@@ -898,6 +898,7 @@ class DecaesT2Map:
         mask: ArrayLike | str | None = None,
         alpha_map_deg: ArrayLike | None = None,
         n_jobs: int = 1,
+        verbose: bool = False,
     ) -> tuple[dict[str, Any], NDArray[np.float64]]:
         """Fit T2 distribution voxel-wise for a 4D image.
 
@@ -911,6 +912,8 @@ class DecaesT2Map:
             Precomputed flip angle map in degrees.
         n_jobs : int, default=1
             Number of parallel jobs. -1 uses all CPUs.
+        verbose : bool, default=False
+            If True, show progress bar and log info.
 
         Returns
         -------
@@ -918,9 +921,13 @@ class DecaesT2Map:
             (maps, distributions) where ``maps`` is a dict of parameter maps
             and ``distributions`` is a 4D array with last dim ``n_t2``.
         """
+        import logging
+
         import numpy as np
 
         from qmrpy._mask import resolve_mask
+
+        logger = logging.getLogger("qmrpy")
 
         img = np.asarray(signal, dtype=np.float64)
         if img.ndim != 4 or img.shape[-1] != self.n_te:
@@ -1075,10 +1082,19 @@ class DecaesT2Map:
 
         # Collect indices to process
         indices = list(np.ndindex(shape3))
+        n_voxels = int(np.sum(m))
+
+        if verbose:
+            logger.info("DecaesT2Map: %d voxels, n_jobs=%s, shape=%s", n_voxels, n_jobs, shape3)
 
         if n_jobs == 1:
             # Serial execution
-            for idx in indices:
+            iterator = indices
+            if verbose:
+                from tqdm import tqdm
+                iterator = tqdm(indices, desc="DecaesT2Map", unit="voxel")
+
+            for idx in iterator:
                 _idx, res = process_voxel(idx)
                 if not res:
                     continue
@@ -1102,9 +1118,16 @@ class DecaesT2Map:
             # Parallel execution
             from joblib import Parallel, delayed
 
-            results = Parallel(n_jobs=n_jobs)(
-                delayed(process_voxel)(idx) for idx in indices
-            )
+            if verbose:
+                from tqdm import tqdm
+                results = Parallel(n_jobs=n_jobs)(
+                    delayed(process_voxel)(idx)
+                    for idx in tqdm(indices, desc="DecaesT2Map", unit="voxel")
+                )
+            else:
+                results = Parallel(n_jobs=n_jobs)(
+                    delayed(process_voxel)(idx) for idx in indices
+                )
 
             for _idx, res in results:
                 if not res:
@@ -1125,6 +1148,9 @@ class DecaesT2Map:
                     decaycurve[_idx] = res["decay_fit"]
                 if decaybasis is not None:
                     decaybasis[_idx] = res["basis"]
+
+        if verbose:
+            logger.info("DecaesT2Map complete: %d voxels processed", n_voxels)
 
         maps: dict[str, Any] = {
             "echotimes_ms": echotimes,

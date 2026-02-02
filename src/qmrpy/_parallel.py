@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 from typing import TYPE_CHECKING, Any, Callable, Sequence
 
 if TYPE_CHECKING:
@@ -9,6 +10,8 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
 else:
     NDArray = Any
+
+logger = logging.getLogger("qmrpy")
 
 
 def parallel_fit(
@@ -19,6 +22,8 @@ def parallel_fit(
     spatial_shape: tuple[int, ...],
     *,
     n_jobs: int = 1,
+    verbose: bool = False,
+    desc: str = "Fitting",
 ) -> dict[str, NDArray[Any]]:
     """Run voxel-wise fitting in parallel.
 
@@ -36,6 +41,10 @@ def parallel_fit(
         Original spatial shape for reshaping output.
     n_jobs : int, default=1
         Number of parallel jobs. -1 uses all CPUs.
+    verbose : bool, default=False
+        If True, show progress bar and log info.
+    desc : str, default="Fitting"
+        Description for progress bar.
 
     Returns
     -------
@@ -51,17 +60,37 @@ def parallel_fit(
     }
 
     indices = np.flatnonzero(mask_flat)
+    n_voxels = len(indices)
 
-    if len(indices) == 0:
+    if n_voxels == 0:
+        logger.debug("No voxels to fit (empty mask)")
         return out
+
+    if verbose:
+        logger.info(
+            "%s: %d voxels, n_jobs=%s, shape=%s",
+            desc,
+            n_voxels,
+            n_jobs,
+            spatial_shape,
+        )
 
     # Serial execution
     if n_jobs == 1:
-        for idx in indices:
+        iterator = indices
+        if verbose:
+            from tqdm import tqdm
+
+            iterator = tqdm(indices, desc=desc, unit="voxel")
+
+        for idx in iterator:
             res = fit_func(data_flat[idx])
             for key in output_keys:
                 if key in res:
                     out[key].flat[idx] = float(res[key])
+
+        if verbose:
+            logger.info("%s complete: %d voxels processed", desc, n_voxels)
         return out
 
     # Parallel execution
@@ -70,13 +99,24 @@ def parallel_fit(
     def _fit_single(idx: int) -> tuple[int, dict[str, float]]:
         return idx, fit_func(data_flat[idx])
 
-    results = Parallel(n_jobs=n_jobs)(
-        delayed(_fit_single)(idx) for idx in indices
-    )
+    if verbose:
+        from tqdm import tqdm
+
+        results = Parallel(n_jobs=n_jobs)(
+            delayed(_fit_single)(idx)
+            for idx in tqdm(indices, desc=desc, unit="voxel")
+        )
+    else:
+        results = Parallel(n_jobs=n_jobs)(
+            delayed(_fit_single)(idx) for idx in indices
+        )
 
     for idx, res in results:
         for key in output_keys:
             if key in res:
                 out[key].flat[idx] = float(res[key])
+
+    if verbose:
+        logger.info("%s complete: %d voxels processed", desc, n_voxels)
 
     return out

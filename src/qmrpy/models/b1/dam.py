@@ -90,7 +90,12 @@ class B1Dam:
         return {"b1_raw": float(b1_raw), "spurious": float(spurious)}
 
     def fit_image(
-        self, signal: ArrayLike, *, mask: ArrayLike | str | None = None, n_jobs: int = 1
+        self,
+        signal: ArrayLike,
+        *,
+        mask: ArrayLike | str | None = None,
+        n_jobs: int = 1,
+        verbose: bool = False,
     ) -> dict[str, Any]:
         """Vectorized DAM B1 estimation on an image/volume.
 
@@ -103,15 +108,21 @@ class B1Dam:
         n_jobs : int, default=1
             Number of parallel jobs. -1 uses all CPUs.
             Note: This model is fully vectorized and does not use n_jobs.
+        verbose : bool, default=False
+            If True, log info.
 
         Returns
         -------
         dict
             Maps for ``b1_raw`` and ``spurious``.
         """
+        import logging
+
         import numpy as np
 
         from qmrpy._mask import resolve_mask
+
+        logger = logging.getLogger("qmrpy")
 
         arr = np.asarray(signal, dtype=np.float64)
         if arr.ndim == 1:
@@ -137,6 +148,11 @@ class B1Dam:
         spurious = np.ones(spatial_shape, dtype=np.float64)
 
         valid = m & np.isfinite(s1) & np.isfinite(s2) & (np.abs(s1) >= 1e-12)
+        n_voxels = int(np.sum(valid))
+
+        if verbose:
+            logger.info("B1Dam: %d voxels (vectorized), shape=%s", n_voxels, spatial_shape)
+
         ratio = np.empty_like(s1, dtype=np.float64)
         ratio[valid] = s2[valid] / (2.0 * s1[valid])
         ratio = np.clip(ratio, -1.0, 1.0, out=ratio, where=valid)
@@ -147,5 +163,8 @@ class B1Dam:
 
         b1_raw[valid] = b1[valid]
         spurious[valid] = ((~np.isfinite(b1[valid])) | (b1[valid] < 0.5)).astype(np.float64)
+
+        if verbose:
+            logger.info("B1Dam complete: %d voxels processed", n_voxels)
 
         return {"b1_raw": b1_raw, "spurious": spurious}

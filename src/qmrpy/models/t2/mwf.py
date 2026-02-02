@@ -308,6 +308,7 @@ class MultiComponentT2:
         *,
         mask: ArrayLike | str | None = None,
         n_jobs: int = 1,
+        verbose: bool = False,
         return_weights: bool = False,
         **kwargs: Any,
     ) -> dict[str, Any]:
@@ -321,6 +322,8 @@ class MultiComponentT2:
             Spatial mask. If "otsu", Otsu thresholding is applied.
         n_jobs : int, default=1
             Number of parallel jobs. -1 uses all CPUs.
+        verbose : bool, default=False
+            If True, show progress bar and log info.
         return_weights : bool, optional
             If True, include voxel-wise weights.
         **kwargs
@@ -331,9 +334,13 @@ class MultiComponentT2:
         dict
             Dict of parameter maps.
         """
+        import logging
+
         import numpy as np
 
         from qmrpy._mask import resolve_mask
+
+        logger = logging.getLogger("qmrpy")
 
         arr = np.asarray(signal, dtype=np.float64)
         if arr.ndim == 1:
@@ -372,9 +379,20 @@ class MultiComponentT2:
                 dtype=np.float64,
             )
 
+        indices = np.flatnonzero(mask_flat)
+        n_voxels = len(indices)
+
+        if verbose:
+            logger.info("MWF: %d voxels, n_jobs=%s, shape=%s", n_voxels, n_jobs, spatial_shape)
+
         # Parallel execution for MWF
         if n_jobs == 1:
-            for idx in np.flatnonzero(mask_flat):
+            iterator = indices
+            if verbose:
+                from tqdm import tqdm
+                iterator = tqdm(indices, desc="MWF", unit="voxel")
+
+            for idx in iterator:
                 res = self.fit(flat[idx], **kwargs)
                 out["mwf"].flat[idx] = float(res["mwf"])
                 out["t2mw_ms"].flat[idx] = float(res["t2mw_ms"])
@@ -394,10 +412,16 @@ class MultiComponentT2:
             def fit_single(idx: int) -> tuple[int, dict[str, Any]]:
                 return idx, self.fit(flat[idx], **kwargs)
 
-            indices = np.flatnonzero(mask_flat)
-            results = Parallel(n_jobs=n_jobs)(
-                delayed(fit_single)(idx) for idx in indices
-            )
+            if verbose:
+                from tqdm import tqdm
+                results = Parallel(n_jobs=n_jobs)(
+                    delayed(fit_single)(idx)
+                    for idx in tqdm(indices, desc="MWF", unit="voxel")
+                )
+            else:
+                results = Parallel(n_jobs=n_jobs)(
+                    delayed(fit_single)(idx) for idx in indices
+                )
 
             for idx, res in results:
                 out["mwf"].flat[idx] = float(res["mwf"])
@@ -412,5 +436,8 @@ class MultiComponentT2:
                     out["weights"].reshape((-1, out["t2_basis_ms"].shape[0]))[idx, :] = np.asarray(
                         res["weights"], dtype=np.float64
                     )
+
+        if verbose:
+            logger.info("MWF complete: %d voxels processed", n_voxels)
 
         return out

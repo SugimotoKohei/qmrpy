@@ -197,6 +197,7 @@ class EpgT2:
         mask: ArrayLike | str | None = None,
         b1_map: ArrayLike | None = None,
         n_jobs: int = 1,
+        verbose: bool = False,
         **kwargs: Any,
     ) -> dict[str, Any]:
         """Voxel-wise fit on an image/volume.
@@ -211,6 +212,8 @@ class EpgT2:
             B1 inhomogeneity map.
         n_jobs : int, default=1
             Number of parallel jobs. -1 uses all CPUs.
+        verbose : bool, default=False
+            If True, show progress bar and log info.
         **kwargs
             Passed to ``fit``.
 
@@ -219,10 +222,14 @@ class EpgT2:
         dict
             Dict of parameter maps.
         """
+        import logging
+
         import numpy as np
 
         from qmrpy._mask import resolve_mask
         from qmrpy._parallel import parallel_fit
+
+        logger = logging.getLogger("qmrpy")
 
         arr = np.asarray(signal, dtype=np.float64)
         if arr.ndim == 1:
@@ -257,18 +264,6 @@ class EpgT2:
         if offset_term:
             output_keys.append("offset")
 
-        # Create a wrapper function that handles b1_flat for parallel_fit
-        def make_fit_func(b1_flat_closure: NDArray[Any] | None) -> Any:
-            if b1_flat_closure is None:
-                def fit_func(signal: NDArray[Any]) -> dict[str, float]:
-                    return self.fit(signal, **kwargs)
-            else:
-                # We need to pass indices through parallel_fit to handle b1 per voxel
-                # For now, we'll use a custom parallel loop
-                def fit_func(signal: NDArray[Any]) -> dict[str, float]:
-                    return self.fit(signal, **kwargs)
-            return fit_func
-
         # If b1_map is provided, we need custom parallel logic
         if b1_flat is not None:
             # Custom parallel fitting for b1_map
@@ -279,27 +274,46 @@ class EpgT2:
                 for key in output_keys
             }
             indices = np.flatnonzero(mask_flat)
+            n_voxels = len(indices)
 
-            if len(indices) == 0:
+            if n_voxels == 0:
                 return out
+
+            if verbose:
+                logger.info("EpgT2: %d voxels, n_jobs=%s, shape=%s", n_voxels, n_jobs, spatial_shape)
 
             def fit_with_b1(idx: int) -> tuple[int, dict[str, float]]:
                 return idx, self.fit(flat[idx], b1=float(b1_flat[idx]), **kwargs)
 
             if n_jobs == 1:
-                for idx in indices:
+                iterator = indices
+                if verbose:
+                    from tqdm import tqdm
+                    iterator = tqdm(indices, desc="EpgT2", unit="voxel")
+
+                for idx in iterator:
                     res = self.fit(flat[idx], b1=float(b1_flat[idx]), **kwargs)
                     for key in output_keys:
                         if key in res:
                             out[key].flat[idx] = float(res[key])
             else:
-                results = Parallel(n_jobs=n_jobs)(
-                    delayed(fit_with_b1)(idx) for idx in indices
-                )
+                if verbose:
+                    from tqdm import tqdm
+                    results = Parallel(n_jobs=n_jobs)(
+                        delayed(fit_with_b1)(idx)
+                        for idx in tqdm(indices, desc="EpgT2", unit="voxel")
+                    )
+                else:
+                    results = Parallel(n_jobs=n_jobs)(
+                        delayed(fit_with_b1)(idx) for idx in indices
+                    )
                 for idx, res in results:
                     for key in output_keys:
                         if key in res:
                             out[key].flat[idx] = float(res[key])
+
+            if verbose:
+                logger.info("EpgT2 complete: %d voxels processed", n_voxels)
 
             return out
         else:
@@ -308,5 +322,6 @@ class EpgT2:
                 return self.fit(signal, **kwargs)
 
             return parallel_fit(
-                fit_func, flat, mask_flat, output_keys, spatial_shape, n_jobs=n_jobs
+                fit_func, flat, mask_flat, output_keys, spatial_shape,
+                n_jobs=n_jobs, verbose=verbose, desc="EpgT2"
             )

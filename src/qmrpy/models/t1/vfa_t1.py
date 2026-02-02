@@ -204,6 +204,7 @@ class VfaT1:
         *,
         mask: ArrayLike | str | None = None,
         n_jobs: int = 1,
+        verbose: bool = False,
         **kwargs: Any,
     ) -> dict[str, Any]:
         """Voxel-wise linear VFA fit on an image/volume.
@@ -218,6 +219,8 @@ class VfaT1:
             Spatial mask. If "otsu", Otsu thresholding is applied.
         n_jobs : int, default=1
             Number of parallel jobs. -1 uses all CPUs.
+        verbose : bool, default=False
+            If True, show progress bar and log info.
         **kwargs
             Passed to ``fit``.
 
@@ -259,7 +262,8 @@ class VfaT1:
             return self.fit(signal, **kwargs)
 
         return parallel_fit(
-            fit_func, flat, mask_flat, output_keys, spatial_shape, n_jobs=n_jobs
+            fit_func, flat, mask_flat, output_keys, spatial_shape,
+            n_jobs=n_jobs, verbose=verbose, desc="VfaT1"
         )
 
 

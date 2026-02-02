@@ -82,7 +82,11 @@ class MPPCA:
         }
 
     def fit_image(
-        self, signal: ArrayLike, mask: ArrayLike | str | None = None, n_jobs: int = 1
+        self,
+        signal: ArrayLike,
+        mask: ArrayLike | str | None = None,
+        n_jobs: int = 1,
+        verbose: bool = False,
     ) -> dict[str, Any]:
         """Denoise an image/volume.
 
@@ -96,16 +100,32 @@ class MPPCA:
             Number of parallel jobs. -1 uses all CPUs.
             Note: This model uses sliding window processing internally
             and does not support per-voxel parallelization with n_jobs.
+        verbose : bool, default=False
+            If True, log info.
 
         Returns
         -------
         dict
             ``denoised`` (4D), ``sigma`` (3D), ``n_pars`` (3D).
         """
+        import logging
+
+        logger = logging.getLogger("qmrpy")
+
         if np.asarray(signal).ndim == 1:
             if mask is not None:
                 raise ValueError("mask must be None for 1D data")
-        return self.fit(signal, mask=mask)
+
+        if verbose:
+            arr = np.asarray(signal)
+            logger.info("MPPCA: shape=%s, kernel=%s", arr.shape, self.kernel)
+
+        result = self.fit(signal, mask=mask)
+
+        if verbose:
+            logger.info("MPPCA complete")
+
+        return result
 
 
 def _mp_denoising(
