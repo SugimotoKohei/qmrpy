@@ -2,10 +2,18 @@ from __future__ import annotations
 
 from typing import Any
 
+import numpy as np
+from numpy.typing import ArrayLike, NDArray
+
 
 def vfa_t1_forward(
-    *, m0: float, t1_ms: float, flip_angle_deg: Any, tr_ms: float, b1: Any | float = 1.0
-):
+    *,
+    m0: float,
+    t1_ms: float,
+    flip_angle_deg: ArrayLike,
+    tr_ms: float,
+    b1: ArrayLike | float = 1.0,
+) -> NDArray[np.floating[Any]]:
     """Functional wrapper for VFA T1 forward model (ms).
 
     Parameters
@@ -32,11 +40,11 @@ def vfa_t1_forward(
 
 
 def vfa_t1_fit(
-    signal: Any,
+    signal: ArrayLike,
     *,
-    flip_angle_deg: Any,
+    flip_angle_deg: ArrayLike,
     tr_ms: float,
-    b1: Any | float = 1.0,
+    b1: ArrayLike | float = 1.0,
     **kwargs: Any,
 ) -> dict[str, float]:
     """Functional wrapper for VFA T1 fit (ms).
@@ -65,11 +73,11 @@ def vfa_t1_fit(
 
 
 def vfa_t1_fit_linear(
-    signal: Any,
+    signal: ArrayLike,
     *,
-    flip_angle_deg: Any,
+    flip_angle_deg: ArrayLike,
     tr_ms: float,
-    b1: Any | float = 1.0,
+    b1: ArrayLike | float = 1.0,
     **kwargs: Any,
 ) -> dict[str, float]:
     """Functional wrapper for VFA T1 linear fit (ms).
@@ -98,8 +106,13 @@ def vfa_t1_fit_linear(
 
 
 def inversion_recovery_forward(
-    *, t1_ms: float, ra: float, rb: float, ti_ms: Any, magnitude: bool = False
-):
+    *,
+    t1_ms: float,
+    ra: float,
+    rb: float,
+    ti_ms: ArrayLike,
+    magnitude: bool = False,
+) -> NDArray[np.floating[Any]]:
     """Functional wrapper for inversion recovery forward model (ms).
 
     Parameters
@@ -126,7 +139,10 @@ def inversion_recovery_forward(
 
 
 def inversion_recovery_fit(
-    signal: Any, *, ti_ms: Any, **kwargs: Any
+    signal: ArrayLike,
+    *,
+    ti_ms: ArrayLike,
+    **kwargs: Any,
 ) -> dict[str, float]:
     """Functional wrapper for inversion recovery fit (ms).
 
@@ -149,7 +165,12 @@ def inversion_recovery_fit(
     return InversionRecovery(ti_ms=ti_ms).fit(signal, **kwargs)
 
 
-def mono_t2_forward(*, m0: float, t2_ms: float, te_ms: Any):
+def mono_t2_forward(
+    *,
+    m0: float,
+    t2_ms: float,
+    te_ms: ArrayLike,
+) -> NDArray[np.floating[Any]]:
     """Functional wrapper for mono-exponential T2 forward model (ms).
 
     Parameters
@@ -171,7 +192,12 @@ def mono_t2_forward(*, m0: float, t2_ms: float, te_ms: Any):
     return MonoT2(te_ms=te_ms).forward(m0=m0, t2_ms=t2_ms)
 
 
-def mono_t2_fit(signal: Any, *, te_ms: Any, **kwargs: Any) -> dict[str, float]:
+def mono_t2_fit(
+    signal: ArrayLike,
+    *,
+    te_ms: ArrayLike,
+    **kwargs: Any,
+) -> dict[str, float]:
     """Functional wrapper for mono-exponential T2 fit (ms).
 
     Parameters
@@ -205,7 +231,7 @@ def epg_t2_forward(
     b1: float | None = None,
     offset: float = 0.0,
     epg_backend: str = "decaes",
-):
+) -> NDArray[np.floating[Any]]:
     """Functional wrapper for EPG-corrected T2 forward model (ms).
 
     Parameters
@@ -249,7 +275,7 @@ def epg_t2_forward(
 
 
 def epg_t2_fit(
-    signal: Any,
+    signal: ArrayLike,
     *,
     n_te: int,
     te_ms: float,
@@ -301,7 +327,12 @@ def epg_t2_fit(
     return model.fit(signal, b1=b1, **kwargs)
 
 
-def mwf_fit(signal: Any, *, te_ms: Any, **kwargs: Any) -> dict[str, Any]:
+def mwf_fit(
+    signal: ArrayLike,
+    *,
+    te_ms: ArrayLike,
+    **kwargs: Any,
+) -> dict[str, Any]:
     """Functional wrapper for multi-component T2 (MWF) fit (ms).
 
     Parameters
@@ -324,7 +355,7 @@ def mwf_fit(signal: Any, *, te_ms: Any, **kwargs: Any) -> dict[str, Any]:
 
 
 def decaes_t2map_fit(
-    signal: Any,
+    signal: ArrayLike,
     *,
     n_te: int,
     te_ms: float,
@@ -371,7 +402,7 @@ def decaes_t2map_fit(
 
 
 def decaes_t2map_spectrum(
-    signal: Any,
+    signal: ArrayLike,
     *,
     n_te: int,
     te_ms: float,
@@ -379,7 +410,7 @@ def decaes_t2map_spectrum(
     t2_range_ms: tuple[float, float],
     reg: str,
     **kwargs: Any,
-) -> Any:
+) -> NDArray[np.floating[Any]] | None:
     """Return T2 spectrum (distribution) from DECAES T2 map fit (ms).
 
     Parameters
