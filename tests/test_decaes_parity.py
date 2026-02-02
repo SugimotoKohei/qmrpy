@@ -1,6 +1,6 @@
 import numpy as np
 
-from qmrpy.models.t2.decaes_t2 import DecaesT2Map
+from qmrpy.models.t2.decaes_t2 import DECAEST2Map
 
 
 def _load_csv_1d(path: str) -> np.ndarray:
@@ -16,7 +16,7 @@ def test_decaes_parity_fixed_flip_no_reg() -> None:
     alpha_ref = float(_load_csv_1d("tests/data/decaes_ref_alpha.csv")[0])
     dist_ref = _load_csv_1d("tests/data/decaes_ref_dist.csv")
 
-    m = DecaesT2Map(
+    m = DECAEST2Map(
         n_te=len(echotimes),
         te_ms=float(echotimes[0]),
         n_t2=len(t2times),
@@ -43,7 +43,7 @@ def test_decaes_parity_opt_alpha_gcv() -> None:
     dist_ref = _load_csv_1d("tests/data/decaes_ref2_dist.csv")
     signal = _load_csv_1d("tests/data/decaes_ref_signal.csv")
 
-    m = DecaesT2Map(
+    m = DECAEST2Map(
         n_te=16,
         te_ms=10.0,
         n_t2=30,
@@ -67,7 +67,7 @@ def _assert_reg_parity(reg: str, *, chi2_factor: float | None = None, noise_leve
     dist_ref = _load_csv_1d(f"tests/data/decaes_ref_{reg}_dist.csv")
     signal = _load_csv_1d("tests/data/decaes_ref_signal.csv")
 
-    m = DecaesT2Map(
+    m = DECAEST2Map(
         n_te=16,
         te_ms=10.0,
         n_t2=30,

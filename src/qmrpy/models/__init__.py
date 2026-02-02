@@ -8,17 +8,17 @@ from .qsm import (
     calc_gradient_mask_from_magnitude,
     QsmSplitBregman,
 )
-from .t1 import InversionRecovery, VfaT1
-from .t2 import DecaesT2Map, DecaesT2Part, EpgT2, MonoT2, MultiComponentT2
+from .t1 import InversionRecovery, VFAT1
+from .t2 import DECAEST2Map, DECAEST2Part, EPGT2, MonoT2, MultiComponentT2
 
 __all__ = [
     "B1Dam",
     "calc_chi_l2",
     "calc_gradient_mask_from_magnitude",
     "background_removal_sharp",
-    "DecaesT2Map",
-    "DecaesT2Part",
-    "EpgT2",
+    "DECAEST2Map",
+    "DECAEST2Part",
+    "EPGT2",
     "InversionRecovery",
     "MonoT2",
     "MultiComponentT2",
@@ -26,5 +26,5 @@ __all__ = [
     "QsmSplitBregman",
     "qsm_split_bregman",
     "unwrap_phase_laplacian",
-    "VfaT1",
+    "VFAT1",
 ]

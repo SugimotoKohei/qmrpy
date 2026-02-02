@@ -579,40 +579,40 @@ def optimize_protocol_grid(
 # -----------------------------------------------------------------------------
 
 
-def SimVary(
+def sim_vary(
     model: Any,
     runs: int,
-    OptTable: Any,
-    Opts: Mapping[str, Any] | None = None,
+    opt_table: Any,
+    opts: Mapping[str, Any] | None = None,
 ) -> dict[str, Any]:
     """qMRLab-like SimVary wrapper.
 
     Notes
     -----
-    - `OptTable` is expected to have arrays/lists: fx, st, lb, ub, and an `xnames` list.
+    - `opt_table` is expected to have arrays/lists: fx, st, lb, ub, and an `xnames` list.
     - This wrapper performs one-parameter-at-a-time sweeps for each non-fixed parameter.
     """
     import numpy as np
 
-    if Opts is None:
-        Opts = {"SNR": 50}
+    if opts is None:
+        opts = {"SNR": 50}
 
     if runs <= 0:
         raise ValueError("runs must be >= 1")
 
     # qMRLab default: Nsteps=10
-    n_steps = int(Opts.get("Nsteps", 10))
+    n_steps = int(opts.get("Nsteps", 10))
 
-    xnames = list(getattr(OptTable, "xnames", getattr(model, "xnames", [])))
+    xnames = list(getattr(opt_table, "xnames", getattr(model, "xnames", [])))
     if not xnames:
-        raise ValueError("OptTable.xnames (or model.xnames) is required for SimVary")
+        raise ValueError("opt_table.xnames (or model.xnames) is required for sim_vary")
 
-    fx = np.asarray(getattr(OptTable, "fx"), dtype=bool)
-    st = np.asarray(getattr(OptTable, "st"), dtype=np.float64)
-    lb = np.asarray(getattr(OptTable, "lb"), dtype=np.float64)
-    ub = np.asarray(getattr(OptTable, "ub"), dtype=np.float64)
+    fx = np.asarray(getattr(opt_table, "fx"), dtype=bool)
+    st = np.asarray(getattr(opt_table, "st"), dtype=np.float64)
+    lb = np.asarray(getattr(opt_table, "lb"), dtype=np.float64)
+    ub = np.asarray(getattr(opt_table, "ub"), dtype=np.float64)
 
-    snr = float(Opts.get("SNR", 50.0))
+    snr = float(opts.get("SNR", 50.0))
 
     results: dict[str, Any] = {}
     for i, name in enumerate(xnames):
@@ -630,33 +630,33 @@ def SimVary(
             noise_model="gaussian",
             noise_sigma=0.0,
             noise_snr=(snr if snr > 0 else None),
-            fit_kwargs=Opts.get("fit_kwargs", None),
+            fit_kwargs=opts.get("fit_kwargs", None),
         )
-        # qMRLab adds GroundTruth per fitted param name
+        # qMRLab adds ground_truth per fitted param name
         for k in res["mean"]:
-            res.setdefault("GroundTruth", {})[k] = float(st[xnames.index(k)]) if k in xnames else None
+            res.setdefault("ground_truth", {})[k] = float(st[xnames.index(k)]) if k in xnames else None
         results[name] = res
 
     return results
 
 
-def SimRnd(Model: Any, RndParam: Mapping[str, Any], Opt: Mapping[str, Any] | None = None) -> dict[str, Any]:
+def sim_rnd(model: Any, rnd_param: Mapping[str, Any], opt: Mapping[str, Any] | None = None) -> dict[str, Any]:
     """qMRLab-like SimRnd wrapper (multi-voxel distribution simulation)."""
     import numpy as np
 
-    if Opt is None:
-        Opt = {"SNR": 50}
+    if opt is None:
+        opt = {"SNR": 50}
 
-    snr = float(Opt.get("SNR", 50.0))
+    snr = float(opt.get("SNR", 50.0))
 
     out = simulate_parameter_distribution(
-        Model,
-        true_params=RndParam,
+        model,
+        true_params=rnd_param,
         simulation_backend="analytic",
         noise_model="gaussian",
         noise_sigma=0.0,
         noise_snr=(snr if snr > 0 else None),
-        fit_kwargs=Opt.get("fit_kwargs", None),
+        fit_kwargs=opt.get("fit_kwargs", None),
     )
 
     # qMRLab-style error stats
@@ -676,21 +676,21 @@ def SimRnd(Model: Any, RndParam: Mapping[str, Any], Opt: Mapping[str, Any] | Non
         denom = float(np.max(out["true"][k]) - np.min(out["true"][k]))
         nrmse[k] = float(rmse[k] / denom) if denom != 0 else float("nan")
 
-    out.update({"Error": error, "PctError": pct_error, "MPE": mpe, "RMSE": rmse, "NRMSE": nrmse})
+    out.update({"error": error, "pct_error": pct_error, "mpe": mpe, "rmse": rmse, "nrmse": nrmse})
     return out
 
 
-def SimFisherMatrix(
+def sim_fisher_matrix(
     obj: Any,
-    Prot: Any,  # kept for signature compatibility; protocol is expected to be embedded in the model
+    prot: Any,  # kept for signature compatibility; protocol is expected to be embedded in the model
     x: Any,
     variables: list[int] | None = None,
     sigma: float = 0.1,
 ) -> Any:
     """qMRLab-like SimFisherMatrix wrapper.
 
-    In qMRLab, `Prot` is stored into `obj.Prot` before evaluating `equation`.
-    In qmrpy, the protocol is typically embedded in the model instance, so `Prot` is unused.
+    In qMRLab, `prot` is stored into `obj.Prot` before evaluating `equation`.
+    In qmrpy, the protocol is typically embedded in the model instance, so `prot` is unused.
     """
     import numpy as np
 
@@ -698,7 +698,7 @@ def SimFisherMatrix(
 
     xnames = list(getattr(obj, "xnames", []))
     if not xnames:
-        raise ValueError("obj.xnames is required for SimFisherMatrix")
+        raise ValueError("obj.xnames is required for sim_fisher_matrix")
 
     if variables is None:
         variables = list(range(1, min(5, len(xnames)) + 1))
@@ -708,9 +708,9 @@ def SimFisherMatrix(
     return fisher_information_gaussian(obj, params=params, variables=vars0, sigma=float(sigma))
 
 
-def SimCRLB(
+def sim_crlb(
     obj: Any,
-    Prot: Any,
+    prot: Any,
     xvalues: Any,
     sigma: float = 0.1,
     vars: list[int] | None = None,
@@ -719,13 +719,13 @@ def SimCRLB(
 
     Returns
     -------
-    (F, xnames, CRLB, Fall)
+    (F, xnames, crlb, fall)
     """
     import numpy as np
 
     xnames_all = list(getattr(obj, "xnames", []))
     if not xnames_all:
-        raise ValueError("obj.xnames is required for SimCRLB")
+        raise ValueError("obj.xnames is required for sim_crlb")
 
     xvalues = np.asarray(xvalues, dtype=np.float64)
     if xvalues.ndim == 1:
@@ -739,17 +739,17 @@ def SimCRLB(
 
     var_names = [xnames_all[i - 1] for i in variables]
 
-    F_each = np.zeros((xvalues.shape[0], len(var_names)), dtype=np.float64)
+    f_each = np.zeros((xvalues.shape[0], len(var_names)), dtype=np.float64)
     for ix in range(xvalues.shape[0]):
         params = {k: float(v) for k, v in zip(xnames_all, xvalues[ix, :], strict=True)}
         fisher = fisher_information_gaussian(obj, params=params, variables=var_names, sigma=float(sigma))
-        CRLB = np.linalg.inv(np.asarray(fisher, dtype=np.float64) + np.eye(len(var_names)) * np.finfo(float).eps)
+        crlb = np.linalg.inv(np.asarray(fisher, dtype=np.float64) + np.eye(len(var_names)) * np.finfo(float).eps)
         xsel = np.array([params[n] for n in var_names], dtype=np.float64)
-        F_each[ix, :] = np.diag(CRLB) / (xsel**2)
+        f_each[ix, :] = np.diag(crlb) / (xsel**2)
 
-    Fall = F_each.reshape(-1)
-    F = float(np.mean(Fall))
-    return F, var_names, CRLB, Fall
+    fall = f_each.reshape(-1)
+    f = float(np.mean(fall))
+    return f, var_names, crlb, fall
 
 
 def _fit_model(model: Any, signal: Any, *, fit_kwargs: Mapping[str, Any]) -> dict[str, float]:

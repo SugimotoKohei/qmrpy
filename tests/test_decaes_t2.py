@@ -32,9 +32,9 @@ def test_decaes_t2_map_fit_runs():
 
     np = pytest.importorskip("numpy")
 
-    from qmrpy.models.t2.decaes_t2 import DecaesT2Map
+    from qmrpy.models.t2.decaes_t2 import DECAEST2Map
 
-    m = DecaesT2Map(
+    m = DECAEST2Map(
         n_te=16,
         te_ms=10.0,
         n_t2=30,

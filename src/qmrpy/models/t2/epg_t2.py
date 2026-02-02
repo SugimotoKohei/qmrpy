@@ -23,7 +23,7 @@ def _as_1d_float_array(values: ArrayLike, *, name: str) -> NDArray[np.float64]:
 
 
 @dataclass(frozen=True, slots=True)
-class EpgT2:
+class EPGT2:
     """EPG-corrected mono-exponential T2 model for multi-echo spin-echo data.
 
     Signal model:
@@ -280,7 +280,7 @@ class EpgT2:
                 return out
 
             if verbose:
-                logger.info("EpgT2: %d voxels, n_jobs=%s, shape=%s", n_voxels, n_jobs, spatial_shape)
+                logger.info("EPGT2: %d voxels, n_jobs=%s, shape=%s", n_voxels, n_jobs, spatial_shape)
 
             def fit_with_b1(idx: int) -> tuple[int, dict[str, float]]:
                 return idx, self.fit(flat[idx], b1=float(b1_flat[idx]), **kwargs)
@@ -289,7 +289,7 @@ class EpgT2:
                 iterator = indices
                 if verbose:
                     from tqdm import tqdm
-                    iterator = tqdm(indices, desc="EpgT2", unit="voxel")
+                    iterator = tqdm(indices, desc="EPGT2", unit="voxel")
 
                 for idx in iterator:
                     res = self.fit(flat[idx], b1=float(b1_flat[idx]), **kwargs)
@@ -301,7 +301,7 @@ class EpgT2:
                     from tqdm import tqdm
                     results = Parallel(n_jobs=n_jobs)(
                         delayed(fit_with_b1)(idx)
-                        for idx in tqdm(indices, desc="EpgT2", unit="voxel")
+                        for idx in tqdm(indices, desc="EPGT2", unit="voxel")
                     )
                 else:
                     results = Parallel(n_jobs=n_jobs)(
@@ -313,7 +313,7 @@ class EpgT2:
                             out[key].flat[idx] = float(res[key])
 
             if verbose:
-                logger.info("EpgT2 complete: %d voxels processed", n_voxels)
+                logger.info("EPGT2 complete: %d voxels processed", n_voxels)
 
             return out
         else:
@@ -323,5 +323,5 @@ class EpgT2:
 
             return parallel_fit(
                 fit_func, flat, mask_flat, output_keys, spatial_shape,
-                n_jobs=n_jobs, verbose=verbose, desc="EpgT2"
+                n_jobs=n_jobs, verbose=verbose, desc="EPGT2"
             )

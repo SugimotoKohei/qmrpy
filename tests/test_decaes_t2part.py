@@ -1,11 +1,11 @@
 import numpy as np
 
-from qmrpy.models.t2.decaes_t2part import DecaesT2Part
+from qmrpy.models.t2.decaes_t2part import DECAEST2Part
 
 
 def test_t2part_basic_windows() -> None:
     n = 40
-    part = DecaesT2Part(
+    part = DECAEST2Part(
         n_t2=n,
         t2_range_ms=(10.0, 2000.0),
         spwin_ms=(10.0, 25.0),
@@ -27,7 +27,7 @@ def test_t2part_basic_windows() -> None:
 
 
 def test_t2part_sigmoid_runs() -> None:
-    part = DecaesT2Part(
+    part = DECAEST2Part(
         n_t2=40,
         t2_range_ms=(10.0, 2000.0),
         spwin_ms=(10.0, 25.0),
@@ -41,7 +41,7 @@ def test_t2part_sigmoid_runs() -> None:
 
 
 def test_t2part_fit_image_keys_and_shapes() -> None:
-    part = DecaesT2Part(
+    part = DECAEST2Part(
         n_t2=40,
         t2_range_ms=(10.0, 2000.0),
         spwin_ms=(10.0, 25.0),

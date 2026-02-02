@@ -4,9 +4,9 @@ def test_epg_t2_fit_recovers_t2():
     np = pytest.importorskip("numpy")
     pytest.importorskip("scipy")
 
-    from qmrpy.models.t2 import EpgT2
+    from qmrpy.models.t2 import EPGT2
 
-    model = EpgT2(n_te=32, te_ms=10.0, t1_ms=1000.0, alpha_deg=180.0, beta_deg=180.0)
+    model = EPGT2(n_te=32, te_ms=10.0, t1_ms=1000.0, alpha_deg=180.0, beta_deg=180.0)
     signal = model.forward(m0=1000.0, t2_ms=80.0)
 
     fitted = model.fit(signal, t2_init_ms=60.0)
@@ -19,9 +19,9 @@ def test_epg_t2_fit_image_offset_map_behavior():
     np = pytest.importorskip("numpy")
     pytest.importorskip("scipy")
 
-    from qmrpy.models.t2 import EpgT2
+    from qmrpy.models.t2 import EPGT2
 
-    model = EpgT2(n_te=16, te_ms=10.0, t1_ms=1000.0)
+    model = EPGT2(n_te=16, te_ms=10.0, t1_ms=1000.0)
     signal = model.forward(m0=500.0, t2_ms=60.0)
     img = np.stack([signal, signal], axis=0).reshape(2, 1, -1)
 
@@ -39,9 +39,9 @@ def test_epg_t2_fit_image_rejects_mask_for_1d():
     np = pytest.importorskip("numpy")
     pytest.importorskip("scipy")
 
-    from qmrpy.models.t2 import EpgT2
+    from qmrpy.models.t2 import EPGT2
 
-    model = EpgT2(n_te=8, te_ms=10.0, t1_ms=1000.0)
+    model = EPGT2(n_te=8, te_ms=10.0, t1_ms=1000.0)
     signal = model.forward(m0=500.0, t2_ms=60.0)
 
     with pytest.raises(ValueError, match="mask must be None for 1D data"):
@@ -54,9 +54,9 @@ def test_epg_t2_fit_image_with_b1_map():
     np = pytest.importorskip("numpy")
     pytest.importorskip("scipy")
 
-    from qmrpy.models.t2 import EpgT2
+    from qmrpy.models.t2 import EPGT2
 
-    model = EpgT2(n_te=16, te_ms=10.0, t1_ms=1000.0, alpha_deg=180.0)
+    model = EPGT2(n_te=16, te_ms=10.0, t1_ms=1000.0, alpha_deg=180.0)
     t2_true = 80.0
     signal_lo = model.forward(m0=1000.0, t2_ms=t2_true, b1=0.8)
     signal_hi = model.forward(m0=1000.0, t2_ms=t2_true, b1=1.0)

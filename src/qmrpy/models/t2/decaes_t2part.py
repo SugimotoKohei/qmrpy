@@ -58,7 +58,7 @@ def _sigmoid_weights(
 
 
 @dataclass(frozen=True, slots=True)
-class DecaesT2Part:
+class DECAEST2Part:
     """DECAES-like T2-parts analysis (`T2partSEcorr`) on precomputed T2 distributions.
 
     Units are milliseconds.

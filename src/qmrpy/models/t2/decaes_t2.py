@@ -567,7 +567,7 @@ def _choose_mu(
             cross = float(d_jk[0] * d_kl[1] - d_jk[1] * d_kl[0])
             return float(2.0 * cross / denom)
 
-        def getP(x: float) -> np.ndarray:
+        def _get_p(x: float) -> np.ndarray:
             x = float(x)
             if x not in point_cache:
                 point_cache[x] = (f_lcurve(x), float("-inf"))
@@ -576,46 +576,46 @@ def _choose_mu(
         def update_curvature(
             xvec: tuple[float, float, float, float], ptopleft: np.ndarray, pbottomright: np.ndarray
         ) -> None:
-            def pfilter(P: np.ndarray) -> bool:
+            def pfilter(p: np.ndarray) -> bool:
                 return (
-                    min(float(np.linalg.norm(P - ptopleft)), float(np.linalg.norm(P - pbottomright))) > ctol
+                    min(float(np.linalg.norm(p - ptopleft)), float(np.linalg.norm(p - pbottomright))) > ctol
                 )
 
             for x in xvec:
-                getP(x)
+                _get_p(x)
 
             xs = sorted(point_cache.keys())
             for x in xvec:
-                P, _ = point_cache[x]
-                C = float("-inf")
-                if pfilter(P):
+                p, _ = point_cache[x]
+                c = float("-inf")
+                if pfilter(p):
                     x_m = max((t for t in xs if t < x), default=None)
                     x_p = min((t for t in xs if t > x), default=None)
                     if x_m is not None and x_p is not None:
-                        Pm = point_cache[float(x_m)][0]
-                        Pp = point_cache[float(x_p)][0]
-                        C = menger(Pm, P, Pp)
-                point_cache[x] = (P, float(C))
+                        pm = point_cache[float(x_m)][0]
+                        pp = point_cache[float(x_p)][0]
+                        c = menger(pm, p, pp)
+                point_cache[x] = (p, float(c))
 
         def initial_state(x1: float, x4: float):
             x2 = (phi * x1 + x4) / (phi + 1.0)
             x3 = x1 + (x4 - x2)
             xvec = (float(x1), float(x2), float(x3), float(x4))
-            pvec = (getP(xvec[0]), getP(xvec[1]), getP(xvec[2]), getP(xvec[3]))
+            pvec = (_get_p(xvec[0]), _get_p(xvec[1]), _get_p(xvec[2]), _get_p(xvec[3]))
             return xvec, pvec
 
         def move_left(xvec, pvec):
             x1, x2, x3, _x4 = xvec
             x2_new = (phi * x1 + x3) / (phi + 1.0)
             xnew = (float(x1), float(x2_new), float(x2), float(x3))
-            pnew = (pvec[0], getP(xnew[1]), pvec[1], pvec[2])
+            pnew = (pvec[0], _get_p(xnew[1]), pvec[1], pvec[2])
             return xnew, pnew
 
         def move_right(xvec, pvec):
             _x1, x2, x3, x4 = xvec
             x3_new = x2 + (x4 - x3)
             xnew = (float(x2), float(x3), float(x3_new), float(x4))
-            pnew = (pvec[1], pvec[2], getP(xnew[2]), pvec[3])
+            pnew = (pvec[1], pvec[2], _get_p(xnew[2]), pvec[3])
             return xnew, pnew
 
         xvec, pvec = initial_state(float(lo), float(hi))
@@ -654,7 +654,7 @@ def _choose_mu(
 
 
 @dataclass(frozen=True, slots=True)
-class DecaesT2Map:
+class DECAEST2Map:
     """DECAES-like multi-component T2 mapping (T2mapSEcorr + core outputs).
 
     Units:
@@ -1085,14 +1085,14 @@ class DecaesT2Map:
         n_voxels = int(np.sum(m))
 
         if verbose:
-            logger.info("DecaesT2Map: %d voxels, n_jobs=%s, shape=%s", n_voxels, n_jobs, shape3)
+            logger.info("DECAEST2Map: %d voxels, n_jobs=%s, shape=%s", n_voxels, n_jobs, shape3)
 
         if n_jobs == 1:
             # Serial execution
             iterator = indices
             if verbose:
                 from tqdm import tqdm
-                iterator = tqdm(indices, desc="DecaesT2Map", unit="voxel")
+                iterator = tqdm(indices, desc="DECAEST2Map", unit="voxel")
 
             for idx in iterator:
                 _idx, res = process_voxel(idx)
@@ -1122,7 +1122,7 @@ class DecaesT2Map:
                 from tqdm import tqdm
                 results = Parallel(n_jobs=n_jobs)(
                     delayed(process_voxel)(idx)
-                    for idx in tqdm(indices, desc="DecaesT2Map", unit="voxel")
+                    for idx in tqdm(indices, desc="DECAEST2Map", unit="voxel")
                 )
             else:
                 results = Parallel(n_jobs=n_jobs)(
@@ -1150,7 +1150,7 @@ class DecaesT2Map:
                     decaybasis[_idx] = res["basis"]
 
         if verbose:
-            logger.info("DecaesT2Map complete: %d voxels processed", n_voxels)
+            logger.info("DECAEST2Map complete: %d voxels processed", n_voxels)
 
         maps: dict[str, Any] = {
             "echotimes_ms": echotimes,

@@ -47,4 +47,4 @@ pip install qmrpy
 
 ## License
 
-BSD-2-Clause
+MIT License

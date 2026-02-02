@@ -17,10 +17,10 @@ def test_fixed_vectors_vfa_t1_forward_matches_expected():
 
     np = pytest.importorskip("numpy")
 
-    from qmrpy.models.t1 import VfaT1
+    from qmrpy.models.t1 import VFAT1
 
     fa = np.array([10.0], dtype=float)
-    model = VfaT1(flip_angle_deg=fa, tr_ms=15.0, b1=1.0)
+    model = VFAT1(flip_angle_deg=fa, tr_ms=15.0, b1=1.0)
     out = model.forward(m0=1000.0, t1_ms=1000.0)
 
     alpha = np.deg2rad(10.0)

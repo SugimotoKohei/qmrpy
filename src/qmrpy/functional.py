@@ -34,9 +34,9 @@ def vfa_t1_forward(
     ndarray
         Simulated SPGR signal array.
     """
-    from qmrpy.models.t1.vfa_t1 import VfaT1
+    from qmrpy.models.t1.vfa_t1 import VFAT1
 
-    return VfaT1(flip_angle_deg=flip_angle_deg, tr_ms=tr_ms, b1=b1).forward(m0=m0, t1_ms=t1_ms)
+    return VFAT1(flip_angle_deg=flip_angle_deg, tr_ms=tr_ms, b1=b1).forward(m0=m0, t1_ms=t1_ms)
 
 
 def vfa_t1_fit(
@@ -60,16 +60,16 @@ def vfa_t1_fit(
     b1 : float or array-like, optional
         B1 scaling (scalar or array).
     **kwargs
-        Passed to ``VfaT1.fit``.
+        Passed to ``VFAT1.fit``.
 
     Returns
     -------
     dict
         Fit results dict (e.g., ``t1_ms``, ``m0``, ``n_points``).
     """
-    from qmrpy.models.t1.vfa_t1 import VfaT1
+    from qmrpy.models.t1.vfa_t1 import VFAT1
 
-    return VfaT1(flip_angle_deg=flip_angle_deg, tr_ms=tr_ms, b1=b1).fit(signal, **kwargs)
+    return VFAT1(flip_angle_deg=flip_angle_deg, tr_ms=tr_ms, b1=b1).fit(signal, **kwargs)
 
 
 def vfa_t1_fit_linear(
@@ -93,16 +93,16 @@ def vfa_t1_fit_linear(
     b1 : float or array-like, optional
         B1 scaling (scalar or array).
     **kwargs
-        Passed to ``VfaT1.fit_linear``.
+        Passed to ``VFAT1.fit_linear``.
 
     Returns
     -------
     dict
         Fit results dict (e.g., ``t1_ms``, ``m0``, ``n_points``).
     """
-    from qmrpy.models.t1.vfa_t1 import VfaT1
+    from qmrpy.models.t1.vfa_t1 import VFAT1
 
-    return VfaT1(flip_angle_deg=flip_angle_deg, tr_ms=tr_ms, b1=b1).fit_linear(signal, **kwargs)
+    return VFAT1(flip_angle_deg=flip_angle_deg, tr_ms=tr_ms, b1=b1).fit_linear(signal, **kwargs)
 
 
 def inversion_recovery_forward(
@@ -262,9 +262,9 @@ def epg_t2_forward(
     ndarray
         Simulated multi-echo signal array.
     """
-    from qmrpy.models.t2.epg_t2 import EpgT2
+    from qmrpy.models.t2.epg_t2 import EPGT2
 
-    return EpgT2(
+    return EPGT2(
         n_te=n_te,
         te_ms=te_ms,
         t1_ms=t1_ms,
@@ -307,16 +307,16 @@ def epg_t2_fit(
     epg_backend : {"decaes"}, optional
         Backend for EPG decay computation.
     **kwargs
-        Passed to ``EpgT2.fit``.
+        Passed to ``EPGT2.fit``.
 
     Returns
     -------
     dict
         Fit results dict (e.g., ``t2_ms``, ``m0``).
     """
-    from qmrpy.models.t2.epg_t2 import EpgT2
+    from qmrpy.models.t2.epg_t2 import EPGT2
 
-    model = EpgT2(
+    model = EPGT2(
         n_te=n_te,
         te_ms=te_ms,
         t1_ms=t1_ms,
@@ -381,16 +381,16 @@ def decaes_t2map_fit(
     reg : str
         Regularization method (``none``, ``lcurve``, ``gcv``, ``chi2``, ``mdp``).
     **kwargs
-        Passed to ``DecaesT2Map``.
+        Passed to ``DECAEST2Map``.
 
     Returns
     -------
     dict
         Fit results dict including spectrum and diagnostics.
     """
-    from qmrpy.models.t2.decaes_t2 import DecaesT2Map
+    from qmrpy.models.t2.decaes_t2 import DECAEST2Map
 
-    model = DecaesT2Map(
+    model = DECAEST2Map(
         n_te=n_te,
         te_ms=te_ms,
         n_t2=n_t2,
@@ -428,7 +428,7 @@ def decaes_t2map_spectrum(
     reg : str
         Regularization method (``none``, ``lcurve``, ``gcv``, ``chi2``, ``mdp``).
     **kwargs
-        Passed to ``DecaesT2Map``.
+        Passed to ``DECAEST2Map``.
 
     Returns
     -------

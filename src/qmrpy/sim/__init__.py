@@ -16,10 +16,10 @@ from .templates import (
     mrzero_single_voxel_data_factory,
 )
 from .simulation import (
-    SimCRLB,
-    SimFisherMatrix,
-    SimRnd,
-    SimVary,
+    sim_crlb,
+    sim_fisher_matrix,
+    sim_rnd,
+    sim_vary,
     SimulationProtocol,
     crlb_cov_mean,
     crlb_from_fisher,
@@ -32,10 +32,10 @@ from .simulation import (
 from .mrzero import simulate_bloch, simulate_pdg
 
 __all__ = [
-    "SimCRLB",
-    "SimFisherMatrix",
-    "SimRnd",
-    "SimVary",
+    "sim_crlb",
+    "sim_fisher_matrix",
+    "sim_rnd",
+    "sim_vary",
     "SimulationProtocol",
     "add_gaussian_noise",
     "add_rician_noise",

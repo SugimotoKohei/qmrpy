@@ -21,7 +21,7 @@ def _as_1d_float_array(values: ArrayLike, *, name: str) -> NDArray[np.float64]:
 
 
 @dataclass(frozen=True, slots=True)
-class VfaT1:
+class VFAT1:
     """Variable flip angle T1 model on SPGR (qMRLab: vfa_t1).
 
     Signal model (SPGR steady-state):
@@ -263,7 +263,7 @@ class VfaT1:
 
         return parallel_fit(
             fit_func, flat, mask_flat, output_keys, spatial_shape,
-            n_jobs=n_jobs, verbose=verbose, desc="VfaT1"
+            n_jobs=n_jobs, verbose=verbose, desc="VFAT1"
         )
 
 
