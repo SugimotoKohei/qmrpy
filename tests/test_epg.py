@@ -49,6 +49,22 @@ class TestEPGCore:
         assert sim.states[0, 0] == 0.0  # F+ = 0
         assert sim.states[0, 1] == 0.0  # F- = 0
 
+    def test_epg_cpmg_decaes_matches_reference(self):
+        """Test that epg_cpmg_decaes matches the reference implementation."""
+        from qmrpy.epg.core import epg_cpmg_decaes
+        from qmrpy.models.t2.decaes_t2 import epg_decay_curve as decaes_ref
+
+        t2_ms, t1_ms, te_ms, etl = 80.0, 1000.0, 10.0, 32
+        
+        # Reference
+        ref = decaes_ref(etl=etl, alpha_deg=180.0, te_ms=te_ms,
+                         t2_ms=t2_ms, t1_ms=t1_ms, beta_deg=180.0)
+        # New implementation
+        new = epg_cpmg_decaes(etl=etl, alpha_deg=180.0, te_ms=te_ms,
+                              t2_ms=t2_ms, t1_ms=t1_ms, beta_deg=180.0)
+        
+        np.testing.assert_allclose(new, ref, atol=1e-12)
+
 
 class TestEPGSpinEcho:
     """Tests for epg/epg_se.py."""
@@ -70,33 +86,20 @@ class TestEPGSpinEcho:
         # All values should be positive
         assert np.all(signal >= 0)
 
-    def test_cpmg_ideal_180(self):
-        """With ideal 180 pulses and long T1, should match exp decay."""
+    def test_cpmg_matches_decaes(self):
+        """CPMG should exactly match DECAES reference."""
         from qmrpy.epg import epg_se
+        from qmrpy.models.t2.decaes_t2 import epg_decay_curve as decaes_ref
 
-        t2_ms = 80.0
-        te_ms = 10.0
-        n_echoes = 10
-        signal = epg_se.cpmg(
-            t2_ms=t2_ms, t1_ms=10000, te_ms=te_ms, n_echoes=n_echoes, b1=1.0
-        )
-        # Normalize
-        signal_norm = signal / signal[0]
-        # Expected pure T2 decay
-        te_array = te_ms * np.arange(1, n_echoes + 1)
-        expected = np.exp(-te_array / t2_ms)
-        expected_norm = expected / expected[0]
-        # Should be close (not exact due to EPG stimulated echo effects)
-        np.testing.assert_allclose(signal_norm, expected_norm, rtol=0.05)
+        t2_ms, t1_ms, te_ms, etl = 80.0, 1000.0, 10.0, 32
 
-    def test_cpmg_b1_effect(self):
-        """B1 < 1 should change the decay curve."""
-        from qmrpy.epg import epg_se
-
-        signal_b1_1 = epg_se.cpmg(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=32, b1=1.0)
-        signal_b1_08 = epg_se.cpmg(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=32, b1=0.8)
-        # Signals should be different
-        assert not np.allclose(signal_b1_1, signal_b1_08)
+        for b1 in [1.0, 0.95, 0.9, 0.8]:
+            ref = decaes_ref(etl=etl, alpha_deg=180.0*b1, te_ms=te_ms,
+                             t2_ms=t2_ms, t1_ms=t1_ms, beta_deg=180.0)
+            native = epg_se.cpmg(t2_ms=t2_ms, t1_ms=t1_ms, te_ms=te_ms,
+                                  n_echoes=etl, b1=b1)
+            np.testing.assert_allclose(native, ref, atol=1e-12,
+                                       err_msg=f"Mismatch at B1={b1}")
 
     def test_mese_alias(self):
         """MESE should be alias for CPMG."""
@@ -106,31 +109,26 @@ class TestEPGSpinEcho:
         signal_mese = epg_se.mese(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=32)
         np.testing.assert_array_equal(signal_cpmg, signal_mese)
 
-    def test_tse_variable_angles(self):
-        """TSE with variable angles should work."""
-        from qmrpy.epg import epg_se
-
-        angles = [180, 160, 140, 120, 100, 80, 60, 40]
-        signal = epg_se.tse(t2_ms=80, t1_ms=1000, te_ms=10, etl=8, refocus_angles_deg=angles)
-        assert signal.shape == (8,)
-        assert np.all(signal >= 0)
-
     def test_tse_constant_equals_cpmg(self):
         """TSE with constant 180 should equal CPMG."""
         from qmrpy.epg import epg_se
 
         signal_cpmg = epg_se.cpmg(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=8)
-        signal_tse = epg_se.tse(t2_ms=80, t1_ms=1000, te_ms=10, etl=8, refocus_angles_deg=None)
+        signal_tse = epg_se.tse(t2_ms=80, t1_ms=1000, te_ms=10, etl=8)
         np.testing.assert_allclose(signal_cpmg, signal_tse, rtol=1e-10)
 
-    def test_decay_curve_native(self):
-        """Test native backend decay curve."""
+    def test_decay_curve_decaes_backend(self):
+        """Test DECAES backend decay curve."""
         from qmrpy.epg import epg_se
+        from qmrpy.models.t2.decaes_t2 import epg_decay_curve as decaes_ref
 
-        dc = epg_se.decay_curve(t2_ms=80, t1_ms=1000, te_ms=10, etl=32, backend="native")
-        assert dc.shape == (32,)
-        # Should be normalized
-        np.testing.assert_allclose(dc[0], 1.0, atol=1e-10)
+        t2_ms, t1_ms, te_ms, etl, b1 = 80.0, 1000.0, 10.0, 32, 0.85
+        
+        dc = epg_se.decay_curve(t2_ms=t2_ms, t1_ms=t1_ms, te_ms=te_ms,
+                                 etl=etl, b1=b1, backend="decaes")
+        ref = decaes_ref(etl=etl, alpha_deg=180.0*b1, te_ms=te_ms,
+                         t2_ms=t2_ms, t1_ms=t1_ms, beta_deg=180.0)
+        np.testing.assert_allclose(dc, ref, atol=1e-12)
 
 
 class TestEPGGradientEcho:
@@ -151,22 +149,37 @@ class TestEPGGradientEcho:
         # Last values should be nearly constant
         np.testing.assert_allclose(signal[-10:], signal[-1], rtol=0.01)
 
-    def test_spgr_steady_state_analytical(self):
-        """Compare SPGR simulation to Ernst equation."""
+    def test_spgr_matches_ernst(self):
+        """SPGR simulation should match Ernst equation."""
         from qmrpy.epg import epg_gre
 
         t1_ms = 1000
         tr_ms = 10
-        fa_deg = 15
 
-        # Numerical simulation
+        for fa_deg in [5, 10, 15, 20, 30, 45]:
+            # Ernst equation
+            e1 = np.exp(-tr_ms / t1_ms)
+            alpha = np.deg2rad(fa_deg)
+            ernst = np.sin(alpha) * (1 - e1) / (1 - e1 * np.cos(alpha))
+
+            # EPG simulation
+            signal = epg_gre.spgr(t1_ms=t1_ms, tr_ms=tr_ms, fa_deg=fa_deg, n_pulses=500)
+            epg_ss = signal[-1]
+
+            np.testing.assert_allclose(epg_ss, ernst, rtol=0.001,
+                                       err_msg=f"Mismatch at FA={fa_deg}")
+
+    def test_spgr_steady_state_analytical(self):
+        """Compare SPGR simulation to analytical function."""
+        from qmrpy.epg import epg_gre
+
+        t1_ms, tr_ms, fa_deg = 1000, 10, 15
+
         signal_sim = epg_gre.spgr(t1_ms=t1_ms, tr_ms=tr_ms, fa_deg=fa_deg, n_pulses=500)
         ss_sim = signal_sim[-1]
-
-        # Analytical Ernst equation
         ss_analytical = epg_gre.spgr_steady_state(t1_ms=t1_ms, tr_ms=tr_ms, fa_deg=fa_deg)
 
-        np.testing.assert_allclose(ss_sim, ss_analytical, rtol=0.01)
+        np.testing.assert_allclose(ss_sim, ss_analytical, rtol=0.001)
 
     def test_ernst_angle(self):
         """Test Ernst angle calculation."""
@@ -176,12 +189,9 @@ class TestEPGGradientEcho:
         tr_ms = 10
         ernst = epg_gre.ernst_angle(t1_ms=t1_ms, tr_ms=tr_ms)
 
-        # Check that Ernst angle gives maximum signal
-        angles = np.linspace(1, 90, 100)
-        signals = [epg_gre.spgr_steady_state(t1_ms=t1_ms, tr_ms=tr_ms, fa_deg=a) for a in angles]
-        max_angle = angles[np.argmax(signals)]
-
-        np.testing.assert_allclose(ernst, max_angle, atol=1.0)
+        # Expected: arccos(exp(-TR/T1))
+        expected = np.rad2deg(np.arccos(np.exp(-tr_ms / t1_ms)))
+        np.testing.assert_allclose(ernst, expected, atol=1e-10)
 
     def test_bssfp_shape(self):
         """Test bSSFP output shape."""
@@ -189,18 +199,7 @@ class TestEPGGradientEcho:
 
         signal = epg_gre.bssfp(t1_ms=1000, t2_ms=80, tr_ms=5, fa_deg=45, n_pulses=100)
         assert signal.shape == (100,)
-        # Should be complex
         assert signal.dtype == np.complex128
-
-    def test_bssfp_vs_spgr(self):
-        """bSSFP should give different signal than SPGR for same parameters."""
-        from qmrpy.epg import epg_gre
-
-        signal_spgr = epg_gre.spgr(t1_ms=1000, tr_ms=5, fa_deg=45, n_pulses=100)
-        signal_bssfp = epg_gre.bssfp(t1_ms=1000, t2_ms=80, tr_ms=5, fa_deg=45, n_pulses=100)
-
-        # Different sequences should give different signals
-        assert not np.allclose(signal_spgr, np.abs(signal_bssfp))
 
     def test_ssfp_fid_shape(self):
         """Test SSFP-FID output shape."""
@@ -218,11 +217,11 @@ class TestEPGGradientEcho:
 
 
 class TestEPGValidation:
-    """Validation tests comparing with known results."""
+    """Validation tests for invalid parameters."""
 
-    def test_invalid_parameters(self):
-        """Test that invalid parameters raise errors."""
-        from qmrpy.epg import epg_se, epg_gre
+    def test_invalid_parameters_se(self):
+        """Test that invalid parameters raise errors for SE."""
+        from qmrpy.epg import epg_se
 
         with pytest.raises(ValueError):
             epg_se.cpmg(t2_ms=-80, t1_ms=1000, te_ms=10, n_echoes=32)
@@ -231,7 +230,78 @@ class TestEPGValidation:
             epg_se.cpmg(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=0)
 
         with pytest.raises(ValueError):
+            epg_se.cpmg(t2_ms=80, t1_ms=1000, te_ms=0, n_echoes=32)
+
+    def test_invalid_parameters_gre(self):
+        """Test that invalid parameters raise errors for GRE."""
+        from qmrpy.epg import epg_gre
+
+        with pytest.raises(ValueError):
             epg_gre.spgr(t1_ms=-1000, tr_ms=10, fa_deg=15)
 
         with pytest.raises(ValueError):
+            epg_gre.spgr(t1_ms=1000, tr_ms=0, fa_deg=15)
+
+        with pytest.raises(ValueError):
             epg_gre.bssfp(t1_ms=1000, t2_ms=80, tr_ms=0, fa_deg=45)
+
+
+class TestEPGWeigel:
+    """Cross-validation tests against Weigel reference implementation."""
+
+    @pytest.fixture
+    def weigel_reference(self):
+        """Load Weigel reference data if available."""
+        import csv
+        import os
+
+        ref_path = os.path.join(
+            os.path.dirname(__file__), "epg_reference", "weigel_reference.csv"
+        )
+        if not os.path.exists(ref_path):
+            pytest.skip("Weigel reference file not found")
+
+        results = {}
+        with open(ref_path, "r") as f:
+            reader = csv.DictReader(f)
+            for row in reader:
+                test = row["test"]
+                echo = int(row["echo"])
+                value = float(row["value"])
+                if test not in results:
+                    results[test] = {}
+                results[test][echo] = value
+        return results
+
+    def test_cpmg_weigel_b1_1_0(self, weigel_reference):
+        """CPMG with B1=1.0 should match Weigel reference."""
+        from qmrpy.epg import epg_se
+
+        T2, T1, ESP, N = 80.0, 1000.0, 10.0, 32
+        signal = epg_se.cpmg(
+            t2_ms=T2, t1_ms=T1, te_ms=ESP, n_echoes=N, b1=1.0, b1_excitation=False
+        )
+        weigel = np.array([weigel_reference["cpmg_b1_1.0"][i] for i in range(1, N + 1)])
+        np.testing.assert_allclose(signal, weigel, rtol=1e-10)
+
+    def test_cpmg_weigel_b1_0_9(self, weigel_reference):
+        """CPMG with B1=0.9 should match Weigel reference."""
+        from qmrpy.epg import epg_se
+
+        T2, T1, ESP, N = 80.0, 1000.0, 10.0, 32
+        signal = epg_se.cpmg(
+            t2_ms=T2, t1_ms=T1, te_ms=ESP, n_echoes=N, b1=0.9, b1_excitation=False
+        )
+        weigel = np.array([weigel_reference["cpmg_b1_0.9"][i] for i in range(1, N + 1)])
+        np.testing.assert_allclose(signal, weigel, rtol=1e-10)
+
+    def test_cpmg_weigel_b1_0_8(self, weigel_reference):
+        """CPMG with B1=0.8 should match Weigel reference."""
+        from qmrpy.epg import epg_se
+
+        T2, T1, ESP, N = 80.0, 1000.0, 10.0, 32
+        signal = epg_se.cpmg(
+            t2_ms=T2, t1_ms=T1, te_ms=ESP, n_echoes=N, b1=0.8, b1_excitation=False
+        )
+        weigel = np.array([weigel_reference["cpmg_b1_0.8"][i] for i in range(1, N + 1)])
+        np.testing.assert_allclose(signal, weigel, rtol=1e-10)

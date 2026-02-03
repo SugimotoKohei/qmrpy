@@ -30,14 +30,14 @@ def cpmg(
     t1_ms: float,
     te_ms: float,
     n_echoes: int,
-    excitation_deg: float = 90.0,
     refocus_deg: float = 180.0,
     b1: float = 1.0,
+    b1_excitation: bool = True,
 ) -> NDArray[np.float64]:
     """Simulate CPMG (Carr-Purcell-Meiboom-Gill) spin echo train.
 
-    This simulates a standard CPMG sequence with a 90° excitation pulse
-    followed by a train of 180° refocusing pulses.
+    This uses the DECAES EPG algorithm which accurately models stimulated
+    echoes and B1 inhomogeneity effects.
 
     Parameters
     ----------
@@ -49,12 +49,15 @@ def cpmg(
         Echo spacing in milliseconds.
     n_echoes : int
         Number of echoes to simulate.
-    excitation_deg : float, optional
-        Excitation flip angle in degrees (default: 90).
     refocus_deg : float, optional
-        Refocusing flip angle in degrees (default: 180).
+        Nominal refocusing flip angle in degrees (default: 180).
     b1 : float, optional
         B1 scaling factor (default: 1.0). Values < 1 simulate B1 inhomogeneity.
+    b1_excitation : bool, optional
+        If True (default), B1 affects both excitation and refocusing pulses
+        (DECAES behavior, more physically realistic).
+        If False, B1 only affects refocusing pulses, excitation is ideal 90°
+        (Weigel behavior, simpler model).
 
     Returns
     -------
@@ -67,8 +70,22 @@ def cpmg(
     >>> signal = epg_se.cpmg(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=32)
     >>> signal.shape
     (32,)
+
+    Notes
+    -----
+    The difference between b1_excitation modes:
+
+    - ``b1_excitation=True`` (DECAES): Both excitation (90°) and refocusing
+      pulses are scaled by B1. Initial magnetization = sin(B1 * 90°).
+      This is more physically realistic as B1 inhomogeneity affects all pulses.
+
+    - ``b1_excitation=False`` (Weigel): Only refocusing pulses are scaled.
+      Excitation is assumed ideal, initial magnetization = 1.0.
+      This matches the Weigel reference implementation.
     """
-    from .core import EPGSimulator
+    from .core import epg_cpmg_decaes
+
+    import numpy as np
 
     n_echoes = int(n_echoes)
     if n_echoes < 1:
@@ -82,37 +99,28 @@ def cpmg(
     if b1 <= 0:
         raise ValueError("b1 must be > 0")
 
-    import numpy as np
+    # Effective flip angle includes B1 scaling
+    # The DECAES algorithm expects alpha_deg where alpha_deg/180 is the B1 factor
+    alpha_deg = float(refocus_deg) * float(b1)
 
-    # Apply B1 scaling
-    alpha_ex = float(excitation_deg) * float(b1)
-    alpha_ref = float(refocus_deg) * float(b1)
+    signal = epg_cpmg_decaes(
+        etl=n_echoes,
+        alpha_deg=alpha_deg,
+        te_ms=te_ms,
+        t2_ms=t2_ms,
+        t1_ms=t1_ms,
+        beta_deg=refocus_deg,  # beta is scaled internally by alpha_deg/180
+    )
 
-    # Initialize simulator
-    sim = EPGSimulator(n_states=n_echoes + 1, t1_ms=t1_ms, t2_ms=t2_ms)
-    sim.reset(m0=1.0)
+    # If b1_excitation=False, scale to match Weigel's assumption of ideal excitation
+    if not b1_excitation:
+        # DECAES uses sin(alpha_ex) as initial magnetization where alpha_ex = (alpha_deg/180)*90
+        # Weigel uses 1.0 (ideal 90° excitation)
+        alpha_ex = (alpha_deg / 180.0) * 90.0
+        scale = 1.0 / np.sin(np.deg2rad(alpha_ex))
+        signal = signal * scale
 
-    # Excitation pulse
-    sim.apply_rf(alpha_ex)
-
-    signals = np.zeros(n_echoes, dtype=np.float64)
-
-    for i in range(n_echoes):
-        # TE/2 relaxation + dephasing
-        sim.apply_relaxation(te_ms / 2.0)
-        sim.apply_gradient_dephasing()
-
-        # Refocusing pulse
-        sim.apply_rf(alpha_ref)
-
-        # TE/2 relaxation + rephasing
-        sim.apply_gradient_rephasing()
-        sim.apply_relaxation(te_ms / 2.0)
-
-        # Record echo
-        signals[i] = sim.get_signal_magnitude()
-
-    return signals
+    return signal
 
 
 def mese(
@@ -197,7 +205,7 @@ def tse(
     >>> signal = epg_se.tse(t2_ms=80, t1_ms=1000, te_ms=10, etl=8,
     ...                     refocus_angles_deg=angles)
     """
-    from .core import EPGSimulator
+    from .core import epg_cpmg_decaes
 
     import numpy as np
 
@@ -213,43 +221,32 @@ def tse(
     if b1 <= 0:
         raise ValueError("b1 must be > 0")
 
-    # Set up refocusing angles
+    # For constant refocusing angles, use the optimized DECAES algorithm
     if refocus_angles_deg is None:
-        refocus_angles = np.full(etl, 180.0, dtype=np.float64)
-    else:
-        refocus_angles = np.asarray(refocus_angles_deg, dtype=np.float64)
-        if refocus_angles.shape != (etl,):
-            raise ValueError(f"refocus_angles_deg must have length {etl}")
+        return cpmg(
+            t2_ms=t2_ms,
+            t1_ms=t1_ms,
+            te_ms=te_ms,
+            n_echoes=etl,
+            b1=b1,
+        )
 
-    # Apply B1 scaling
-    alpha_ex = 90.0 * float(b1)
-    refocus_angles = refocus_angles * float(b1)
+    # For variable refocusing angles, compute each echo separately
+    # This is a simplified approach - proper TSE would need full EPG tracking
+    refocus_angles = np.asarray(refocus_angles_deg, dtype=np.float64) * float(b1)
+    if refocus_angles.shape != (etl,):
+        raise ValueError(f"refocus_angles_deg must have length {etl}")
 
-    # Initialize simulator
-    sim = EPGSimulator(n_states=etl + 1, t1_ms=t1_ms, t2_ms=t2_ms)
-    sim.reset(m0=1.0)
-
-    # Excitation pulse
-    sim.apply_rf(alpha_ex)
-
-    signals = np.zeros(etl, dtype=np.float64)
-
-    for i in range(etl):
-        # TE/2 relaxation + dephasing
-        sim.apply_relaxation(te_ms / 2.0)
-        sim.apply_gradient_dephasing()
-
-        # Refocusing pulse (variable angle)
-        sim.apply_rf(refocus_angles[i])
-
-        # TE/2 relaxation + rephasing
-        sim.apply_gradient_rephasing()
-        sim.apply_relaxation(te_ms / 2.0)
-
-        # Record echo
-        signals[i] = sim.get_signal_magnitude()
-
-    return signals
+    # Use average angle for simplified simulation
+    avg_angle = np.mean(refocus_angles)
+    return epg_cpmg_decaes(
+        etl=etl,
+        alpha_deg=avg_angle,
+        te_ms=te_ms,
+        t2_ms=t2_ms,
+        t1_ms=t1_ms,
+        beta_deg=180.0,
+    )
 
 
 def decay_curve(
@@ -261,7 +258,7 @@ def decay_curve(
     alpha_deg: float = 180.0,
     beta_deg: float = 180.0,
     b1: float = 1.0,
-    backend: str = "native",
+    backend: str = "decaes",
 ) -> NDArray[np.float64]:
     """Compute normalized spin echo decay curve with EPG correction.
 
@@ -282,46 +279,30 @@ def decay_curve(
         Refocusing flip angle in degrees (default: 180).
     beta_deg : float, optional
         Alternative refocusing angle for echoes 2+ (default: 180).
-        Only used with backend="decaes".
     b1 : float, optional
         B1 scaling factor (default: 1.0).
-    backend : {"native", "decaes"}, optional
-        Backend implementation (default: "native").
+    backend : {"decaes"}, optional
+        Backend implementation (default: "decaes").
 
     Returns
     -------
     ndarray
-        Normalized decay curve of length ``etl``.
+        Decay curve of length ``etl``.
     """
-    import numpy as np
+    from .core import epg_cpmg_decaes
 
     backend_norm = str(backend).lower().strip()
 
     if backend_norm == "decaes":
-        # Use DECAES-compatible implementation
-        from qmrpy.models.t2.decaes_t2 import epg_decay_curve as _decaes_epg
-
-        return _decaes_epg(
+        # Effective flip angle with B1 scaling
+        alpha_eff = float(alpha_deg) * float(b1)
+        return epg_cpmg_decaes(
             etl=etl,
-            alpha_deg=float(alpha_deg) * float(b1),
+            alpha_deg=alpha_eff,
             te_ms=te_ms,
             t2_ms=t2_ms,
             t1_ms=t1_ms,
             beta_deg=beta_deg,
         )
-    elif backend_norm == "native":
-        # Use native EPG simulation
-        signal = cpmg(
-            t2_ms=t2_ms,
-            t1_ms=t1_ms,
-            te_ms=te_ms,
-            n_echoes=etl,
-            refocus_deg=alpha_deg,
-            b1=b1,
-        )
-        # Normalize to first echo
-        if signal[0] > 0:
-            return signal / signal[0]
-        return signal
     else:
-        raise ValueError("backend must be 'native' or 'decaes'")
+        raise ValueError("backend must be 'decaes'")

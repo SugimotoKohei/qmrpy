@@ -99,84 +99,110 @@ def relaxation_operator(
     return np.array([e2, e2, e1], dtype=np.float64)
 
 
-def gradient_dephasing(
-    states: NDArray[np.complex128],
-    n_states: int,
-) -> NDArray[np.complex128]:
-    """Apply gradient dephasing to EPG state matrix.
+def epg_cpmg_decaes(
+    *,
+    etl: int,
+    alpha_deg: float,
+    te_ms: float,
+    t2_ms: float,
+    t1_ms: float,
+    beta_deg: float = 180.0,
+) -> NDArray[np.float64]:
+    """Compute CPMG echo decay curve using the DECAES EPG algorithm.
 
-    Shifts F+ states up, F- states down, and keeps Z states in place.
-    This represents the effect of a dephasing gradient.
+    This is a faithful port of the DECAES.jl EPG implementation, which uses
+    the Hennig (1988) algorithm with Jones (1997) phase state transitions.
 
     Parameters
     ----------
-    states : ndarray
-        EPG state matrix of shape (n_states, 3) with columns [F+, F-, Z].
-    n_states : int
-        Number of states to track.
+    etl : int
+        Echo train length.
+    alpha_deg : float
+        Effective flip angle in degrees (includes B1 scaling).
+    te_ms : float
+        Echo spacing in milliseconds.
+    t2_ms : float
+        T2 relaxation time in milliseconds.
+    t1_ms : float
+        T1 relaxation time in milliseconds.
+    beta_deg : float, optional
+        Refocusing angle for echoes 2+ in degrees (default: 180).
 
     Returns
     -------
     ndarray
-        Updated state matrix after gradient dephasing.
+        Decay curve of length ``etl``.
     """
     import numpy as np
 
-    n = int(n_states)
-    new_states = np.zeros((n, 3), dtype=np.complex128)
+    etl = int(etl)
+    if etl < 1:
+        raise ValueError("etl must be >= 1")
+    if te_ms <= 0:
+        raise ValueError("te_ms must be > 0")
+    if t2_ms <= 0:
+        raise ValueError("t2_ms must be > 0")
+    if t1_ms <= 0:
+        raise ValueError("t1_ms must be > 0")
 
-    # F+ shifts up (higher order)
-    new_states[1:, 0] = states[:-1, 0]
-    # F- shifts down (lower order), with F-[0] coming from conjugate of F+[1]
-    new_states[0, 1] = np.conj(states[1, 0])
-    new_states[1:, 1] = states[:-1, 1]
-    # Z states stay in place
-    new_states[:, 2] = states[:, 2]
+    # B1 factor (alpha_deg/180 is the effective B1)
+    A = float(alpha_deg) / 180.0
+    alpha_ex = A * 90.0      # Excitation pulse
+    alpha1 = A * 180.0       # First refocusing pulse
+    alphai = A * float(beta_deg)  # Subsequent refocusing pulses
 
-    return new_states
+    # Relaxation for TE/2
+    E1 = float(np.exp(-((te_ms / 2.0) / t1_ms)))
+    E2 = float(np.exp(-((te_ms / 2.0) / t2_ms)))
+    E = np.array([E2, E2, E1], dtype=np.complex128)
 
+    # RF rotation matrices
+    R1 = rf_rotation_matrix(alpha1)
+    Ri = rf_rotation_matrix(alphai)
 
-def gradient_rephasing(
-    states: NDArray[np.complex128],
-    n_states: int,
-) -> NDArray[np.complex128]:
-    """Apply gradient rephasing to EPG state matrix.
+    # Magnetization phase state vector (ETL x 3)
+    MPSV = np.zeros((etl, 3), dtype=np.complex128)
+    MPSV[0, 0] = np.sin(np.deg2rad(alpha_ex))
 
-    Opposite of dephasing: shifts F+ down, F- up.
+    dc = np.zeros(etl, dtype=np.float64)
 
-    Parameters
-    ----------
-    states : ndarray
-        EPG state matrix of shape (n_states, 3).
-    n_states : int
-        Number of states to track.
+    for i in range(etl):
+        R = R1 if i == 0 else Ri
 
-    Returns
-    -------
-    ndarray
-        Updated state matrix after gradient rephasing.
-    """
-    import numpy as np
+        # Relaxation for TE/2 then flip
+        MPSV = (R @ (E * MPSV).T).T
 
-    n = int(n_states)
-    new_states = np.zeros((n, 3), dtype=np.complex128)
+        # Transition between phase states (Jones 1997 correction)
+        if etl >= 2:
+            Mi = MPSV[0].copy()
+            Mip1 = MPSV[1].copy()
+            MPSV[0] = np.array([Mi[1], Mip1[1], Mi[2]], dtype=np.complex128)
 
-    # F+ shifts down
-    new_states[:-1, 0] = states[1:, 0]
-    new_states[0, 0] += np.conj(states[1, 1])
-    # F- shifts up
-    new_states[1:, 1] = states[:-1, 1]
-    # Z states stay
-    new_states[:, 2] = states[:, 2]
+            Mim1 = Mi
+            Mi = Mip1
+            for j in range(1, etl - 1):
+                Mip1 = MPSV[j + 1].copy()
+                MPSV[j] = np.array([Mim1[0], Mip1[1], Mi[2]], dtype=np.complex128)
+                Mim1, Mi = Mi, Mip1
 
-    return new_states
+            MPSV[etl - 1] = np.array([Mim1[0], 0.0 + 0.0j, Mi[2]], dtype=np.complex128)
+
+        # Relaxation for TE/2
+        MPSV = E * MPSV
+
+        dc[i] = float(np.abs(MPSV[0, 0]))
+
+    return dc
 
 
 class EPGSimulator:
     """Base EPG simulator with state tracking.
 
-    This class provides the core EPG simulation engine that tracks
+    This class provides a general EPG simulation engine that tracks
     magnetization states through RF pulses, relaxation, and gradients.
+
+    Note: For CPMG/spin echo sequences, use :func:`epg_cpmg_decaes` instead,
+    which implements the optimized DECAES algorithm.
 
     Parameters
     ----------
@@ -242,35 +268,66 @@ class EPGSimulator:
         r_mat = rf_rotation_matrix(alpha_deg)
         self.states = (r_mat @ self.states.T).T
 
-    def apply_relaxation(self, t_ms: float) -> None:
+    def apply_relaxation(self, t_ms: float, recovery: bool = True) -> None:
         """Apply relaxation for a time interval.
 
         Parameters
         ----------
         t_ms : float
             Time interval in milliseconds.
+        recovery : bool, optional
+            Whether to include T1 recovery (default: True).
         """
+        import numpy as np
+
         e_vec = relaxation_operator(t_ms, self.t1_ms, self.t2_ms)
         self.states = e_vec * self.states
 
         # T1 recovery toward equilibrium
-        import numpy as np
-
-        e1 = float(np.exp(-t_ms / self.t1_ms))
-        self.states[0, 2] += 1.0 - e1
-
-    def apply_gradient_dephasing(self) -> None:
-        """Apply a dephasing gradient."""
-        self.states = gradient_dephasing(self.states, self.n_states)
-
-    def apply_gradient_rephasing(self) -> None:
-        """Apply a rephasing gradient."""
-        self.states = gradient_rephasing(self.states, self.n_states)
+        if recovery:
+            e1 = float(np.exp(-t_ms / self.t1_ms))
+            self.states[0, 2] += 1.0 - e1
 
     def apply_spoiler(self) -> None:
         """Apply ideal spoiler gradient (destroy all transverse magnetization)."""
         self.states[:, 0] = 0.0  # F+ = 0
         self.states[:, 1] = 0.0  # F- = 0
+
+    def apply_gradient_dephasing(self) -> None:
+        """Apply gradient dephasing (shift F+ states up, F- states down).
+
+        This shifts the phase state indices:
+        - F+[k] -> F+[k+1]
+        - F-[k] -> F-[k-1]
+        - F-[0] -> F+[0] (echo formation condition)
+        """
+        import numpy as np
+
+        # Shift F+ up (higher k states)
+        self.states[1:, 0] = self.states[:-1, 0]
+        self.states[0, 0] = 0.0  # New F+[0] will be filled by F-[0]
+
+        # Shift F- down (lower k states)
+        # F-[0] becomes new F+[0] (echo)
+        self.states[0, 0] = np.conj(self.states[0, 1])
+        self.states[:-1, 1] = self.states[1:, 1]
+        self.states[-1, 1] = 0.0
+
+    def apply_gradient_rephasing(self) -> None:
+        """Apply gradient rephasing (shift F+ states down, F- states up).
+
+        This is the inverse of dephasing, used in SSFP-Echo sequences.
+        """
+        import numpy as np
+
+        # Shift F+ down (lower k states)
+        temp = self.states[0, 0]
+        self.states[:-1, 0] = self.states[1:, 0]
+        self.states[-1, 0] = 0.0
+
+        # Shift F- up (higher k states)
+        self.states[1:, 1] = self.states[:-1, 1]
+        self.states[0, 1] = np.conj(temp)
 
     def get_signal(self) -> complex:
         """Get the current signal (F+[0] state).

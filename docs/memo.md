@@ -46,3 +46,10 @@
 - `tests/test_epg.py` 追加（21 tests）
 - `docs/api/epg.md` ドキュメント追加
 - `paper.md` を JOSS フォーマットに更新
+- EPG 実装を Weigel 参照コードで検証
+  - DECAES: B1 が励起パルスとリフォーカスパルス両方に影響（物理的に正確）
+  - Weigel: B1 はリフォーカスパルスのみに影響（励起は理想 90°）
+  - `cpmg()` に `b1_excitation` パラメータ追加（両モード対応）
+  - 検証テスト 3 件追加（B1=1.0, 0.9, 0.8 で Weigel 参照と完全一致）
+  - `EPGSimulator` に `apply_gradient_dephasing()` / `apply_gradient_rephasing()` 追加
+- 全 89 テスト通過
