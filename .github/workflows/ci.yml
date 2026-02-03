@@ -46,7 +46,7 @@ jobs:
       - name: Get version from __init__.py
         id: get_version
         run: |
-          VERSION=$(grep '__version__' src/qmrpy/__init__.py | cut -d'"' -f2)
+          VERSION=$(python -c 'import re, pathlib; text=pathlib.Path("src/qmrpy/__init__.py").read_text(); m=re.search(r"^__version__\s*=\s*[\x22\x27]([^\x22\x27]+)[\x22\x27]", text, re.M); assert m, "version not found"; print(m.group(1))')
           echo "version=$VERSION" >> $GITHUB_OUTPUT
           echo "tag=v$VERSION" >> $GITHUB_OUTPUT
 
