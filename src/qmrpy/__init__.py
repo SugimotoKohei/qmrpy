@@ -1,3 +1,4 @@
+from . import epg
 from .functional import (
     decaes_t2map_fit,
     decaes_t2map_spectrum,
@@ -18,6 +19,7 @@ __all__ = [
     "__version__",
     "decaes_t2map_fit",
     "decaes_t2map_spectrum",
+    "epg",
     "epg_t2_fit",
     "epg_t2_forward",
     "inversion_recovery_fit",
@@ -32,4 +34,4 @@ __all__ = [
     "vfa_t1_forward",
 ]
 
-__version__ = "0.8.0"
+__version__ = "0.9.0"

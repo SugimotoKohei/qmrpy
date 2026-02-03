@@ -63,6 +63,7 @@ nav:
       - T1 Models: api/t1.md
       - T2 Models: api/t2.md
       - B1 Models: api/b1.md
+      - EPG Simulation: api/epg.md
       - Functional API: api/functional.md
       - I/O Utilities: api/io.md
       - Simulation: api/simulation.md

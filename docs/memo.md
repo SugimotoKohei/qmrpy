@@ -35,3 +35,14 @@
   - 関数名: `SimVary`→`sim_vary`, `SimRnd`→`sim_rnd`, `SimFisherMatrix`→`sim_fisher_matrix`, `SimCRLB`→`sim_crlb`
   - パラメータ名・戻り値キーも snake_case 化
 - `docs/index.md` のライセンス表記を BSD-2-Clause → MIT に修正（LICENSE ファイルと統一）
+- `THIRD_PARTY_NOTICES.md` を日本語から英語に翻訳
+- `paper.md` / `paper.bib` は JOSS 投稿予定のため公開リポジトリに残す（JOSS は公開リポジトリ必須）
+
+## 2026-02-03
+- v0.9.0: EPG シミュレーションモジュール追加 (`src/qmrpy/epg/`)
+  - `epg/core.py`: 汎用 EPG エンジン（状態遷移行列、RF回転、緩和演算子）
+  - `epg/epg_se.py`: Spin Echo シーケンス（CPMG, MESE, TSE/FSE）
+  - `epg/epg_gre.py`: Gradient Echo シーケンス（SPGR, bSSFP, SSFP-FID/Echo）
+- `tests/test_epg.py` 追加（21 tests）
+- `docs/api/epg.md` ドキュメント追加
+- `paper.md` を JOSS フォーマットに更新
