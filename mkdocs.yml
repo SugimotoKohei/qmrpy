@@ -6,6 +6,8 @@ repo_name: SugimotoKohei/qmrpy
 
 theme:
   name: material
+  logo: assets/qmrpy-icon.png
+  favicon: assets/qmrpy-icon-32.png
   language: en
   palette:
     - scheme: default

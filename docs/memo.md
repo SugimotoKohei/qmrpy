@@ -61,3 +61,6 @@
 - GitHub Pages の EPG ドキュメント（`docs/api/epg.md`）を現行APIに合わせて更新（`epg_se.se`/`tse`、B1例、CP/CPMG説明、API参照の整合）
 - 作業メモは `docs/memo.md` に追記する運用に統一
 - `AGENTS.md` に `docs/memo.md` 運用ルールを追記し、`docs/` をGit管理対象に追加
+- GitHub About の説明文を "qmrpy: Python library for quantitative MRI." に更新（`gh repo edit`）
+- qmrpy アイコンを `docs/assets/` に配置し、MkDocs の logo/favicon と README のロゴ表示を更新
+- ルートの `qmrpy.png` を削除（アイコンは `docs/assets/` に集約）
