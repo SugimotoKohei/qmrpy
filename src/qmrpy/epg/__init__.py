@@ -28,13 +28,14 @@ References
 """
 
 from . import epg_gre, epg_se
-from .core import EPGSimulator, epg_cpmg_decaes, rf_rotation_matrix, relaxation_operator
+from .core import EPGSimulator, epg_cpmg_decaes, epg_weigel, rf_rotation_matrix, relaxation_operator
 
 __all__ = [
     "epg_se",
     "epg_gre",
     "EPGSimulator",
     "epg_cpmg_decaes",
+    "epg_weigel",
     "rf_rotation_matrix",
     "relaxation_operator",
 ]

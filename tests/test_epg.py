@@ -69,53 +69,52 @@ class TestEPGCore:
 class TestEPGSpinEcho:
     """Tests for epg/epg_se.py."""
 
-    def test_cpmg_shape(self):
-        """Test CPMG output shape."""
+    def test_se_shape(self):
+        """Test SE output shape."""
         from qmrpy.epg import epg_se
 
-        signal = epg_se.cpmg(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=32)
+        # Single echo
+        signal = epg_se.se(t2_ms=80, t1_ms=1000, te_ms=10)
+        assert signal.shape == (1,)
+
+        # Multi-echo
+        signal = epg_se.se(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=32)
         assert signal.shape == (32,)
 
-    def test_cpmg_decay(self):
-        """CPMG signal should decay over time."""
+    def test_se_decay(self):
+        """SE signal should decay over time."""
         from qmrpy.epg import epg_se
 
-        signal = epg_se.cpmg(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=32)
+        signal = epg_se.se(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=32)
         # Signal should decrease
         assert signal[0] > signal[-1]
         # All values should be positive
         assert np.all(signal >= 0)
 
-    def test_cpmg_matches_decaes(self):
-        """CPMG should exactly match DECAES reference."""
-        from qmrpy.epg import epg_se
-        from qmrpy.models.t2.decaes_t2 import epg_decay_curve as decaes_ref
-
-        t2_ms, t1_ms, te_ms, etl = 80.0, 1000.0, 10.0, 32
-
-        for b1 in [1.0, 0.95, 0.9, 0.8]:
-            ref = decaes_ref(etl=etl, alpha_deg=180.0*b1, te_ms=te_ms,
-                             t2_ms=t2_ms, t1_ms=t1_ms, beta_deg=180.0)
-            native = epg_se.cpmg(t2_ms=t2_ms, t1_ms=t1_ms, te_ms=te_ms,
-                                  n_echoes=etl, b1=b1)
-            np.testing.assert_allclose(native, ref, atol=1e-12,
-                                       err_msg=f"Mismatch at B1={b1}")
-
-    def test_mese_alias(self):
-        """MESE should be alias for CPMG."""
+    def test_se_cpmg_vs_cp_b1_perfect(self):
+        """With B1=1.0, CP and CPMG should give same results."""
         from qmrpy.epg import epg_se
 
-        signal_cpmg = epg_se.cpmg(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=32)
-        signal_mese = epg_se.mese(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=32)
-        np.testing.assert_array_equal(signal_cpmg, signal_mese)
+        cpmg = epg_se.se(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=8, b1=1.0, cpmg=True)
+        cp = epg_se.se(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=8, b1=1.0, cpmg=False)
+        np.testing.assert_allclose(cpmg, cp, rtol=1e-10)
 
-    def test_tse_constant_equals_cpmg(self):
-        """TSE with constant 180 should equal CPMG."""
+    def test_se_cpmg_vs_cp_b1_imperfect(self):
+        """With B1<1.0, CP and CPMG should give different results."""
         from qmrpy.epg import epg_se
 
-        signal_cpmg = epg_se.cpmg(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=8)
+        cpmg = epg_se.se(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=8, b1=0.8, cpmg=True)
+        cp = epg_se.se(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=8, b1=0.8, cpmg=False)
+        # They should be different (especially at later echoes)
+        assert np.max(np.abs(cpmg - cp)) > 0.1
+
+    def test_tse_constant_equals_se(self):
+        """TSE with constant 180 should equal SE."""
+        from qmrpy.epg import epg_se
+
+        signal_se = epg_se.se(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=8)
         signal_tse = epg_se.tse(t2_ms=80, t1_ms=1000, te_ms=10, etl=8)
-        np.testing.assert_allclose(signal_cpmg, signal_tse, rtol=1e-10)
+        np.testing.assert_allclose(signal_se, signal_tse, rtol=1e-10)
 
 
 class TestEPGGradientEcho:
@@ -211,13 +210,13 @@ class TestEPGValidation:
         from qmrpy.epg import epg_se
 
         with pytest.raises(ValueError):
-            epg_se.cpmg(t2_ms=-80, t1_ms=1000, te_ms=10, n_echoes=32)
+            epg_se.se(t2_ms=-80, t1_ms=1000, te_ms=10, n_echoes=32)
 
         with pytest.raises(ValueError):
-            epg_se.cpmg(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=0)
+            epg_se.se(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=0)
 
         with pytest.raises(ValueError):
-            epg_se.cpmg(t2_ms=80, t1_ms=1000, te_ms=0, n_echoes=32)
+            epg_se.se(t2_ms=80, t1_ms=1000, te_ms=0, n_echoes=32)
 
     def test_invalid_parameters_gre(self):
         """Test that invalid parameters raise errors for GRE."""
@@ -260,35 +259,29 @@ class TestEPGWeigel:
                 results[test][echo] = value
         return results
 
-    def test_cpmg_weigel_b1_1_0(self, weigel_reference):
-        """CPMG with B1=1.0 should match Weigel reference."""
+    def test_se_weigel_b1_1_0(self, weigel_reference):
+        """SE with B1=1.0 should match Weigel reference."""
         from qmrpy.epg import epg_se
 
         T2, T1, ESP, N = 80.0, 1000.0, 10.0, 32
-        signal = epg_se.cpmg(
-            t2_ms=T2, t1_ms=T1, te_ms=ESP, n_echoes=N, b1=1.0, b1_excitation=False
-        )
+        signal = epg_se.se(t2_ms=T2, t1_ms=T1, te_ms=ESP, n_echoes=N, b1=1.0)
         weigel = np.array([weigel_reference["cpmg_b1_1.0"][i] for i in range(1, N + 1)])
         np.testing.assert_allclose(signal, weigel, rtol=1e-10)
 
-    def test_cpmg_weigel_b1_0_9(self, weigel_reference):
-        """CPMG with B1=0.9 should match Weigel reference."""
+    def test_se_weigel_b1_0_9(self, weigel_reference):
+        """SE with B1=0.9 should match Weigel reference."""
         from qmrpy.epg import epg_se
 
         T2, T1, ESP, N = 80.0, 1000.0, 10.0, 32
-        signal = epg_se.cpmg(
-            t2_ms=T2, t1_ms=T1, te_ms=ESP, n_echoes=N, b1=0.9, b1_excitation=False
-        )
+        signal = epg_se.se(t2_ms=T2, t1_ms=T1, te_ms=ESP, n_echoes=N, b1=0.9)
         weigel = np.array([weigel_reference["cpmg_b1_0.9"][i] for i in range(1, N + 1)])
         np.testing.assert_allclose(signal, weigel, rtol=1e-10)
 
-    def test_cpmg_weigel_b1_0_8(self, weigel_reference):
-        """CPMG with B1=0.8 should match Weigel reference."""
+    def test_se_weigel_b1_0_8(self, weigel_reference):
+        """SE with B1=0.8 should match Weigel reference."""
         from qmrpy.epg import epg_se
 
         T2, T1, ESP, N = 80.0, 1000.0, 10.0, 32
-        signal = epg_se.cpmg(
-            t2_ms=T2, t1_ms=T1, te_ms=ESP, n_echoes=N, b1=0.8, b1_excitation=False
-        )
+        signal = epg_se.se(t2_ms=T2, t1_ms=T1, te_ms=ESP, n_echoes=N, b1=0.8)
         weigel = np.array([weigel_reference["cpmg_b1_0.8"][i] for i in range(1, N + 1)])
         np.testing.assert_allclose(signal, weigel, rtol=1e-10)

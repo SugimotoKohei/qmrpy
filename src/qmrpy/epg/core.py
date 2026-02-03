@@ -99,6 +99,146 @@ def relaxation_operator(
     return np.array([e2, e2, e1], dtype=np.float64)
 
 
+def epg_weigel(
+    *,
+    n_echoes: int,
+    alpha_deg: float,
+    te_ms: float,
+    t2_ms: float,
+    t1_ms: float,
+    cpmg: bool = True,
+) -> NDArray[np.float64]:
+    """Compute spin echo decay curve using Weigel's EPG algorithm.
+
+    This is a faithful port of Weigel's MATLAB EPG implementation from
+    https://github.com/matthias-weigel/EPG
+
+    Parameters
+    ----------
+    n_echoes : int
+        Number of echoes (echo train length).
+    alpha_deg : float
+        Refocusing flip angle in degrees.
+    te_ms : float
+        Echo spacing in milliseconds.
+    t2_ms : float
+        T2 relaxation time in milliseconds.
+    t1_ms : float
+        T1 relaxation time in milliseconds.
+    cpmg : bool, optional
+        If True (default), use CPMG phase cycling (refocusing 90° from excitation).
+        If False, use CP phase cycling (same phase as excitation).
+
+    Returns
+    -------
+    ndarray
+        Echo magnitudes of length ``n_echoes``.
+
+    Notes
+    -----
+    **CP vs CPMG phase cycling:**
+
+    - **CPMG**: Initial state F+(0) = F-(0) = 1 (real).
+      Even echoes self-compensate for B1 errors.
+
+    - **CP**: Initial state F+(0) = -i, F-(0) = +i (imaginary).
+      B1 errors accumulate with each refocusing pulse.
+
+    References
+    ----------
+    .. [1] Weigel M (2015). Extended phase graphs: dephasing, RF pulses, and echoes -
+           pure and simple. J Magn Reson Imaging, 41(2):266-295.
+    """
+    import numpy as np
+
+    N = int(n_echoes)
+    if N < 1:
+        raise ValueError("n_echoes must be >= 1")
+    if te_ms <= 0:
+        raise ValueError("te_ms must be > 0")
+    if t2_ms <= 0:
+        raise ValueError("t2_ms must be > 0")
+    if t1_ms <= 0:
+        raise ValueError("t1_ms must be > 0")
+
+    # Convert to radians
+    alpha_rad = np.deg2rad(float(alpha_deg))
+
+    # Relaxation for TE/2
+    E1 = np.exp(-te_ms / t1_ms / 2.0)
+    E2 = np.exp(-te_ms / t2_ms / 2.0)
+
+    # State vectors: Omega[0]=F+, Omega[1]=F-, Omega[2]=Z
+    # Index k corresponds to dephasing order
+    Nt2p1 = 2 * N + 1
+    Omega_preRF = np.zeros((3, Nt2p1), dtype=np.complex128)
+    Omega_postRF = np.zeros((3, Nt2p1), dtype=np.complex128)
+
+    # Initial state after 90° excitation (index 0 = k=0 state)
+    if cpmg:
+        # CPMG: F+(0) = F-(0) = 1 (real)
+        Omega_postRF[0, 0] = 1.0
+        Omega_postRF[1, 0] = 1.0
+    else:
+        # CP: F+(0) = -i, F-(0) = +i (imaginary)
+        Omega_postRF[0, 0] = -1j
+        Omega_postRF[1, 0] = +1j
+
+    # Output: echo signal at each echo time
+    echoes = np.zeros(N, dtype=np.float64)
+
+    for pn in range(1, N + 1):
+        # RF rotation matrix for current refocusing pulse
+        fa = alpha_rad
+        cos2 = np.cos(fa / 2) ** 2
+        sin2 = np.sin(fa / 2) ** 2
+        sin_fa = np.sin(fa)
+        cos_fa = np.cos(fa)
+
+        T = np.array([
+            [cos2, sin2, -1j * sin_fa],
+            [sin2, cos2, +1j * sin_fa],
+            [-0.5j * sin_fa, +0.5j * sin_fa, cos_fa],
+        ], dtype=np.complex128)
+
+        pn2 = 2 * pn
+        # k indices (0-based in Python)
+        k_max = pn2 - 1  # up to index pn2-2 in 0-based
+
+        # === First TE/2: Relaxation then dephasing ===
+        # Relaxation
+        Omega_preRF[0:2, :k_max] = E2 * Omega_postRF[0:2, :k_max]
+        Omega_preRF[2, 1:k_max] = E1 * Omega_postRF[2, 1:k_max]
+        Omega_preRF[2, 0] = E1 * Omega_postRF[2, 0] + (1 - E1)  # T1 recovery
+
+        # Gradient dephasing: F+ shifts up, F- shifts down
+        # F+(k) -> F+(k+1), F-(k+1) -> F-(k), F-(0) -> F+(0)*
+        Omega_preRF[0, 1:k_max + 1] = Omega_preRF[0, 0:k_max]
+        Omega_preRF[1, 0:k_max] = Omega_preRF[1, 1:k_max + 1]
+        Omega_preRF[0, 0] = np.conj(Omega_preRF[1, 0])
+
+        # === RF pulse ===
+        kp1_max = pn2  # up to index pn2-1 in 0-based
+        Omega_postRF[:, :kp1_max] = T @ Omega_preRF[:, :kp1_max]
+
+        # === Second TE/2: Relaxation then dephasing ===
+        # Relaxation
+        Omega_postRF[0:2, :kp1_max] = E2 * Omega_postRF[0:2, :kp1_max]
+        Omega_postRF[2, 1:kp1_max] = E1 * Omega_postRF[2, 1:kp1_max]
+        Omega_postRF[2, 0] = E1 * Omega_postRF[2, 0] + (1 - E1)
+
+        # Gradient dephasing
+        kp2_max = pn2 + 1
+        Omega_postRF[0, 1:kp2_max] = Omega_postRF[0, 0:kp2_max - 1]
+        Omega_postRF[1, 0:kp2_max - 1] = Omega_postRF[1, 1:kp2_max]
+        Omega_postRF[0, 0] = np.conj(Omega_postRF[1, 0])
+
+        # Record echo (F+(0) at echo time)
+        echoes[pn - 1] = np.abs(Omega_postRF[0, 0])
+
+    return echoes
+
+
 def epg_cpmg_decaes(
     *,
     etl: int,
@@ -108,10 +248,13 @@ def epg_cpmg_decaes(
     t1_ms: float,
     beta_deg: float = 180.0,
 ) -> NDArray[np.float64]:
-    """Compute CPMG echo decay curve using the DECAES EPG algorithm.
+    """Compute CPMG spin echo decay curve using the DECAES EPG algorithm.
 
     This is a faithful port of the DECAES.jl EPG implementation, which uses
     the Hennig (1988) algorithm with Jones (1997) phase state transitions.
+
+    This implementation assumes CPMG phase cycling (refocusing pulses 90°
+    from excitation pulse).
 
     Parameters
     ----------

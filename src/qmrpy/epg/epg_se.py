@@ -24,20 +24,20 @@ else:
     NDArray = Any  # type: ignore[misc,assignment]
 
 
-def cpmg(
+def se(
     *,
     t2_ms: float,
     t1_ms: float,
     te_ms: float,
-    n_echoes: int,
+    n_echoes: int = 1,
     refocus_deg: float = 180.0,
     b1: float = 1.0,
-    b1_excitation: bool = True,
+    cpmg: bool = True,
 ) -> NDArray[np.float64]:
-    """Simulate CPMG (Carr-Purcell-Meiboom-Gill) spin echo train.
+    """Simulate Spin Echo sequence.
 
-    This uses the DECAES EPG algorithm which accurately models stimulated
-    echoes and B1 inhomogeneity effects.
+    This uses Weigel's EPG algorithm which accurately models stimulated
+    echoes, B1 inhomogeneity effects, and CP/CPMG phase cycling.
 
     Parameters
     ----------
@@ -47,17 +47,15 @@ def cpmg(
         T1 relaxation time in milliseconds.
     te_ms : float
         Echo spacing in milliseconds.
-    n_echoes : int
-        Number of echoes to simulate.
+    n_echoes : int, optional
+        Number of echoes to simulate (default: 1).
     refocus_deg : float, optional
         Nominal refocusing flip angle in degrees (default: 180).
     b1 : float, optional
         B1 scaling factor (default: 1.0). Values < 1 simulate B1 inhomogeneity.
-    b1_excitation : bool, optional
-        If True (default), B1 affects both excitation and refocusing pulses
-        (DECAES behavior, more physically realistic).
-        If False, B1 only affects refocusing pulses, excitation is ideal 90°
-        (Weigel behavior, simpler model).
+    cpmg : bool, optional
+        If True (default), use CPMG phase cycling (refocusing pulse 90° from
+        excitation pulse). If False, use CP phase cycling (same phase).
 
     Returns
     -------
@@ -67,25 +65,37 @@ def cpmg(
     Examples
     --------
     >>> from qmrpy.epg import epg_se
-    >>> signal = epg_se.cpmg(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=32)
+    >>> # Single spin echo
+    >>> signal = epg_se.se(t2_ms=80, t1_ms=1000, te_ms=10)
+    >>> signal.shape
+    (1,)
+
+    >>> # Multi-echo (CPMG)
+    >>> signal = epg_se.se(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=32)
     >>> signal.shape
     (32,)
 
+    >>> # CP mode (no CPMG phase cycling)
+    >>> signal = epg_se.se(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=32, cpmg=False)
+
     Notes
     -----
-    The difference between b1_excitation modes:
+    **CP vs CPMG phase cycling:**
 
-    - ``b1_excitation=True`` (DECAES): Both excitation (90°) and refocusing
-      pulses are scaled by B1. Initial magnetization = sin(B1 * 90°).
-      This is more physically realistic as B1 inhomogeneity affects all pulses.
+    - **CP (Carr-Purcell)**: 90°x - 180°x - 180°x - ...
+      Refocusing pulses have the same phase as excitation.
+      B1 errors accumulate with each refocusing pulse.
 
-    - ``b1_excitation=False`` (Weigel): Only refocusing pulses are scaled.
-      Excitation is assumed ideal, initial magnetization = 1.0.
-      This matches the Weigel reference implementation.
+    - **CPMG (Carr-Purcell-Meiboom-Gill)**: 90°x - 180°y - 180°y - ...
+      Refocusing pulses are 90° phase-shifted from excitation.
+      Even echoes self-compensate for B1 errors.
+
+    References
+    ----------
+    .. [1] Weigel M (2015). Extended phase graphs: dephasing, RF pulses, and echoes -
+           pure and simple. J Magn Reson Imaging, 41(2):266-295.
     """
-    from .core import epg_cpmg_decaes
-
-    import numpy as np
+    from .core import epg_weigel
 
     n_echoes = int(n_echoes)
     if n_echoes < 1:
@@ -100,65 +110,15 @@ def cpmg(
         raise ValueError("b1 must be > 0")
 
     # Effective flip angle includes B1 scaling
-    # The DECAES algorithm expects alpha_deg where alpha_deg/180 is the B1 factor
     alpha_deg = float(refocus_deg) * float(b1)
 
-    signal = epg_cpmg_decaes(
-        etl=n_echoes,
+    return epg_weigel(
+        n_echoes=n_echoes,
         alpha_deg=alpha_deg,
         te_ms=te_ms,
         t2_ms=t2_ms,
         t1_ms=t1_ms,
-        beta_deg=refocus_deg,  # beta is scaled internally by alpha_deg/180
-    )
-
-    # If b1_excitation=False, scale to match Weigel's assumption of ideal excitation
-    if not b1_excitation:
-        # DECAES uses sin(alpha_ex) as initial magnetization where alpha_ex = (alpha_deg/180)*90
-        # Weigel uses 1.0 (ideal 90° excitation)
-        alpha_ex = (alpha_deg / 180.0) * 90.0
-        scale = 1.0 / np.sin(np.deg2rad(alpha_ex))
-        signal = signal * scale
-
-    return signal
-
-
-def mese(
-    *,
-    t2_ms: float,
-    t1_ms: float,
-    te_ms: float,
-    n_echoes: int,
-    b1: float = 1.0,
-) -> NDArray[np.float64]:
-    """Simulate Multi-Echo Spin Echo (MESE) sequence.
-
-    Alias for CPMG with standard parameters.
-
-    Parameters
-    ----------
-    t2_ms : float
-        T2 relaxation time in milliseconds.
-    t1_ms : float
-        T1 relaxation time in milliseconds.
-    te_ms : float
-        Echo spacing in milliseconds.
-    n_echoes : int
-        Number of echoes.
-    b1 : float, optional
-        B1 scaling factor (default: 1.0).
-
-    Returns
-    -------
-    ndarray
-        Signal magnitude at each echo, shape (n_echoes,).
-    """
-    return cpmg(
-        t2_ms=t2_ms,
-        t1_ms=t1_ms,
-        te_ms=te_ms,
-        n_echoes=n_echoes,
-        b1=b1,
+        cpmg=cpmg,
     )
 
 
@@ -205,7 +165,7 @@ def tse(
     >>> signal = epg_se.tse(t2_ms=80, t1_ms=1000, te_ms=10, etl=8,
     ...                     refocus_angles_deg=angles)
     """
-    from .core import epg_cpmg_decaes
+    from .core import epg_weigel
 
     import numpy as np
 
@@ -221,9 +181,9 @@ def tse(
     if b1 <= 0:
         raise ValueError("b1 must be > 0")
 
-    # For constant refocusing angles, use the optimized DECAES algorithm
+    # For constant refocusing angles, use the Weigel algorithm
     if refocus_angles_deg is None:
-        return cpmg(
+        return se(
             t2_ms=t2_ms,
             t1_ms=t1_ms,
             te_ms=te_ms,
@@ -231,19 +191,18 @@ def tse(
             b1=b1,
         )
 
-    # For variable refocusing angles, compute each echo separately
-    # This is a simplified approach - proper TSE would need full EPG tracking
+    # For variable refocusing angles, use average angle (simplified)
+    # TODO: Implement full variable flip angle EPG
     refocus_angles = np.asarray(refocus_angles_deg, dtype=np.float64) * float(b1)
     if refocus_angles.shape != (etl,):
         raise ValueError(f"refocus_angles_deg must have length {etl}")
 
-    # Use average angle for simplified simulation
     avg_angle = np.mean(refocus_angles)
-    return epg_cpmg_decaes(
-        etl=etl,
+    return epg_weigel(
+        n_echoes=etl,
         alpha_deg=avg_angle,
         te_ms=te_ms,
         t2_ms=t2_ms,
         t1_ms=t1_ms,
-        beta_deg=180.0,
+        cpmg=True,
     )
