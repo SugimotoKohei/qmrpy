@@ -247,7 +247,7 @@ class InversionRecovery:
         signal: ArrayLike,
         *,
         method: str = "magnitude",
-        solver: str = "least_squares",
+        solver: str = "rdnls",
         t1_init_ms: float | None = None,
         ra_init: float | None = None,
         rb_init: float | None = None,
@@ -261,22 +261,24 @@ class InversionRecovery:
         Parameters
         ----------
         signal : array-like
-            Observed signal array.
+            Observed signal array (magnitude by default).
         method : {"magnitude", "complex"}, optional
-            Fitting mode.
-        solver : {"least_squares", "rdnls"}, optional
-            Optimization backend. ``rdnls`` replicates qMRLab's grid-search
-            reduced-dimension NLS (rdNls/rdNlsPr).
+            Fitting mode. Default is "magnitude" for typical clinical acquisitions.
+        solver : {"rdnls", "least_squares"}, optional
+            Optimization backend. Default is "rdnls" which replicates qMRLab's
+            grid-search reduced-dimension NLS (rdNls/rdNlsPr). This is faster
+            and more robust than iterative least squares for IR data.
         t1_init_ms : float, optional
-            Initial guess for T1 in milliseconds.
+            Initial guess for T1 in milliseconds (only for ``solver="least_squares"``).
         ra_init : float, optional
-            Initial guess for ra.
+            Initial guess for ra (only for ``solver="least_squares"``).
         rb_init : float, optional
-            Initial guess for rb.
+            Initial guess for rb (only for ``solver="least_squares"``).
         bounds : tuple of tuple, optional
             Bounds for parameters as ``((t1, rb, ra) min, (t1, rb, ra) max)``.
+            Only for ``solver="least_squares"``.
         max_nfev : int, optional
-            Max number of function evaluations.
+            Max number of function evaluations (only for ``solver="least_squares"``).
         t1_grid_ms : array-like, optional
             Explicit T1 grid for ``solver="rdnls"`` (ms). Defaults to 1..5000.
         nls_zoom : int, optional
