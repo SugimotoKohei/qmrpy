@@ -29,11 +29,24 @@ class EPGT2:
     Signal model:
         S(TE) = m0 * EPG(TE, T2, T1, alpha, beta) + offset
 
+    Uses Extended Phase Graph (EPG) simulation to account for stimulated
+    echoes and B1 inhomogeneity in multi-echo spin-echo sequences.
+
     Units
     -----
     te_ms : milliseconds
     t2_ms : milliseconds
     t1_ms : milliseconds
+
+    References
+    ----------
+    .. [1] Prasloski T, et al. (2012). Applications of stimulated echo
+           correction to multicomponent T2 analysis. Magn Reson Med,
+           67(6):1803-1814.
+    .. [2] Hennig J (1988). Multiecho imaging sequences with low refocusing
+           flip angles. J Magn Reson, 78(3):397-407.
+    .. [3] Weigel M (2015). Extended phase graphs: dephasing, RF pulses, and
+           echoes - pure and simple. J Magn Reson Imaging, 41(2):266-295.
     """
 
     n_te: int

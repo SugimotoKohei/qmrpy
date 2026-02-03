@@ -34,4 +34,4 @@ __all__ = [
     "vfa_t1_forward",
 ]
 
-__version__ = "0.10.1"
+__version__ = "0.10.2"

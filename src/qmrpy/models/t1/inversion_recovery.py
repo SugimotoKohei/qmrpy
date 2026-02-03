@@ -186,10 +186,13 @@ def _rdnls_pr_grid(
     return t1_est, b_est, a_est, res, idx
 @dataclass(frozen=True, slots=True)
 class InversionRecovery:
-    """Inversion Recovery T1 model (qMRLab: inversion_recovery, Barral).
+    """Inversion Recovery T1 model (qMRLab: inversion_recovery).
 
     Signal model (Barral):
         S(TI) = ra + rb * exp(-TI / T1)
+
+    For magnitude images, polarity restoration (PR) is performed using the
+    reduced-dimension NLS algorithm (rdNlsPr).
 
     Units
     -----
@@ -197,8 +200,15 @@ class InversionRecovery:
     t1_ms : milliseconds
 
     method:
-        - "complex": fit raw model
-        - "magnitude": assume |S| observed; perform polarity restoration by searching idx
+        - "complex": fit raw model using rdNls
+        - "magnitude": assume |S| observed; perform polarity restoration using rdNlsPr
+
+    References
+    ----------
+    .. [1] Barral JK, et al. (2010). A robust methodology for in vivo T1
+           mapping. Magn Reson Med, 64(4):1057-1067.
+    .. [2] Look DC, Locker DR (1970). Time saving in measurement of NMR and
+           EPR relaxation times. Rev Sci Instrum, 41(2):250-251.
     """
 
     ti_ms: ArrayLike

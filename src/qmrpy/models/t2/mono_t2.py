@@ -31,6 +31,13 @@ class MonoT2:
     -----
     te_ms : milliseconds
     t2_ms : milliseconds
+
+    References
+    ----------
+    .. [1] Carr HY, Purcell EM (1954). Effects of diffusion on free precession
+           in nuclear magnetic resonance experiments. Phys Rev, 94(3):630-638.
+    .. [2] Meiboom S, Gill D (1958). Modified spin-echo method for measuring
+           nuclear relaxation times. Rev Sci Instrum, 29(8):688-691.
     """
 
     te_ms: ArrayLike

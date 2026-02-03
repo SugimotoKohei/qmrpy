@@ -61,7 +61,20 @@ def _sigmoid_weights(
 class DECAEST2Part:
     """DECAES-like T2-parts analysis (`T2partSEcorr`) on precomputed T2 distributions.
 
+    Computes myelin water fraction (MWF) and other metrics from T2 spectra
+    using the short T2 window (SPWin) and medium T2 window (MPWin) approach.
+
     Units are milliseconds.
+
+    References
+    ----------
+    .. [1] MacKay A, et al. (1994). In vivo visualization of myelin water in
+           brain by magnetic resonance. Magn Reson Med, 31(6):673-677.
+    .. [2] Prasloski T, et al. (2012). Applications of stimulated echo
+           correction to multicomponent T2 analysis. Magn Reson Med,
+           67(6):1803-1814.
+    .. [3] Doucette J, et al. (2020). DECAES - DEcomposition and Component
+           Analysis of Exponential Signals. Z Med Phys, 30(4):271-278.
     """
 
     n_t2: int

@@ -34,6 +34,17 @@ class VFAT1:
         - flip_angle_deg: degrees
         - tr_ms: milliseconds
         - t1_ms: milliseconds
+
+    References
+    ----------
+    .. [1] Fram EK, et al. (1987). Rapid calculation of T1 using variable flip
+           angle gradient refocused imaging. Magn Reson Imaging, 5(3):201-208.
+    .. [2] Deoni SC, et al. (2003). Rapid combined T1 and T2 mapping using
+           gradient recalled acquisition in the steady state. Magn Reson Med,
+           49(3):515-526.
+    .. [3] Boudreau M, et al. (2017). B1 mapping for bias-correction in
+           quantitative T1 imaging of the brain at 3T using standard pulse
+           sequences. J Magn Reson Imaging, 46(6):1673-1682.
     """
 
     flip_angle_deg: ArrayLike

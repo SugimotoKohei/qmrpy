@@ -40,6 +40,16 @@ class MultiComponentT2:
     This class is a minimal v0 translation aligned with qMRLab's `mwf` intent:
     we estimate a non-negative T2 spectrum via NNLS and derive summary metrics
     (MWF, T2MW, T2IEW) by integrating the spectrum over cutoff ranges.
+
+    References
+    ----------
+    .. [1] MacKay A, et al. (1994). In vivo visualization of myelin water in
+           brain by magnetic resonance. Magn Reson Med, 31(6):673-677.
+    .. [2] Whittall KP, MacKay AL (1989). Quantitative interpretation of NMR
+           relaxation data. J Magn Reson, 84(1):134-152.
+    .. [3] Laule C, et al. (2007). Myelin water imaging in multiple sclerosis:
+           quantitative correlations with histopathology. Mult Scler,
+           13(3):279-287.
     """
 
     te_ms: ArrayLike

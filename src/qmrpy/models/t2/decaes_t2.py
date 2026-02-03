@@ -656,8 +656,22 @@ def _choose_mu(
 class DECAEST2Map:
     """DECAES-like multi-component T2 mapping (T2mapSEcorr + core outputs).
 
+    Performs non-negative least squares (NNLS) fitting of multi-echo spin-echo
+    data to a T2 spectrum, with optional Tikhonov regularization and EPG-based
+    stimulated echo correction.
+
     Units:
         - te_ms, t2_range_ms, t1_ms: milliseconds
+
+    References
+    ----------
+    .. [1] Prasloski T, et al. (2012). Applications of stimulated echo
+           correction to multicomponent T2 analysis. Magn Reson Med,
+           67(6):1803-1814.
+    .. [2] Whittall KP, MacKay AL (1989). Quantitative interpretation of NMR
+           relaxation data. J Magn Reson, 84(1):134-152.
+    .. [3] Lawson CL, Hanson RJ (1995). Solving Least Squares Problems.
+           SIAM Classics in Applied Mathematics.
     """
 
     n_te: int
