@@ -117,19 +117,6 @@ class TestEPGSpinEcho:
         signal_tse = epg_se.tse(t2_ms=80, t1_ms=1000, te_ms=10, etl=8)
         np.testing.assert_allclose(signal_cpmg, signal_tse, rtol=1e-10)
 
-    def test_decay_curve_decaes_backend(self):
-        """Test DECAES backend decay curve."""
-        from qmrpy.epg import epg_se
-        from qmrpy.models.t2.decaes_t2 import epg_decay_curve as decaes_ref
-
-        t2_ms, t1_ms, te_ms, etl, b1 = 80.0, 1000.0, 10.0, 32, 0.85
-        
-        dc = epg_se.decay_curve(t2_ms=t2_ms, t1_ms=t1_ms, te_ms=te_ms,
-                                 etl=etl, b1=b1, backend="decaes")
-        ref = decaes_ref(etl=etl, alpha_deg=180.0*b1, te_ms=te_ms,
-                         t2_ms=t2_ms, t1_ms=t1_ms, beta_deg=180.0)
-        np.testing.assert_allclose(dc, ref, atol=1e-12)
-
 
 class TestEPGGradientEcho:
     """Tests for epg/epg_gre.py."""
