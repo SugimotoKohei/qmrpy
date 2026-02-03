@@ -22,11 +22,13 @@ def _as_1d_float_array(values: ArrayLike, *, name: str) -> NDArray[np.float64]:
 
 @dataclass(frozen=True, slots=True)
 class VFAT1:
-    """Variable flip angle T1 model on SPGR (qMRLab: vfa_t1).
+    """Variable flip angle T1 model using FLASH/SPGR (qMRLab: vfa_t1).
 
-    Signal model (SPGR steady-state):
+    Signal model (FLASH/SPGR steady-state):
         S = M0 * sin(a) * (1 - E) / (1 - E * cos(a))
         E = exp(-TR / T1)
+
+    Note: FLASH (Siemens) and SPGR (GE) refer to the same spoiled gradient echo sequence.
 
     Units (aligned to qMRLab protocol):
         - flip_angle_deg: degrees
@@ -62,7 +64,7 @@ class VFAT1:
         object.__setattr__(self, "b1", b1)
 
     def forward(self, *, m0: float, t1_ms: float) -> NDArray[np.float64]:
-        """Simulate SPGR signal.
+        """Simulate FLASH/SPGR signal.
 
         Parameters
         ----------
@@ -100,7 +102,7 @@ class VFAT1:
         max_iter: int = 50,
         min_points: int = 2,
     ) -> dict[str, float]:
-        """Fit by linearized SPGR relation (alias of ``fit_linear``)."""
+        """Fit by linearized FLASH/SPGR relation (alias of ``fit_linear``)."""
         return self.fit_linear(
             signal,
             mask=mask,
@@ -122,7 +124,7 @@ class VFAT1:
         max_iter: int = 50,
         min_points: int = 2,
     ) -> dict[str, float]:
-        """Fit by linearized SPGR relation (matches qMRLab approach).
+        """Fit by linearized FLASH/SPGR relation (matches qMRLab approach).
 
         Linearization:
             y = S / sin(a)

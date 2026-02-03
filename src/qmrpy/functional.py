@@ -32,7 +32,7 @@ def vfa_t1_forward(
     Returns
     -------
     ndarray
-        Simulated SPGR signal array.
+        Simulated FLASH/SPGR signal array.
     """
     from qmrpy.models.t1.vfa_t1 import VFAT1
 

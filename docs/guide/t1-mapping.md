@@ -2,7 +2,7 @@
 
 qmrpy provides two T1 mapping methods:
 
-- **VFA (Variable Flip Angle)**: Fast T1 mapping using SPGR sequence
+- **VFA (Variable Flip Angle)**: Fast T1 mapping using FLASH sequence
 - **Inversion Recovery**: Gold standard T1 measurement
 
 ## VFA T1 Mapping

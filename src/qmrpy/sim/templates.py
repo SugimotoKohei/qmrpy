@@ -263,7 +263,7 @@ def build_se_sequence(
     )
 
 
-def build_spgr_sequence(
+def build_flash_sequence(
     *,
     flip_angle_deg: float = 15.0,
     tr_ms: float = 15.0,
@@ -276,7 +276,7 @@ def build_spgr_sequence(
     time_bw_product: float = 4.0,
     system: Any | None = None,
 ) -> Any:
-    """Standard SPGR sequence template."""
+    """Standard FLASH sequence template."""
     Sequence, calc_duration, make_adc, make_delay, make_sinc_pulse, make_trapezoid, _ = _require_pypulseq()
     if tr_ms <= 0:
         raise ValueError("tr_ms must be > 0")
@@ -455,7 +455,7 @@ def mrzero_protocol_cpmg(
     )
 
 
-def mrzero_protocol_spgr(
+def mrzero_protocol_flash(
     *,
     flip_angle_deg: float = 15.0,
     tr_ms: float = 15.0,
@@ -467,8 +467,8 @@ def mrzero_protocol_spgr(
     data_factory: Callable[[Mapping[str, float]], Any] = mrzero_single_voxel_data_factory,
     seq_path: str | Path | None = None,
 ) -> SimulationProtocol:
-    """Standard MRzero SPGR protocol template."""
-    seq = build_spgr_sequence(
+    """Standard MRzero FLASH protocol template."""
+    seq = build_flash_sequence(
         flip_angle_deg=flip_angle_deg,
         tr_ms=tr_ms,
         adc_samples=adc_samples,
@@ -477,7 +477,7 @@ def mrzero_protocol_spgr(
     seq_or_path = _write_sequence(
         seq,
         seq_path,
-        fallback_name=f"spgr_fa{_format_token(flip_angle_deg)}_tr{_format_token(tr_ms)}",
+        fallback_name=f"flash_fa{_format_token(flip_angle_deg)}_tr{_format_token(tr_ms)}",
     )
     return SimulationProtocol(
         simulation_backend="mrzero_bloch",

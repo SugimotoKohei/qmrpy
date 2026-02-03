@@ -14,7 +14,7 @@ phase states (F+, F-, Z).
 | Module | Description |
 |--------|-------------|
 | `epg_se` | Spin Echo sequences (CPMG, TSE/FSE) |
-| `epg_gre` | Gradient Echo sequences (SPGR, bSSFP) |
+| `epg_gre` | Gradient Echo sequences (FLASH, bSSFP) |
 | `core` | Core EPG engine (advanced users) |
 
 ## Spin Echo Sequences
@@ -50,13 +50,13 @@ signal = epg_se.tse(
 
 ## Gradient Echo Sequences
 
-### SPGR (Spoiled Gradient Echo)
+### FLASH (Spoiled Gradient Echo)
 
 ```python
 from qmrpy.epg import epg_gre
 
-# SPGR signal approaching steady state
-signal = epg_gre.spgr(
+# FLASH signal approaching steady state
+signal = epg_gre.flash(
     t1_ms=1000,
     tr_ms=10,
     fa_deg=15,
@@ -64,7 +64,7 @@ signal = epg_gre.spgr(
 )
 
 # Analytical steady-state (Ernst equation)
-ss = epg_gre.spgr_steady_state(t1_ms=1000, tr_ms=10, fa_deg=15)
+ss = epg_gre.flash_steady_state(t1_ms=1000, tr_ms=10, fa_deg=15)
 
 # Optimal flip angle for maximum signal
 ernst = epg_gre.ernst_angle(t1_ms=1000, tr_ms=10)
@@ -122,8 +122,8 @@ signal_b1_low = epg_se.cpmg(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=32, b1=0.8)
     options:
       show_root_heading: true
       members:
-        - spgr
-        - spgr_steady_state
+        - flash
+        - flash_steady_state
         - ernst_angle
         - bssfp
         - bssfp_steady_state

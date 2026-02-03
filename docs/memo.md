@@ -42,7 +42,7 @@
 - v0.9.0: EPG シミュレーションモジュール追加 (`src/qmrpy/epg/`)
   - `epg/core.py`: 汎用 EPG エンジン（状態遷移行列、RF回転、緩和演算子）
   - `epg/epg_se.py`: Spin Echo シーケンス（CPMG, MESE, TSE/FSE）
-  - `epg/epg_gre.py`: Gradient Echo シーケンス（SPGR, bSSFP, SSFP-FID/Echo）
+  - `epg/epg_gre.py`: Gradient Echo シーケンス（FLASH, bSSFP, SSFP-FID/Echo）
 - `tests/test_epg.py` 追加（21 tests）
 - `docs/api/epg.md` ドキュメント追加
 - `paper.md` を JOSS フォーマットに更新
@@ -52,4 +52,8 @@
   - `cpmg()` に `b1_excitation` パラメータ追加（両モード対応）
   - 検証テスト 3 件追加（B1=1.0, 0.9, 0.8 で Weigel 参照と完全一致）
   - `EPGSimulator` に `apply_gradient_dephasing()` / `apply_gradient_rephasing()` 追加
-- 全 89 テスト通過
+- `epg_weigel()` を DECAES 方式に統一：励起パルスにも B1 影響を適用
+  - 初期磁化 = sin(B1 × 90°)、リフォーカスも B1 × nominal
+  - 減衰曲線の「形状」は Weigel 参照と完全一致、絶対値のみ異なる
+  - テスト更新：正規化後の形状一致＋M0比の検証
+- 全 88 テスト通過

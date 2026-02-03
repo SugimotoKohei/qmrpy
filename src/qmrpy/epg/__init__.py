@@ -5,18 +5,18 @@ This module provides EPG-based MRI signal simulations for various pulse sequence
 Submodules
 ----------
 core : Core EPG engine with state transition matrices
-epg_se : Spin Echo sequences (CPMG, TSE/FSE)
-epg_gre : Gradient Echo sequences (SPGR, bSSFP)
+epg_se : Spin Echo sequences (SE, TSE/FSE)
+epg_gre : Gradient Echo sequences (FLASH, bSSFP)
 
 Examples
 --------
 >>> from qmrpy.epg import epg_se, epg_gre
 
 # Spin Echo simulation
->>> signal_se = epg_se.cpmg(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=32)
+>>> signal_se = epg_se.se(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=32)
 
 # Gradient Echo simulation
->>> signal_gre = epg_gre.spgr(t1_ms=1000, tr_ms=10, fa_deg=15)
+>>> signal_gre = epg_gre.flash(t1_ms=1000, tr_ms=10, fa_deg=15)
 >>> signal_ssfp = epg_gre.bssfp(t1_ms=1000, t2_ms=80, tr_ms=5, fa_deg=45)
 
 References

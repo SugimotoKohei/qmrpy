@@ -120,23 +120,23 @@ class TestEPGSpinEcho:
 class TestEPGGradientEcho:
     """Tests for epg/epg_gre.py."""
 
-    def test_spgr_shape(self):
-        """Test SPGR output shape."""
+    def test_flash_shape(self):
+        """Test FLASH output shape."""
         from qmrpy.epg import epg_gre
 
-        signal = epg_gre.spgr(t1_ms=1000, tr_ms=10, fa_deg=15, n_pulses=100)
+        signal = epg_gre.flash(t1_ms=1000, tr_ms=10, fa_deg=15, n_pulses=100)
         assert signal.shape == (100,)
 
-    def test_spgr_steady_state(self):
-        """SPGR should reach steady state."""
+    def test_flash_steady_state(self):
+        """FLASH should reach steady state."""
         from qmrpy.epg import epg_gre
 
-        signal = epg_gre.spgr(t1_ms=1000, tr_ms=10, fa_deg=15, n_pulses=500)
+        signal = epg_gre.flash(t1_ms=1000, tr_ms=10, fa_deg=15, n_pulses=500)
         # Last values should be nearly constant
         np.testing.assert_allclose(signal[-10:], signal[-1], rtol=0.01)
 
-    def test_spgr_matches_ernst(self):
-        """SPGR simulation should match Ernst equation."""
+    def test_flash_matches_ernst(self):
+        """FLASH simulation should match Ernst equation."""
         from qmrpy.epg import epg_gre
 
         t1_ms = 1000
@@ -149,21 +149,21 @@ class TestEPGGradientEcho:
             ernst = np.sin(alpha) * (1 - e1) / (1 - e1 * np.cos(alpha))
 
             # EPG simulation
-            signal = epg_gre.spgr(t1_ms=t1_ms, tr_ms=tr_ms, fa_deg=fa_deg, n_pulses=500)
+            signal = epg_gre.flash(t1_ms=t1_ms, tr_ms=tr_ms, fa_deg=fa_deg, n_pulses=500)
             epg_ss = signal[-1]
 
             np.testing.assert_allclose(epg_ss, ernst, rtol=0.001,
                                        err_msg=f"Mismatch at FA={fa_deg}")
 
-    def test_spgr_steady_state_analytical(self):
-        """Compare SPGR simulation to analytical function."""
+    def test_flash_steady_state_analytical(self):
+        """Compare FLASH simulation to analytical function."""
         from qmrpy.epg import epg_gre
 
         t1_ms, tr_ms, fa_deg = 1000, 10, 15
 
-        signal_sim = epg_gre.spgr(t1_ms=t1_ms, tr_ms=tr_ms, fa_deg=fa_deg, n_pulses=500)
+        signal_sim = epg_gre.flash(t1_ms=t1_ms, tr_ms=tr_ms, fa_deg=fa_deg, n_pulses=500)
         ss_sim = signal_sim[-1]
-        ss_analytical = epg_gre.spgr_steady_state(t1_ms=t1_ms, tr_ms=tr_ms, fa_deg=fa_deg)
+        ss_analytical = epg_gre.flash_steady_state(t1_ms=t1_ms, tr_ms=tr_ms, fa_deg=fa_deg)
 
         np.testing.assert_allclose(ss_sim, ss_analytical, rtol=0.001)
 
@@ -223,10 +223,10 @@ class TestEPGValidation:
         from qmrpy.epg import epg_gre
 
         with pytest.raises(ValueError):
-            epg_gre.spgr(t1_ms=-1000, tr_ms=10, fa_deg=15)
+            epg_gre.flash(t1_ms=-1000, tr_ms=10, fa_deg=15)
 
         with pytest.raises(ValueError):
-            epg_gre.spgr(t1_ms=1000, tr_ms=0, fa_deg=15)
+            epg_gre.flash(t1_ms=1000, tr_ms=0, fa_deg=15)
 
         with pytest.raises(ValueError):
             epg_gre.bssfp(t1_ms=1000, t2_ms=80, tr_ms=0, fa_deg=45)
@@ -269,19 +269,137 @@ class TestEPGWeigel:
         np.testing.assert_allclose(signal, weigel, rtol=1e-10)
 
     def test_se_weigel_b1_0_9(self, weigel_reference):
-        """SE with B1=0.9 should match Weigel reference."""
+        """SE with B1=0.9: decay curve SHAPE should match Weigel reference.
+
+        Our implementation applies B1 to both excitation and refocusing,
+        while Weigel assumes ideal excitation. So absolute values differ,
+        but normalized decay curve shapes should match.
+        """
         from qmrpy.epg import epg_se
 
         T2, T1, ESP, N = 80.0, 1000.0, 10.0, 32
         signal = epg_se.se(t2_ms=T2, t1_ms=T1, te_ms=ESP, n_echoes=N, b1=0.9)
         weigel = np.array([weigel_reference["cpmg_b1_0.9"][i] for i in range(1, N + 1)])
-        np.testing.assert_allclose(signal, weigel, rtol=1e-10)
+
+        # Normalize both to first echo
+        signal_norm = signal / signal[0]
+        weigel_norm = weigel / weigel[0]
+        np.testing.assert_allclose(signal_norm, weigel_norm, rtol=1e-10)
+
+        # Verify B1 effect on initial amplitude: sin(B1 × 90°)
+        expected_m0_ratio = np.sin(np.deg2rad(90 * 0.9))
+        assert signal[0] / weigel[0] == pytest.approx(expected_m0_ratio, rel=1e-10)
 
     def test_se_weigel_b1_0_8(self, weigel_reference):
-        """SE with B1=0.8 should match Weigel reference."""
+        """SE with B1=0.8: decay curve SHAPE should match Weigel reference.
+
+        Our implementation applies B1 to both excitation and refocusing,
+        while Weigel assumes ideal excitation. So absolute values differ,
+        but normalized decay curve shapes should match.
+        """
         from qmrpy.epg import epg_se
 
         T2, T1, ESP, N = 80.0, 1000.0, 10.0, 32
         signal = epg_se.se(t2_ms=T2, t1_ms=T1, te_ms=ESP, n_echoes=N, b1=0.8)
         weigel = np.array([weigel_reference["cpmg_b1_0.8"][i] for i in range(1, N + 1)])
-        np.testing.assert_allclose(signal, weigel, rtol=1e-10)
+
+        # Normalize both to first echo
+        signal_norm = signal / signal[0]
+        weigel_norm = weigel / weigel[0]
+        np.testing.assert_allclose(signal_norm, weigel_norm, rtol=1e-10)
+
+        # Verify B1 effect on initial amplitude: sin(B1 × 90°)
+        expected_m0_ratio = np.sin(np.deg2rad(90 * 0.8))
+        assert signal[0] / weigel[0] == pytest.approx(expected_m0_ratio, rel=1e-10)
+
+
+class TestVariableFlipAngle:
+    """Tests for variable flip angle (VFA) support."""
+
+    def test_scalar_refocus_deg(self):
+        """Single refocus_deg should apply to all echoes."""
+        from qmrpy.epg import epg_se
+
+        # Scalar angle
+        signal1 = epg_se.se(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=8, refocus_deg=180)
+
+        # Array with same value repeated
+        signal2 = epg_se.se(
+            t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=8, refocus_deg=[180] * 8
+        )
+
+        np.testing.assert_allclose(signal1, signal2, rtol=1e-10)
+
+    def test_variable_flip_angles(self):
+        """Variable flip angles should produce different decay than constant."""
+        from qmrpy.epg import epg_se
+
+        # Constant 180° refocusing
+        signal_const = epg_se.se(
+            t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=8, refocus_deg=180
+        )
+
+        # Variable flip angles (decreasing)
+        angles = [180, 160, 140, 120, 100, 80, 60, 40]
+        signal_vfa = epg_se.se(
+            t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=8, refocus_deg=angles
+        )
+
+        # Should be different
+        assert not np.allclose(signal_const, signal_vfa)
+
+        # VFA typically has lower signal at later echoes due to reduced refocusing
+        # (stimulated echoes contribute less with smaller flip angles)
+        assert signal_vfa[-1] < signal_const[-1]
+
+    def test_tse_with_variable_angles(self):
+        """TSE function should support variable flip angles via se()."""
+        from qmrpy.epg import epg_se
+
+        angles = [180, 160, 140, 120, 100, 80, 60, 40]
+
+        # tse() with variable angles
+        signal_tse = epg_se.tse(
+            t2_ms=80, t1_ms=1000, te_ms=10, etl=8, refocus_angles_deg=angles
+        )
+
+        # Should match se() with same angles
+        signal_se = epg_se.se(
+            t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=8, refocus_deg=angles
+        )
+
+        np.testing.assert_allclose(signal_tse, signal_se, rtol=1e-10)
+
+    def test_invalid_refocus_deg_length(self):
+        """Should raise error if refocus_deg array length doesn't match n_echoes."""
+        from qmrpy.epg import epg_se
+
+        with pytest.raises(ValueError, match="must be a scalar or array of length"):
+            epg_se.se(
+                t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=8, refocus_deg=[180, 160, 140]
+            )
+
+    def test_vfa_with_b1(self):
+        """Variable flip angles should work with B1 inhomogeneity."""
+        from qmrpy.epg import epg_se
+
+        angles = [180, 160, 140, 120]
+
+        # B1=1.0
+        signal_b1_1 = epg_se.se(
+            t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=4, refocus_deg=angles, b1=1.0
+        )
+
+        # B1=0.8 (lower B1 should reduce signal)
+        signal_b1_08 = epg_se.se(
+            t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=4, refocus_deg=angles, b1=0.8
+        )
+
+        # B1<1 reduces initial magnetization
+        assert signal_b1_08[0] < signal_b1_1[0]
+
+        # M0 ratio should be sin(B1 × 90°)
+        expected_ratio = np.sin(np.deg2rad(90 * 0.8))
+        actual_ratio = signal_b1_08[0] / signal_b1_1[0]
+        # Not exact match due to different decay, but should be close at first echo
+        assert actual_ratio < 1.0

@@ -9,10 +9,10 @@ from .phantoms import (
 from .templates import (
     build_cpmg_sequence,
     build_se_sequence,
-    build_spgr_sequence,
+    build_flash_sequence,
     mrzero_protocol_cpmg,
     mrzero_protocol_se,
-    mrzero_protocol_spgr,
+    mrzero_protocol_flash,
     mrzero_single_voxel_data_factory,
 )
 from .simulation import (
@@ -41,7 +41,7 @@ __all__ = [
     "add_rician_noise",
     "build_cpmg_sequence",
     "build_se_sequence",
-    "build_spgr_sequence",
+    "build_flash_sequence",
     "crlb_cov_mean",
     "crlb_from_fisher",
     "fisher_information_gaussian",
@@ -52,7 +52,7 @@ __all__ = [
     "shepp_logan_3d_maps",
     "mrzero_protocol_cpmg",
     "mrzero_protocol_se",
-    "mrzero_protocol_spgr",
+    "mrzero_protocol_flash",
     "mrzero_single_voxel_data_factory",
     "optimize_protocol_grid",
     "sensitivity_analysis",

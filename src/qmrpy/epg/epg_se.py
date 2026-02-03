@@ -30,7 +30,7 @@ def se(
     t1_ms: float,
     te_ms: float,
     n_echoes: int = 1,
-    refocus_deg: float = 180.0,
+    refocus_deg: float | NDArray[np.float64] | list[float] = 180.0,
     b1: float = 1.0,
     cpmg: bool = True,
 ) -> NDArray[np.float64]:
@@ -49,8 +49,11 @@ def se(
         Echo spacing in milliseconds.
     n_echoes : int, optional
         Number of echoes to simulate (default: 1).
-    refocus_deg : float, optional
-        Nominal refocusing flip angle in degrees (default: 180).
+    refocus_deg : float or array-like, optional
+        Nominal refocusing flip angle(s) in degrees (default: 180).
+        If a scalar, the same angle is used for all refocusing pulses.
+        If an array of length ``n_echoes``, each echo uses its own angle
+        (variable flip angle / TSE mode).
     b1 : float, optional
         B1 scaling factor (default: 1.0). Values < 1 simulate B1 inhomogeneity.
     cpmg : bool, optional
@@ -75,6 +78,11 @@ def se(
     >>> signal.shape
     (32,)
 
+    >>> # Variable flip angle (TSE/FSE)
+    >>> angles = [180, 160, 140, 120, 100, 80, 60, 40]
+    >>> signal = epg_se.se(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=8,
+    ...                    refocus_deg=angles)
+
     >>> # CP mode (no CPMG phase cycling)
     >>> signal = epg_se.se(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=32, cpmg=False)
 
@@ -97,6 +105,8 @@ def se(
     """
     from .core import epg_weigel
 
+    import numpy as np
+
     n_echoes = int(n_echoes)
     if n_echoes < 1:
         raise ValueError("n_echoes must be >= 1")
@@ -109,15 +119,22 @@ def se(
     if b1 <= 0:
         raise ValueError("b1 must be > 0")
 
-    # Effective flip angle includes B1 scaling
-    alpha_deg = float(refocus_deg) * float(b1)
+    # Convert refocus_deg to array for validation
+    refocus_arr = np.atleast_1d(np.asarray(refocus_deg, dtype=np.float64))
+    if refocus_arr.size != 1 and refocus_arr.size != n_echoes:
+        raise ValueError(
+            f"refocus_deg must be a scalar or array of length n_echoes ({n_echoes}), "
+            f"got length {refocus_arr.size}"
+        )
 
+    # Pass to epg_weigel; B1 scaling is applied inside
     return epg_weigel(
         n_echoes=n_echoes,
-        alpha_deg=alpha_deg,
+        alpha_deg=refocus_deg,
         te_ms=te_ms,
         t2_ms=t2_ms,
         t1_ms=t1_ms,
+        b1=float(b1),
         cpmg=cpmg,
     )
 
@@ -130,11 +147,14 @@ def tse(
     etl: int,
     refocus_angles_deg: NDArray[np.float64] | list[float] | None = None,
     b1: float = 1.0,
+    cpmg: bool = True,
 ) -> NDArray[np.float64]:
     """Simulate Turbo Spin Echo (TSE) / Fast Spin Echo (FSE) sequence.
 
     TSE/FSE uses variable refocusing flip angles to optimize image contrast
     and reduce SAR (Specific Absorption Rate).
+
+    This is a convenience wrapper around :func:`se` with variable flip angles.
 
     Parameters
     ----------
@@ -151,6 +171,8 @@ def tse(
         If None, uses constant 180° pulses (equivalent to CPMG).
     b1 : float, optional
         B1 scaling factor (default: 1.0).
+    cpmg : bool, optional
+        If True (default), use CPMG phase cycling.
 
     Returns
     -------
@@ -165,44 +187,14 @@ def tse(
     >>> signal = epg_se.tse(t2_ms=80, t1_ms=1000, te_ms=10, etl=8,
     ...                     refocus_angles_deg=angles)
     """
-    from .core import epg_weigel
+    refocus_deg = 180.0 if refocus_angles_deg is None else refocus_angles_deg
 
-    import numpy as np
-
-    etl = int(etl)
-    if etl < 1:
-        raise ValueError("etl must be >= 1")
-    if te_ms <= 0:
-        raise ValueError("te_ms must be > 0")
-    if t1_ms <= 0:
-        raise ValueError("t1_ms must be > 0")
-    if t2_ms <= 0:
-        raise ValueError("t2_ms must be > 0")
-    if b1 <= 0:
-        raise ValueError("b1 must be > 0")
-
-    # For constant refocusing angles, use the Weigel algorithm
-    if refocus_angles_deg is None:
-        return se(
-            t2_ms=t2_ms,
-            t1_ms=t1_ms,
-            te_ms=te_ms,
-            n_echoes=etl,
-            b1=b1,
-        )
-
-    # For variable refocusing angles, use average angle (simplified)
-    # TODO: Implement full variable flip angle EPG
-    refocus_angles = np.asarray(refocus_angles_deg, dtype=np.float64) * float(b1)
-    if refocus_angles.shape != (etl,):
-        raise ValueError(f"refocus_angles_deg must have length {etl}")
-
-    avg_angle = np.mean(refocus_angles)
-    return epg_weigel(
-        n_echoes=etl,
-        alpha_deg=avg_angle,
-        te_ms=te_ms,
+    return se(
         t2_ms=t2_ms,
         t1_ms=t1_ms,
-        cpmg=True,
+        te_ms=te_ms,
+        n_echoes=etl,
+        refocus_deg=refocus_deg,
+        b1=b1,
+        cpmg=cpmg,
     )

@@ -102,29 +102,36 @@ def relaxation_operator(
 def epg_weigel(
     *,
     n_echoes: int,
-    alpha_deg: float,
+    alpha_deg: float | NDArray[np.float64] | list[float],
     te_ms: float,
     t2_ms: float,
     t1_ms: float,
+    b1: float = 1.0,
     cpmg: bool = True,
 ) -> NDArray[np.float64]:
     """Compute spin echo decay curve using Weigel's EPG algorithm.
 
     This is a faithful port of Weigel's MATLAB EPG implementation from
-    https://github.com/matthias-weigel/EPG
+    https://github.com/matthias-weigel/EPG, extended to include B1 effects
+    on the excitation pulse and variable flip angle support.
 
     Parameters
     ----------
     n_echoes : int
         Number of echoes (echo train length).
-    alpha_deg : float
-        Refocusing flip angle in degrees.
+    alpha_deg : float or array-like
+        Refocusing flip angle(s) in degrees (nominal, before B1 scaling).
+        If a scalar, the same angle is used for all refocusing pulses.
+        If an array of length ``n_echoes``, each echo uses its own angle.
     te_ms : float
         Echo spacing in milliseconds.
     t2_ms : float
         T2 relaxation time in milliseconds.
     t1_ms : float
         T1 relaxation time in milliseconds.
+    b1 : float, optional
+        B1 inhomogeneity factor (default 1.0). Applied to both excitation
+        and refocusing pulses. Actual flip angles become ``b1 * nominal``.
     cpmg : bool, optional
         If True (default), use CPMG phase cycling (refocusing 90° from excitation).
         If False, use CP phase cycling (same phase as excitation).
@@ -136,12 +143,17 @@ def epg_weigel(
 
     Notes
     -----
+    **B1 inhomogeneity effects:**
+
+    - Excitation pulse: Initial transverse magnetization = sin(b1 × 90°)
+    - Refocusing pulses: Actual flip angle = b1 × alpha_deg
+
     **CP vs CPMG phase cycling:**
 
-    - **CPMG**: Initial state F+(0) = F-(0) = 1 (real).
+    - **CPMG**: Initial state F+(0) = F-(0) = M0 (real).
       Even echoes self-compensate for B1 errors.
 
-    - **CP**: Initial state F+(0) = -i, F-(0) = +i (imaginary).
+    - **CP**: Initial state F+(0) = -i×M0, F-(0) = +i×M0 (imaginary).
       B1 errors accumulate with each refocusing pulse.
 
     References
@@ -161,8 +173,23 @@ def epg_weigel(
     if t1_ms <= 0:
         raise ValueError("t1_ms must be > 0")
 
-    # Convert to radians
-    alpha_rad = np.deg2rad(float(alpha_deg))
+    # Handle variable flip angles
+    alpha_arr = np.atleast_1d(np.asarray(alpha_deg, dtype=np.float64))
+    if alpha_arr.size == 1:
+        # Single angle: broadcast to all echoes
+        alpha_arr = np.full(N, alpha_arr[0], dtype=np.float64)
+    elif alpha_arr.size != N:
+        raise ValueError(
+            f"alpha_deg must be a scalar or array of length n_echoes ({N}), "
+            f"got length {alpha_arr.size}"
+        )
+
+    # Apply B1 scaling to refocusing angles
+    alpha_rad_arr = np.deg2rad(alpha_arr * b1)
+
+    # Initial transverse magnetization after B1-scaled 90° excitation
+    # M_xy = sin(B1 × 90°)
+    m0 = np.sin(np.deg2rad(90.0 * b1))
 
     # Relaxation for TE/2
     E1 = np.exp(-te_ms / t1_ms / 2.0)
@@ -174,22 +201,22 @@ def epg_weigel(
     Omega_preRF = np.zeros((3, Nt2p1), dtype=np.complex128)
     Omega_postRF = np.zeros((3, Nt2p1), dtype=np.complex128)
 
-    # Initial state after 90° excitation (index 0 = k=0 state)
+    # Initial state after B1-scaled 90° excitation
     if cpmg:
-        # CPMG: F+(0) = F-(0) = 1 (real)
-        Omega_postRF[0, 0] = 1.0
-        Omega_postRF[1, 0] = 1.0
+        # CPMG: F+(0) = F-(0) = M0 (real)
+        Omega_postRF[0, 0] = m0
+        Omega_postRF[1, 0] = m0
     else:
-        # CP: F+(0) = -i, F-(0) = +i (imaginary)
-        Omega_postRF[0, 0] = -1j
-        Omega_postRF[1, 0] = +1j
+        # CP: F+(0) = -i×M0, F-(0) = +i×M0 (imaginary)
+        Omega_postRF[0, 0] = -1j * m0
+        Omega_postRF[1, 0] = +1j * m0
 
     # Output: echo signal at each echo time
     echoes = np.zeros(N, dtype=np.float64)
 
     for pn in range(1, N + 1):
-        # RF rotation matrix for current refocusing pulse
-        fa = alpha_rad
+        # RF rotation matrix for current refocusing pulse (0-indexed: pn-1)
+        fa = alpha_rad_arr[pn - 1]
         cos2 = np.cos(fa / 2) ** 2
         sin2 = np.sin(fa / 2) ** 2
         sin_fa = np.sin(fa)

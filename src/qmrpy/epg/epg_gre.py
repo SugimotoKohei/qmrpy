@@ -1,7 +1,7 @@
 """EPG simulations for Gradient Echo sequences.
 
 This module provides EPG-based signal simulations for gradient echo sequences
-including SPGR/FLASH (spoiled gradient echo) and bSSFP/TrueFISP (balanced SSFP).
+including FLASH (spoiled gradient echo) and bSSFP/TrueFISP (balanced SSFP).
 
 References
 ----------
@@ -24,7 +24,7 @@ else:
     NDArray = Any  # type: ignore[misc,assignment]
 
 
-def spgr(
+def flash(
     *,
     t1_ms: float,
     tr_ms: float,
@@ -32,9 +32,9 @@ def spgr(
     n_pulses: int = 1,
     b1: float = 1.0,
 ) -> NDArray[np.float64]:
-    """Simulate Spoiled Gradient Recalled Echo (SPGR/FLASH) sequence.
+    """Simulate FLASH (Fast Low Angle Shot) sequence.
 
-    SPGR uses RF and gradient spoiling to destroy residual transverse
+    FLASH uses RF and gradient spoiling to destroy residual transverse
     magnetization, creating pure T1-weighted contrast.
 
     Parameters
@@ -58,7 +58,7 @@ def spgr(
 
     Notes
     -----
-    The steady-state SPGR signal follows the Ernst equation:
+    The steady-state FLASH signal follows the Ernst equation:
 
     .. math::
 
@@ -69,7 +69,7 @@ def spgr(
     Examples
     --------
     >>> from qmrpy.epg import epg_gre
-    >>> signal = epg_gre.spgr(t1_ms=1000, tr_ms=10, fa_deg=15)
+    >>> signal = epg_gre.flash(t1_ms=1000, tr_ms=10, fa_deg=15)
     >>> signal[0]  # Steady-state signal
     """
     from .core import EPGSimulator
@@ -89,7 +89,7 @@ def spgr(
     # Apply B1 scaling
     alpha = float(fa_deg) * float(b1)
 
-    # T2 doesn't matter for SPGR (spoiled), use large value
+    # T2 doesn't matter for FLASH (spoiled), use large value
     t2_ms = 10000.0
 
     # Initialize simulator
@@ -114,14 +114,14 @@ def spgr(
     return signals
 
 
-def spgr_steady_state(
+def flash_steady_state(
     *,
     t1_ms: float,
     tr_ms: float,
     fa_deg: float,
     b1: float = 1.0,
 ) -> float:
-    """Calculate the steady-state SPGR signal using the Ernst equation.
+    """Calculate the steady-state FLASH signal using the Ernst equation.
 
     This is an analytical solution, faster than running the full EPG simulation.
 
@@ -162,7 +162,7 @@ def spgr_steady_state(
 
 
 def ernst_angle(t1_ms: float, tr_ms: float) -> float:
-    """Calculate the Ernst angle for maximum SPGR signal.
+    """Calculate the Ernst angle for maximum FLASH signal.
 
     Parameters
     ----------
