@@ -13,24 +13,38 @@ phase states (F+, F-, Z).
 
 | Module | Description |
 |--------|-------------|
-| `epg_se` | Spin Echo sequences (CPMG, TSE/FSE) |
+| `epg_se` | Spin Echo sequences (SE/CPMG, TSE/FSE) |
 | `epg_gre` | Gradient Echo sequences (FLASH, bSSFP) |
 | `core` | Core EPG engine (advanced users) |
 
 ## Spin Echo Sequences
 
-### CPMG
+### Spin Echo (SE / CPMG)
 
 ```python
 from qmrpy.epg import epg_se
 
-# Standard CPMG with 32 echoes
-signal = epg_se.cpmg(
+# Standard multi-echo SE with CPMG phase cycling
+signal = epg_se.se(
     t2_ms=80,
     t1_ms=1000,
     te_ms=10,
     n_echoes=32,
     b1=1.0,  # B1 scaling factor
+    cpmg=True,
+)
+```
+
+CP (Carr-Purcell) mode is also available by setting `cpmg=False`:
+
+```python
+# CP mode (no CPMG phase cycling)
+signal_cp = epg_se.se(
+    t2_ms=80,
+    t1_ms=1000,
+    te_ms=10,
+    n_echoes=32,
+    cpmg=False,
 )
 ```
 
@@ -104,7 +118,7 @@ All functions support a `b1` parameter for simulating B1 field inhomogeneity:
 
 ```python
 # B1 = 0.8 means flip angles are 80% of nominal
-signal_b1_low = epg_se.cpmg(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=32, b1=0.8)
+signal_b1_low = epg_se.se(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=32, b1=0.8)
 ```
 
 ## API Reference
@@ -113,10 +127,8 @@ signal_b1_low = epg_se.cpmg(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=32, b1=0.8)
     options:
       show_root_heading: true
       members:
-        - cpmg
-        - mese
+        - se
         - tse
-        - decay_curve
 
 ::: qmrpy.epg.epg_gre
     options:

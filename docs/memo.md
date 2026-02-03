@@ -57,3 +57,7 @@
   - 減衰曲線の「形状」は Weigel 参照と完全一致、絶対値のみ異なる
   - テスト更新：正規化後の形状一致＋M0比の検証
 - 全 88 テスト通過
+- auto-tag の version 抽出が `__all__` 側の `"__version__"` まで拾う問題を修正（`.github/workflows/ci.yml` を `python -c` 抽出に変更、push まで実施）
+- GitHub Pages の EPG ドキュメント（`docs/api/epg.md`）を現行APIに合わせて更新（`epg_se.se`/`tse`、B1例、CP/CPMG説明、API参照の整合）
+- 作業メモは `docs/memo.md` に追記する運用に統一
+- `AGENTS.md` に `docs/memo.md` 運用ルールを追記し、`docs/` をGit管理対象に追加
