@@ -2,18 +2,18 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, ClassVar, Protocol
 
-from .result_schema import nest_result
+from .result_schema import FitResult, nest_result
 
 if TYPE_CHECKING:
     from numpy.typing import ArrayLike
 
 
 class FitModelProtocol(Protocol):
-    def fit(self, signal: ArrayLike, **kwargs: Any) -> dict[str, Any]: ...
+    def fit(self, signal: ArrayLike, **kwargs: Any) -> FitResult: ...
 
 
 class FitImageModelProtocol(Protocol):
-    def fit_image(self, signal: ArrayLike, **kwargs: Any) -> dict[str, Any]: ...
+    def fit_image(self, signal: ArrayLike, **kwargs: Any) -> FitResult: ...
 
 
 class ResultSchemaMixin:
@@ -23,7 +23,7 @@ class ResultSchemaMixin:
     _RMSE_KEYS: ClassVar[tuple[str, ...]] = ("rmse", "res_rmse", "residual", "resid_l2")
     _N_POINTS_KEYS: ClassVar[tuple[str, ...]] = ("n_points",)
 
-    def _nest(self, result: dict[str, Any]) -> dict[str, Any]:
+    def _nest(self, result: dict[str, Any]) -> FitResult:
         return nest_result(
             result,
             param_keys=self._PARAM_KEYS,
@@ -31,11 +31,11 @@ class ResultSchemaMixin:
             n_points_keys=self._N_POINTS_KEYS,
         )
 
-    def fit(self, signal: ArrayLike, **kwargs: Any) -> dict[str, Any]:
+    def fit(self, signal: ArrayLike, **kwargs: Any) -> FitResult:
         result = super().fit(signal, **kwargs)  # type: ignore[misc]
         return self._nest(result)
 
-    def fit_image(self, signal: ArrayLike, **kwargs: Any) -> dict[str, Any]:
+    def fit_image(self, signal: ArrayLike, **kwargs: Any) -> FitResult:
         result = super().fit_image(signal, **kwargs)  # type: ignore[misc]
         return self._nest(result)
 
@@ -54,7 +54,7 @@ class ResultAdapterBase:
     def __getattr__(self, name: str) -> Any:
         return getattr(self._impl, name)
 
-    def _nest(self, result: dict[str, Any]) -> dict[str, Any]:
+    def _nest(self, result: dict[str, Any]) -> FitResult:
         return nest_result(
             result,
             param_keys=self._PARAM_KEYS,
@@ -62,10 +62,10 @@ class ResultAdapterBase:
             n_points_keys=self._N_POINTS_KEYS,
         )
 
-    def fit(self, signal: ArrayLike, **kwargs: Any) -> dict[str, Any]:
+    def fit(self, signal: ArrayLike, **kwargs: Any) -> FitResult:
         result = self._impl.fit(signal, **kwargs)
         return self._nest(result)
 
-    def fit_image(self, signal: ArrayLike, **kwargs: Any) -> dict[str, Any]:
+    def fit_image(self, signal: ArrayLike, **kwargs: Any) -> FitResult:
         result = self._impl.fit_image(signal, **kwargs)
         return self._nest(result)

@@ -105,8 +105,9 @@ model = T2DECAESMap(
     t1_ms=1000.0,
 )
 
-# Fit returns (maps, distributions)
-maps, dist = model.fit_image(volume, mask="otsu")
+# Fit returns FitResult (distribution is included in params)
+maps = model.fit_image(volume, mask="otsu")
+dist = maps["distribution"]
 ```
 
 ## EMC T2 (EPG dictionary matching)
@@ -116,7 +117,8 @@ from qmrpy.models.t2 import T2EMC
 
 model = T2EMC(n_te=32, te_ms=10.0, t1_ms=1000.0)
 result = model.fit(signal, estimate_b1=True)
-print(result["params"]["t2_ms"], result["params"]["b1"])
+print(result["t2_ms"], result["b1"])
+print(result.quality["rmse"])
 ```
 
 ## T2* / R2* Mapping
@@ -126,7 +128,8 @@ from qmrpy.models.t2star import T2StarMonoR2
 
 model = T2StarMonoR2(te_ms=[4, 8, 12, 16, 20])
 result = model.fit(gre_signal)
-print(result["params"]["t2star_ms"], result["params"]["r2star_hz"])
+print(result["t2star_ms"], result["r2star_hz"])
+print(result.quality["rmse"])
 ```
 
 ## Forward Models

@@ -34,7 +34,9 @@ model = ModelClass(acquisition_parameters...)
 
 ```python
 result = model.fit(signal, **options)
-# Returns: dict with fitted parameters
+# Returns: FitResult
+#   - dict-like params access: result["t2_ms"]
+#   - metadata access: result.quality / result.diagnostics
 ```
 
 ### Image Fit
@@ -47,7 +49,9 @@ maps = model.fit_image(
     verbose=False,    # Show progress bar
     **options
 )
-# Returns: dict of parameter maps
+# Returns: FitResult of parameter maps
+#   - map access: maps["t2_ms"]
+#   - metadata maps: maps.quality / maps.diagnostics
 ```
 
 ### Forward Model

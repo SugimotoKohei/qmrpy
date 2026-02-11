@@ -37,7 +37,8 @@ volume = np.random.rand(64, 64, 10, 5) * 100  # (x, y, z, n_echoes)
 
 # Fit with automatic Otsu masking
 maps = model.fit_image(volume, mask="otsu")
-t2_map = maps["params"]["t2_ms"]  # Shape: (64, 64, 10)
+t2_map = maps["t2_ms"]  # Shape: (64, 64, 10)
+# 追加情報は maps.quality / maps.diagnostics で参照可能
 ```
 
 ## Parallel Processing

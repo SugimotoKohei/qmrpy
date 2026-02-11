@@ -30,12 +30,9 @@ signal = model.forward(m0=1000, t2_ms=80)
 
 # Fit single voxel
 fit = model.fit(signal)
-print(fit["params"]["t2_ms"])
-# fit == {
-#   "params": {"m0": 1000.0, "t2_ms": 80.0},
-#   "quality": {"rmse": ..., "n_points": ..., "status": "ok"},
-#   "diagnostics": {...},
-# }
+print(fit["t2_ms"])            # params access (dict-like)
+print(fit.quality["rmse"])     # quality metadata
+print(fit.diagnostics)         # diagnostics metadata
 
 # Fit image with auto-masking and parallel processing
 result = model.fit_image(image_data, mask="otsu", n_jobs=-1)
@@ -113,12 +110,9 @@ signal = model.forward(m0=1000, t2_ms=80)
 
 # 単一ボクセルのフィッティング
 fit = model.fit(signal)
-print(fit["params"]["t2_ms"])
-# fit == {
-#   "params": {"m0": 1000.0, "t2_ms": 80.0},
-#   "quality": {"rmse": ..., "n_points": ..., "status": "ok"},
-#   "diagnostics": {...},
-# }
+print(fit["t2_ms"])            # params への辞書互換アクセス
+print(fit.quality["rmse"])     # quality メタデータ
+print(fit.diagnostics)         # diagnostics メタデータ
 
 # 画像フィッティング（自動マスク＋並列処理）
 result = model.fit_image(image_data, mask="otsu", n_jobs=-1)

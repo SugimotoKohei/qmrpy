@@ -33,8 +33,8 @@ dam_data = np.load("dam_data.npy")
 
 # Fit (vectorized, very fast)
 maps = model.fit_image(dam_data, mask="otsu")
-b1_map = maps["params"]["b1_raw"]
-spurious = maps["diagnostics"]["spurious"]  # Quality flag
+b1_map = maps["b1_raw"]
+spurious = maps.diagnostics["spurious"]  # Quality flag
 ```
 
 ## Actual Flip Angle Imaging (AFI)
@@ -67,7 +67,7 @@ afi_data = np.load("afi_data.npy")
 
 # Fit
 maps = model.fit_image(afi_data, mask="otsu")
-b1_map = maps["params"]["b1_raw"]
+b1_map = maps["b1_raw"]
 ```
 
 ## Bloch-Siegert
@@ -120,8 +120,8 @@ Both methods return a `spurious` map indicating unreliable fits:
 maps = model.fit_image(data)
 
 # Filter unreliable B1 values
-b1_clean = maps["params"]["b1_raw"].copy()
-b1_clean[maps["diagnostics"]["spurious"] > 0] = np.nan
+b1_clean = maps["b1_raw"].copy()
+b1_clean[maps.diagnostics["spurious"] > 0] = np.nan
 ```
 
 ## API Reference

@@ -821,6 +821,18 @@ def _fit_model(model: Any, signal: Any, *, fit_kwargs: Mapping[str, Any]) -> dic
     else:
         raise TypeError("model must provide fit(...) or fit_linear(...)")
 
+    params_attr = getattr(fitted, "params", None)
+    quality_attr = getattr(fitted, "quality", None)
+    diagnostics_attr = getattr(fitted, "diagnostics", None)
+    if isinstance(params_attr, Mapping):
+        return {
+            "params": _extract_scalar_mapping(params_attr),
+            "quality": _extract_scalar_mapping(quality_attr if isinstance(quality_attr, Mapping) else {}),
+            "diagnostics": _extract_scalar_mapping(
+                diagnostics_attr if isinstance(diagnostics_attr, Mapping) else {}
+            ),
+        }
+
     fit_dict = dict(fitted)
     if "params" in fit_dict and isinstance(fit_dict["params"], Mapping):
         return {

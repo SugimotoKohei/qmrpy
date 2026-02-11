@@ -4,6 +4,7 @@ from typing import Any
 
 from numpy.typing import ArrayLike
 
+from qmrpy.core import FitResult
 from qmrpy.models import (
     B0DualEcho,
     B0MultiEcho,
@@ -62,7 +63,7 @@ def fit_t1_vfa(
     tr_ms: float,
     b1: ArrayLike | float = 1.0,
     **kwargs: Any,
-) -> dict[str, Any]:
+) -> FitResult:
     return _build_model("t1_vfa", flip_angle_deg=flip_angle_deg, tr_ms=tr_ms, b1=b1).fit(
         signal, **kwargs
     )
@@ -75,7 +76,7 @@ def fit_t1_vfa_linear(
     tr_ms: float,
     b1: ArrayLike | float = 1.0,
     **kwargs: Any,
-) -> dict[str, Any]:
+) -> FitResult:
     return _build_model("t1_vfa", flip_angle_deg=flip_angle_deg, tr_ms=tr_ms, b1=b1).fit_linear(
         signal, **kwargs
     )
@@ -99,7 +100,7 @@ def fit_t1_inversion_recovery(
     *,
     ti_ms: ArrayLike,
     **kwargs: Any,
-) -> dict[str, Any]:
+) -> FitResult:
     return _build_model("t1_inversion_recovery", ti_ms=ti_ms).fit(signal, **kwargs)
 
 
@@ -109,7 +110,7 @@ def fit_t1_despot1_hifi(
     flip_angle_deg: ArrayLike,
     tr_ms: float,
     **kwargs: Any,
-) -> dict[str, Any]:
+) -> FitResult:
     return _build_model("t1_despot1_hifi", flip_angle_deg=flip_angle_deg, tr_ms=tr_ms).fit(
         signal, **kwargs
     )
@@ -123,7 +124,7 @@ def fit_t1_mp2rage(
     alpha1_deg: float,
     alpha2_deg: float,
     **kwargs: Any,
-) -> dict[str, Any]:
+) -> FitResult:
     model = _build_model(
         "t1_mp2rage",
         ti1_ms=ti1_ms,
@@ -148,7 +149,7 @@ def fit_t2_mono(
     *,
     te_ms: ArrayLike,
     **kwargs: Any,
-) -> dict[str, Any]:
+) -> FitResult:
     return _build_model("t2_mono", te_ms=te_ms).fit(signal, **kwargs)
 
 
@@ -187,7 +188,7 @@ def fit_t2_epg(
     b1: float | None = None,
     epg_backend: str = "decaes",
     **kwargs: Any,
-) -> dict[str, Any]:
+) -> FitResult:
     model = _build_model(
         "t2_epg",
         n_te=n_te,
@@ -206,7 +207,7 @@ def fit_t2_emc(
     n_te: int,
     te_ms: float,
     **kwargs: Any,
-) -> dict[str, Any]:
+) -> FitResult:
     return _build_model("t2_emc", n_te=n_te, te_ms=te_ms).fit(signal, **kwargs)
 
 
@@ -215,7 +216,7 @@ def fit_t2_multi_component(
     *,
     te_ms: ArrayLike,
     **kwargs: Any,
-) -> dict[str, Any]:
+) -> FitResult:
     return _build_model("t2_multi_component", te_ms=te_ms).fit(signal, **kwargs)
 
 
@@ -228,7 +229,7 @@ def fit_t2_decaes_map(
     t2_range_ms: tuple[float, float],
     reg: str,
     **kwargs: Any,
-) -> dict[str, Any]:
+) -> FitResult:
     model = _build_model(
         "t2_decaes_map",
         n_te=n_te,
@@ -246,7 +247,7 @@ def fit_t2star_mono_r2(
     *,
     te_ms: ArrayLike,
     **kwargs: Any,
-) -> dict[str, Any]:
+) -> FitResult:
     return _build_model("t2star_mono_r2", te_ms=te_ms).fit(signal, **kwargs)
 
 
@@ -254,7 +255,7 @@ def fit_t2star_complex_r2(
     signal: ArrayLike,
     *,
     te_ms: ArrayLike,
-) -> dict[str, Any]:
+) -> FitResult:
     return _build_model("t2star_complex_r2", te_ms=te_ms).fit(signal)
 
 
@@ -264,7 +265,7 @@ def fit_b0_dual_echo(
     te1_ms: float,
     te2_ms: float,
     unwrap_phase: bool = False,
-) -> dict[str, Any]:
+) -> FitResult:
     return _build_model(
         "b0_dual_echo",
         te1_ms=te1_ms,
@@ -278,5 +279,5 @@ def fit_b0_multi_echo(
     *,
     te_ms: ArrayLike,
     unwrap_phase: bool = True,
-) -> dict[str, Any]:
+) -> FitResult:
     return _build_model("b0_multi_echo", te_ms=te_ms, unwrap_phase=unwrap_phase).fit(signal)

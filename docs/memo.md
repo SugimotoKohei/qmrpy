@@ -113,3 +113,16 @@
 - `$memo-entry`: `gh run view` で `Deploy Docs` 失敗原因を調査し、`docs/api/functional.md` の `qmrpy.functional.decaes_t2map_spectrum` 参照が未実装であることを確認
 - `docs/api/functional.md` から未実装 API 参照を削除して mkdocstrings のビルドエラーを解消
 - `uv run --locked mkdocs build` を実行（build 成功）
+- `$memo-entry`: `src/qmrpy/core/result_schema.py` に `FitResult` を追加し、`fit/fit_image` の戻り値を params辞書互換 + `quality`/`diagnostics` 属性アクセス可能な形式へ改訂
+- `src/qmrpy/core/fit_protocols.py` と `src/qmrpy/core/__init__.py` を更新し、`nest_result` の返却型を `FitResult` に統一、公開APIに `FitResult` を追加
+- `src/qmrpy/sim/simulation.py` の `_fit_model` を更新し、`FitResult` 属性アクセスと既存ネスト辞書の両方を扱えるように調整
+- `src/qmrpy/functional.py` の型ヒントを `FitResult` 返却に更新
+- `README.md` / `docs/getting-started/quickstart.md` を更新し、新しい `fit['param']` + `fit.quality` / `fit.diagnostics` 記法を反映
+- `tests/test_fit_result.py` を追加し、params辞書互換アクセス・属性アクセス・後方互換アクセス（`result['params']`）を回帰テスト化
+- `uv run --locked ruff check src/qmrpy/core/result_schema.py src/qmrpy/core/fit_protocols.py src/qmrpy/functional.py src/qmrpy/sim/simulation.py tests/test_fit_result.py` を実行（All checks passed）
+- `uv run --locked -m pytest` を実行（117 passed, warnings 5件）
+- `uv run --locked mkdocs build` を実行（build 成功）
+- `$memo-entry`: `FitResult` 方針に合わせ、関連ドキュメントを網羅改訂（`docs/guide/t1-mapping.md`, `docs/guide/t2-mapping.md`, `docs/guide/b1-mapping.md`, `docs/api/index.md`, `README.md`, `docs/getting-started/quickstart.md`）
+- ガイド内の参照を `result["params"][...]` / `maps["params"][...]` から `result["..."]` / `maps["..."]` に統一し、`quality`/`diagnostics` は属性アクセス（`result.quality`, `maps.diagnostics`）へ変更
+- `docs/guide/t2-mapping.md` の `T2DECAESMap.fit_image` 戻り値説明を現仕様に合わせ、`maps, dist = ...` から `maps = ...; dist = maps["distribution"]` へ修正
+- `uv run --locked mkdocs build` を再実行（build 成功）

@@ -46,8 +46,8 @@ vfa_data = np.load("vfa_data.npy")
 
 # Fit with Otsu masking and parallel processing
 maps = model.fit_image(vfa_data, mask="otsu", n_jobs=-1, verbose=True)
-t1_map = maps["params"]["t1_ms"]
-m0_map = maps["params"]["m0"]
+t1_map = maps["t1_ms"]
+m0_map = maps["m0"]
 ```
 
 ## Inversion Recovery
@@ -105,7 +105,8 @@ from qmrpy.models.t1 import T1DESPOT1HIFI
 
 model = T1DESPOT1HIFI(flip_angle_deg=[3, 10, 18], tr_ms=18.0)
 result = model.fit(vfa_signal, estimate_b1=True)
-print(result["params"]["t1_ms"], result["params"]["b1"])
+print(result["t1_ms"], result["b1"])
+print(result.quality["rmse"])
 ```
 
 ## T1MP2RAGE
@@ -118,7 +119,8 @@ model = T1MP2RAGE(
     alpha1_deg=4.0, alpha2_deg=5.0,
 )
 result = model.fit(mp2rage_signal, method="nls", estimate_b1=True)
-print(result["params"]["t1_ms"], result["params"]["b1"])
+print(result["t1_ms"], result["b1"])
+print(result.quality["rmse"])
 ```
 
 ## API Reference
