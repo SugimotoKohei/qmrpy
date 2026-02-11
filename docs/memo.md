@@ -108,3 +108,5 @@
 - `uv run --locked -m pytest tests/test_decaes_parity.py tests/test_decaes_t2.py tests/test_decaes_t2part.py tests/test_emc_t2.py tests/test_epg_t2.py tests/test_functional_extended.py tests/test_inversion_recovery.py tests/test_mono_t2.py tests/test_mwf.py tests/test_qsm_pipeline.py tests/test_simulation.py tests/test_validation_suite.py` を実行（43 passed）
 - `uv run --locked ruff check src tests scripts` を実行（All checks passed）
 - `uv run --locked -m pytest` を実行（114 passed, warnings 5件）
+- `$memo-entry`: `README.md` のクイックスタート（英日）を新結果スキーマに追随し、`fit()` の戻り値例を `params/quality/diagnostics` 形式へ更新
+- `README.md` の旧クラス名・旧functional名を再検索し、旧命名参照が残っていないことを確認

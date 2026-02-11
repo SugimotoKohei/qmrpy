@@ -30,7 +30,12 @@ signal = model.forward(m0=1000, t2_ms=80)
 
 # Fit single voxel
 fit = model.fit(signal)
-print(fit)  # {'m0': 1000.0, 't2_ms': 80.0}
+print(fit["params"]["t2_ms"])
+# fit == {
+#   "params": {"m0": 1000.0, "t2_ms": 80.0},
+#   "quality": {"rmse": ..., "n_points": ..., "status": "ok"},
+#   "diagnostics": {...},
+# }
 
 # Fit image with auto-masking and parallel processing
 result = model.fit_image(image_data, mask="otsu", n_jobs=-1)
@@ -108,7 +113,12 @@ signal = model.forward(m0=1000, t2_ms=80)
 
 # 単一ボクセルのフィッティング
 fit = model.fit(signal)
-print(fit)  # {'m0': 1000.0, 't2_ms': 80.0}
+print(fit["params"]["t2_ms"])
+# fit == {
+#   "params": {"m0": 1000.0, "t2_ms": 80.0},
+#   "quality": {"rmse": ..., "n_points": ..., "status": "ok"},
+#   "diagnostics": {...},
+# }
 
 # 画像フィッティング（自動マスク＋並列処理）
 result = model.fit_image(image_data, mask="otsu", n_jobs=-1)
