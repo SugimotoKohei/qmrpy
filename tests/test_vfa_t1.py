@@ -3,18 +3,18 @@ def test_vfa_t1_forward_and_fit_noise_free():
 
     np = pytest.importorskip("numpy")
 
-    from qmrpy.models.t1 import VFAT1
+    from qmrpy.models.t1 import T1VFA
 
     flip_angle_deg = np.array([3.0, 8.0, 15.0, 25.0], dtype=float)
-    model = VFAT1(flip_angle_deg=flip_angle_deg, tr_ms=15.0, b1=1.0)
+    model = T1VFA(flip_angle_deg=flip_angle_deg, tr_ms=15.0, b1=1.0)
 
     m0_true = 2000.0
     t1_true_ms = 900.0
     signal = model.forward(m0=m0_true, t1_ms=t1_true_ms)
 
     fitted = model.fit(signal)
-    assert abs(fitted["m0"] - m0_true) / m0_true < 1e-6
-    assert abs(fitted["t1_ms"] - t1_true_ms) / t1_true_ms < 1e-6
+    assert abs(fitted["params"]["m0"] - m0_true) / m0_true < 1e-6
+    assert abs(fitted["params"]["t1_ms"] - t1_true_ms) / t1_true_ms < 1e-6
 
 
 def test_vfa_t1_fit_respects_b1():
@@ -22,19 +22,19 @@ def test_vfa_t1_fit_respects_b1():
 
     np = pytest.importorskip("numpy")
 
-    from qmrpy.models.t1 import VFAT1
+    from qmrpy.models.t1 import T1VFA
 
     flip_angle_deg = np.array([3.0, 8.0, 15.0, 25.0], dtype=float)
     tr_ms = 15.0
     b1 = 0.9
-    model = VFAT1(flip_angle_deg=flip_angle_deg, tr_ms=tr_ms, b1=b1)
+    model = T1VFA(flip_angle_deg=flip_angle_deg, tr_ms=tr_ms, b1=b1)
 
     m0_true = 1500.0
     t1_true_ms = 1100.0
     signal = model.forward(m0=m0_true, t1_ms=t1_true_ms)
 
     fitted = model.fit(signal)
-    assert abs(fitted["t1_ms"] - t1_true_ms) / t1_true_ms < 1e-6
+    assert abs(fitted["params"]["t1_ms"] - t1_true_ms) / t1_true_ms < 1e-6
 
 
 def test_vfa_t1_robust_fit_reduces_outlier_impact():
@@ -42,10 +42,10 @@ def test_vfa_t1_robust_fit_reduces_outlier_impact():
 
     np = pytest.importorskip("numpy")
 
-    from qmrpy.models.t1 import VFAT1
+    from qmrpy.models.t1 import T1VFA
 
     flip_angle_deg = np.array([3.0, 8.0, 15.0, 25.0], dtype=float)
-    model = VFAT1(flip_angle_deg=flip_angle_deg, tr_ms=15.0, b1=1.0)
+    model = T1VFA(flip_angle_deg=flip_angle_deg, tr_ms=15.0, b1=1.0)
 
     m0_true = 2000.0
     t1_true_ms = 900.0
@@ -55,8 +55,8 @@ def test_vfa_t1_robust_fit_reduces_outlier_impact():
     nonrobust = model.fit(signal, robust=False)
     robust = model.fit(signal, robust=True)
 
-    err_nonrobust = abs(nonrobust["t1_ms"] - t1_true_ms)
-    err_robust = abs(robust["t1_ms"] - t1_true_ms)
+    err_nonrobust = abs(nonrobust["params"]["t1_ms"] - t1_true_ms)
+    err_robust = abs(robust["params"]["t1_ms"] - t1_true_ms)
     assert err_robust < err_nonrobust
 
 
@@ -65,10 +65,10 @@ def test_vfa_t1_outlier_rejection_recovers_from_upward_spike():
 
     np = pytest.importorskip("numpy")
 
-    from qmrpy.models.t1 import VFAT1
+    from qmrpy.models.t1 import T1VFA
 
     flip_angle_deg = np.array([3.0, 8.0, 15.0, 25.0], dtype=float)
-    model = VFAT1(flip_angle_deg=flip_angle_deg, tr_ms=15.0, b1=1.0)
+    model = T1VFA(flip_angle_deg=flip_angle_deg, tr_ms=15.0, b1=1.0)
 
     m0_true = 2000.0
     t1_true_ms = 900.0
@@ -78,8 +78,8 @@ def test_vfa_t1_outlier_rejection_recovers_from_upward_spike():
     no_reject = model.fit(signal, outlier_reject=False)
     reject = model.fit(signal, outlier_reject=True)
 
-    assert abs(reject["t1_ms"] - t1_true_ms) < abs(no_reject["t1_ms"] - t1_true_ms)
-    assert reject["n_points"] < no_reject["n_points"]
+    assert abs(reject["params"]["t1_ms"] - t1_true_ms) < abs(no_reject["params"]["t1_ms"] - t1_true_ms)
+    assert reject["quality"]["n_points"] < no_reject["quality"]["n_points"]
 
 
 def test_vfa_t1_fit_image_shapes():
@@ -87,18 +87,18 @@ def test_vfa_t1_fit_image_shapes():
 
     np = pytest.importorskip("numpy")
 
-    from qmrpy.models.t1 import VFAT1
+    from qmrpy.models.t1 import T1VFA
 
     flip_angle_deg = np.array([3.0, 8.0, 15.0, 25.0], dtype=float)
-    model = VFAT1(flip_angle_deg=flip_angle_deg, tr_ms=15.0, b1=1.0)
+    model = T1VFA(flip_angle_deg=flip_angle_deg, tr_ms=15.0, b1=1.0)
 
     signal = model.forward(m0=2000.0, t1_ms=900.0)
     img = np.stack([signal, signal], axis=0).reshape(2, 1, -1)
     out = model.fit_image(img)
 
-    assert out["m0"].shape == img.shape[:-1]
-    assert out["t1_ms"].shape == img.shape[:-1]
-    assert out["n_points"].shape == img.shape[:-1]
+    assert out["params"]["m0"].shape == img.shape[:-1]
+    assert out["params"]["t1_ms"].shape == img.shape[:-1]
+    assert out["quality"]["n_points"].shape == img.shape[:-1]
 
 
 def test_vfa_t1_fit_image_rejects_mask_for_1d():
@@ -106,10 +106,10 @@ def test_vfa_t1_fit_image_rejects_mask_for_1d():
 
     np = pytest.importorskip("numpy")
 
-    from qmrpy.models.t1 import VFAT1
+    from qmrpy.models.t1 import T1VFA
 
     flip_angle_deg = np.array([3.0, 8.0, 15.0, 25.0], dtype=float)
-    model = VFAT1(flip_angle_deg=flip_angle_deg, tr_ms=15.0, b1=1.0)
+    model = T1VFA(flip_angle_deg=flip_angle_deg, tr_ms=15.0, b1=1.0)
     signal = model.forward(m0=2000.0, t1_ms=900.0)
 
     with pytest.raises(ValueError, match="mask must be None for 1D data"):

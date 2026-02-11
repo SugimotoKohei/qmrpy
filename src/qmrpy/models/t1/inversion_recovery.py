@@ -185,7 +185,7 @@ def _rdnls_pr_grid(
     idx = int(min_ind + 1 if best == 0 else min_ind)
     return t1_est, b_est, a_est, res, idx
 @dataclass(frozen=True, slots=True)
-class InversionRecovery:
+class T1InversionRecovery:
     """Inversion Recovery T1 model (qMRLab: inversion_recovery).
 
     Signal model (Barral):
@@ -475,7 +475,7 @@ class InversionRecovery:
 
         result = parallel_fit(
             fit_func, flat, mask_flat, output_keys, spatial_shape,
-            n_jobs=n_jobs, verbose=verbose, desc="InversionRecovery"
+            n_jobs=n_jobs, verbose=verbose, desc="T1InversionRecovery"
         )
 
         # Convert idx to int64

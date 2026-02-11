@@ -653,7 +653,7 @@ def _choose_mu(
 
 
 @dataclass(frozen=True, slots=True)
-class DECAEST2Map:
+class T2DECAESMap:
     """DECAES-like multi-component T2 mapping (T2mapSEcorr + core outputs).
 
     Performs non-negative least squares (NNLS) fitting of multi-echo spin-echo
@@ -1098,14 +1098,14 @@ class DECAEST2Map:
         n_voxels = int(np.sum(m))
 
         if verbose:
-            logger.info("DECAEST2Map: %d voxels, n_jobs=%s, shape=%s", n_voxels, n_jobs, shape3)
+            logger.info("T2DECAESMap: %d voxels, n_jobs=%s, shape=%s", n_voxels, n_jobs, shape3)
 
         if n_jobs == 1:
             # Serial execution
             iterator = indices
             if verbose:
                 from tqdm import tqdm
-                iterator = tqdm(indices, desc="DECAEST2Map", unit="voxel")
+                iterator = tqdm(indices, desc="T2DECAESMap", unit="voxel")
 
             for idx in iterator:
                 _idx, res = process_voxel(idx)
@@ -1135,7 +1135,7 @@ class DECAEST2Map:
                 from tqdm import tqdm
                 results = Parallel(n_jobs=n_jobs)(
                     delayed(process_voxel)(idx)
-                    for idx in tqdm(indices, desc="DECAEST2Map", unit="voxel")
+                    for idx in tqdm(indices, desc="T2DECAESMap", unit="voxel")
                 )
             else:
                 results = Parallel(n_jobs=n_jobs)(
@@ -1163,7 +1163,7 @@ class DECAEST2Map:
                     decaybasis[_idx] = res["basis"]
 
         if verbose:
-            logger.info("DECAEST2Map complete: %d voxels processed", n_voxels)
+            logger.info("T2DECAESMap complete: %d voxels processed", n_voxels)
 
         maps: dict[str, Any] = {
             "echotimes_ms": echotimes,

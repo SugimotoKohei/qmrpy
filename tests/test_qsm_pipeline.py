@@ -3,13 +3,13 @@ def test_qsm_pipeline_shapes():
 
     np = pytest.importorskip("numpy")
 
-    from qmrpy.models.qsm import QsmSplitBregman
+    from qmrpy.models.qsm import QSMSplitBregman
 
     shape = (6, 6, 6)
     phase = np.random.default_rng(0).normal(0, 1, size=shape)
     mask = np.ones(shape, dtype=float)
 
-    model = QsmSplitBregman(
+    model = QSMSplitBregman(
         sharp_filter=False,
         l1_regularized=False,
         l2_regularized=True,
@@ -18,10 +18,10 @@ def test_qsm_pipeline_shapes():
     )
 
     out = model.fit(phase=phase, mask=mask, image_resolution_mm=np.array([1.0, 1.0, 1.0]))
-    assert "unwrapped_phase" in out
-    assert "mask_out" in out
-    assert "chi_l2" in out
-    assert out["chi_l2"].shape == (shape[0] - 2, shape[1] - 2, shape[2] - 2)
+    assert "unwrapped_phase" in out["diagnostics"]
+    assert "mask_out" in out["diagnostics"]
+    assert "chi_l2" in out["params"]
+    assert out["params"]["chi_l2"].shape == (shape[0] - 2, shape[1] - 2, shape[2] - 2)
 
 
 def test_qsm_pipeline_no_regularization_returns_nfm():
@@ -29,13 +29,13 @@ def test_qsm_pipeline_no_regularization_returns_nfm():
 
     np = pytest.importorskip("numpy")
 
-    from qmrpy.models.qsm import QsmSplitBregman
+    from qmrpy.models.qsm import QSMSplitBregman
 
     shape = (6, 6, 6)
     phase = np.random.default_rng(0).normal(0, 1, size=shape)
     mask = np.ones(shape, dtype=float)
 
-    model = QsmSplitBregman(
+    model = QSMSplitBregman(
         sharp_filter=False,
         l1_regularized=False,
         l2_regularized=False,
@@ -44,6 +44,6 @@ def test_qsm_pipeline_no_regularization_returns_nfm():
     )
 
     out = model.fit(phase=phase, mask=mask, image_resolution_mm=np.array([1.0, 1.0, 1.0]))
-    assert "unwrapped_phase" in out
-    assert "mask_out" in out
-    assert "nfm" in out
+    assert "unwrapped_phase" in out["diagnostics"]
+    assert "mask_out" in out["diagnostics"]
+    assert "nfm" in out["params"]

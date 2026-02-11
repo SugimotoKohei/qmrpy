@@ -21,7 +21,7 @@ def _as_1d_float_array(values: ArrayLike, *, name: str) -> NDArray[np.float64]:
 
 
 @dataclass(frozen=True, slots=True)
-class B1Afi:
+class B1AFI:
     """Actual Flip Angle Imaging (AFI) for B1+ mapping (qMRLab: b1_afi).
 
     Protocol:
@@ -150,7 +150,7 @@ class B1Afi:
         n = float(self.tr2_ms) / float(self.tr1_ms)
 
         if verbose:
-            logger.info("B1Afi: %d voxels (vectorized), shape=%s", n_voxels, spatial_shape)
+            logger.info("B1AFI: %d voxels (vectorized), shape=%s", n_voxels, spatial_shape)
 
         r = np.empty_like(s1, dtype=np.float64)
         r[valid] = np.abs(s2[valid] / s1[valid])
@@ -169,6 +169,6 @@ class B1Afi:
         spurious[valid] = np.where(np.isfinite(b1[valid]) & (b1[valid] >= 0.5), 0.0, 1.0)
 
         if verbose:
-            logger.info("B1Afi complete: %d voxels processed", n_voxels)
+            logger.info("B1AFI complete: %d voxels processed", n_voxels)
 
         return {"b1_raw": b1_raw, "spurious": spurious}

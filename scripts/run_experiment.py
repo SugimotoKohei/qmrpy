@@ -140,14 +140,14 @@ def _run_mono_t2(cfg: MonoT2Config, *, out_metrics: Path, out_figures: Path) -> 
     from plotnine import aes, geom_abline, geom_histogram, geom_point, ggplot, labs, theme_bw
     from plotnine import ggsave
 
-    from qmrpy.models.t2 import MonoT2
+    from qmrpy.models.t2 import T2Mono
     from qmrpy.sim.noise import add_gaussian_noise, add_rician_noise
 
     rng = np.random.default_rng(cfg.seed)
     t2_true = rng.uniform(cfg.t2_min_ms, cfg.t2_max_ms, size=cfg.n_samples).astype(float)
     m0_true = np.full(cfg.n_samples, cfg.m0, dtype=float)
 
-    model = MonoT2(te_ms=np.array(cfg.te_ms, dtype=float))
+    model = T2Mono(te_ms=np.array(cfg.te_ms, dtype=float))
     signal_clean = np.stack(
         [model.forward(m0=float(m0_true[i]), t2_ms=float(t2_true[i])) for i in range(cfg.n_samples)]
     )
@@ -168,10 +168,10 @@ def _run_mono_t2(cfg: MonoT2Config, *, out_metrics: Path, out_figures: Path) -> 
             drop_first_echo=cfg.drop_first_echo,
             offset_term=cfg.offset_term,
         )
-        fitted_m0[i] = fitted["m0"]
-        fitted_t2[i] = fitted["t2_ms"]
+        fitted_m0[i] = fitted["params"]["m0"]
+        fitted_t2[i] = fitted["params"]["t2_ms"]
         if "offset" in fitted:
-            fitted_offset[i] = float(fitted["offset"])
+            fitted_offset[i] = float(fitted["params"]["offset"])
 
     t2_err = fitted_t2 - t2_true
     m0_err = fitted_m0 - m0_true
@@ -279,7 +279,7 @@ class MwfConfig:
 
 
 @dataclass(frozen=True)
-class InversionRecoveryConfig:
+class InversionRecoveryConfigLegacy:
     ti_ms: list[float]
     n_samples: int
     t1_min_ms: float
@@ -447,7 +447,7 @@ def _parse_mwf_config(config: dict[str, object]) -> MwfConfig:
 
 
 
-def _parse_inversion_recovery_config(config: dict[str, object]) -> InversionRecoveryConfig:
+def _parse_inversion_recovery_config_legacy(config: dict[str, object]) -> InversionRecoveryConfigLegacy:
 
     run_cfg = config.get("run", {})
     ir_cfg = config.get("inversion_recovery", {})
@@ -475,7 +475,7 @@ def _parse_inversion_recovery_config(config: dict[str, object]) -> InversionReco
     method = str(ir_cfg.get("method", "magnitude"))
     seed = int(run_cfg.get("seed", 0))
 
-    return InversionRecoveryConfig(
+    return InversionRecoveryConfigLegacy(
         ti_ms=[float(x) for x in ti_ms],
         n_samples=n_samples,
         t1_min_ms=t1_min_ms,
@@ -497,7 +497,7 @@ def _run_vfat1(cfg: VFAT1Config, *, out_metrics: Path, out_figures: Path) -> dic
     from plotnine import aes, geom_abline, geom_histogram, geom_point, ggplot, labs, theme_bw
     from plotnine import ggsave
 
-    from qmrpy.models.t1 import VFAT1
+    from qmrpy.models.t1 import T1VFA
     from qmrpy.sim.noise import add_gaussian_noise, add_rician_noise
 
     rng = np.random.default_rng(cfg.seed)
@@ -508,10 +508,10 @@ def _run_vfat1(cfg: VFAT1Config, *, out_metrics: Path, out_figures: Path) -> dic
     else:
         b1_true = np.full(cfg.n_samples, cfg.b1, dtype=float)
 
-    model_nominal = VFAT1(flip_angle_deg=np.array(cfg.flip_angle_deg, dtype=float), tr_ms=cfg.tr_ms, b1=1.0)
+    model_nominal = T1VFA(flip_angle_deg=np.array(cfg.flip_angle_deg, dtype=float), tr_ms=cfg.tr_ms, b1=1.0)
     signal_clean = np.stack(
         [
-            VFAT1(
+            T1VFA(
                 flip_angle_deg=model_nominal.flip_angle_deg,
                 tr_ms=cfg.tr_ms,
                 b1=float(b1_true[i]),
@@ -534,7 +534,7 @@ def _run_vfat1(cfg: VFAT1Config, *, out_metrics: Path, out_figures: Path) -> dic
             fitted_m0[i] = np.nan
             fitted_t1[i] = np.nan
             continue
-        fitted = VFAT1(
+        fitted = T1VFA(
             flip_angle_deg=model_nominal.flip_angle_deg,
             tr_ms=cfg.tr_ms,
             b1=float(b1_true[i]),
@@ -544,8 +544,8 @@ def _run_vfat1(cfg: VFAT1Config, *, out_metrics: Path, out_figures: Path) -> dic
             huber_k=cfg.huber_k,
             outlier_reject=cfg.outlier_reject,
         )
-        fitted_m0[i] = fitted["m0"]
-        fitted_t1[i] = fitted["t1_ms"]
+        fitted_m0[i] = fitted["params"]["m0"]
+        fitted_t1[i] = fitted["params"]["t1_ms"]
         n_points[i] = float(fitted.get("n_points", np.nan))
 
     valid = np.isfinite(fitted_t1) & np.isfinite(fitted_m0)
@@ -622,12 +622,12 @@ def _run_b1_dam(cfg: B1DamConfig, *, out_metrics: Path, out_figures: Path) -> di
     from plotnine import aes, geom_abline, geom_histogram, geom_point, ggplot, labs, theme_bw
     from plotnine import ggsave
 
-    from qmrpy.models.b1 import B1Dam
+    from qmrpy.models.b1 import B1DAM
     from qmrpy.sim.noise import add_gaussian_noise, add_rician_noise
 
     rng = np.random.default_rng(cfg.seed)
     b1_true = rng.uniform(cfg.b1_min, cfg.b1_max, size=cfg.n_samples).astype(float)
-    model = B1Dam(alpha_deg=cfg.alpha_deg)
+    model = B1DAM(alpha_deg=cfg.alpha_deg)
 
     signal_clean = np.stack([model.forward(m0=cfg.m0, b1=float(b1_true[i])) for i in range(cfg.n_samples)])
 
@@ -642,8 +642,8 @@ def _run_b1_dam(cfg: B1DamConfig, *, out_metrics: Path, out_figures: Path) -> di
     spurious = np.empty(cfg.n_samples, dtype=float)
     for i in range(cfg.n_samples):
         fitted = model.fit(signal[i])
-        b1_hat[i] = fitted["b1_raw"]
-        spurious[i] = fitted["spurious"]
+        b1_hat[i] = fitted["params"]["b1_raw"]
+        spurious[i] = fitted["diagnostics"]["spurious"]
 
     err = b1_hat - b1_true
     metrics = {
@@ -699,7 +699,7 @@ def _run_mwf(cfg: MwfConfig, *, out_metrics: Path, out_figures: Path) -> dict[st
     from plotnine import scale_x_log10, theme_bw
     from plotnine import ggsave
 
-    from qmrpy.models.t2.mwf import MultiComponentT2
+    from qmrpy.models.t2.mwf import T2MultiComponent
     from qmrpy.sim.noise import add_gaussian_noise, add_rician_noise
 
     rng = np.random.default_rng(cfg.seed)
@@ -718,7 +718,7 @@ def _run_mwf(cfg: MwfConfig, *, out_metrics: Path, out_figures: Path) -> dict[st
     # S(TE) = M0 * [ MWF*exp(-TE/T2_myelin) + (1-MWF)*exp(-TE/T2_ie) ]
     te_arr = np.array(cfg.te_ms, dtype=float)
     
-    # We can reuse MultiComponentT2 forward if we construct weights on basis?
+    # We can reuse T2MultiComponent forward if we construct weights on basis?
     # Or just simulate manually for exact T2s (which might not be on basis grid).
     # Manual simulation is better to avoid "inverse crime".
     
@@ -745,8 +745,8 @@ def _run_mwf(cfg: MwfConfig, *, out_metrics: Path, out_figures: Path) -> dict[st
     fitted_resid_l2 = np.empty(cfg.n_samples, dtype=float)
 
     t2_min_ms, t2_max_ms = cfg.t2_basis_range_ms
-    basis = MultiComponentT2.default_t2_basis_ms(t2_min_ms=t2_min_ms, t2_max_ms=t2_max_ms, n=cfg.t2_basis_n)
-    model = MultiComponentT2(te_ms=te_arr, t2_basis_ms=basis)
+    basis = T2MultiComponent.default_t2_basis_ms(t2_min_ms=t2_min_ms, t2_max_ms=t2_max_ms, n=cfg.t2_basis_n)
+    model = T2MultiComponent(te_ms=te_arr, t2_basis_ms=basis)
     fitted_weights = np.empty((cfg.n_samples, basis.size), dtype=float)
 
     for i in range(cfg.n_samples):
@@ -758,11 +758,11 @@ def _run_mwf(cfg: MwfConfig, *, out_metrics: Path, out_figures: Path) -> dict[st
             upper_cutoff_iew_ms=cfg.upper_cutoff_iew_ms,
             use_weighted_geometric_mean=cfg.use_weighted_geometric_mean,
         )
-        fitted_mwf[i] = res["mwf"]
-        fitted_t2mw[i] = res["t2mw_ms"]
-        fitted_t2iew[i] = res["t2iew_ms"]
-        fitted_gmt2[i] = res["gmt2_ms"]
-        fitted_resid_l2[i] = res["resid_l2"]
+        fitted_mwf[i] = res["params"]["mwf"]
+        fitted_t2mw[i] = res["params"]["t2mw_ms"]
+        fitted_t2iew[i] = res["params"]["t2iew_ms"]
+        fitted_gmt2[i] = res["params"]["gmt2_ms"]
+        fitted_resid_l2[i] = res["quality"]["rmse"]
         fitted_weights[i] = np.asarray(res["weights"], dtype=float)
 
     mwf_err = fitted_mwf - mwf_true
@@ -936,12 +936,12 @@ def _run_inversion_recovery(
     from plotnine import aes, geom_abline, geom_histogram, geom_point, ggplot, labs, theme_bw
     from plotnine import ggsave
 
-    from qmrpy.models.t1 import InversionRecovery
+    from qmrpy.models.t1 import T1InversionRecovery
     from qmrpy.sim.noise import add_gaussian_noise, add_rician_noise
 
     rng = np.random.default_rng(cfg.seed)
     t1_true = rng.uniform(cfg.t1_min_ms, cfg.t1_max_ms, size=cfg.n_samples).astype(float)
-    model = InversionRecovery(ti_ms=np.array(cfg.ti_ms, dtype=float))
+    model = T1InversionRecovery(ti_ms=np.array(cfg.ti_ms, dtype=float))
 
     signal_clean = np.stack(
         [model.forward(t1_ms=float(t1_true[i]), ra=cfg.ra, rb=cfg.rb, magnitude=False) for i in range(cfg.n_samples)]
@@ -961,8 +961,8 @@ def _run_inversion_recovery(
     fitted_rmse = np.empty(cfg.n_samples, dtype=float)
     for i in range(cfg.n_samples):
         fitted = model.fit(signal[i], method=cfg.method, solver=cfg.solver)
-        fitted_t1[i] = fitted["t1_ms"]
-        fitted_rmse[i] = fitted["res_rmse"]
+        fitted_t1[i] = fitted["params"]["t1_ms"]
+        fitted_rmse[i] = fitted["quality"]["rmse"]
         if "idx" in fitted:
             fitted_idx[i] = float(fitted["idx"])
 

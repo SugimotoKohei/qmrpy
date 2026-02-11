@@ -120,15 +120,15 @@ class CubicHermiteSplineSurrogate1D:
         self.du[:] = np.nan
         self.idx.clear()
 
-    def update(self, I: int) -> None:
-        if self.seen[I]:
+    def update(self, idx: int) -> None:
+        if self.seen[idx]:
             return
-        u, du = self.prob.loss_with_grad(I)
-        self.seen[I] = True
-        self.u[I] = u
-        self.du[I] = du
+        u, du = self.prob.loss_with_grad(idx)
+        self.seen[idx] = True
+        self.u[idx] = u
+        self.du[idx] = du
         # keep idx sorted
-        self.idx.append(I)
+        self.idx.append(idx)
         self.idx.sort()
 
     def suggest_point(self) -> tuple[float, float]:
@@ -166,13 +166,13 @@ class DiscreteSurrogateSearcher1D:
 
 def _evaluate_box(surr: CubicHermiteSplineSurrogate1D, state: DiscreteSurrogateSearcher1D, lo: int, hi: int, *, maxeval: int):
     # Evaluate corners; sorted by distance to suggested point is omitted here since 1D endpoints only.
-    for I in (lo, hi):
+    for idx in (lo, hi):
         if state.numeval >= maxeval:
             break
-        if state.seen[I]:
+        if state.seen[idx]:
             continue
-        surr.update(I)
-        state.seen[I] = True
+        surr.update(idx)
+        state.seen[idx] = True
         state.numeval += 1
 
 

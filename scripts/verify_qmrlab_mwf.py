@@ -127,7 +127,7 @@ def run_case(
     import numpy as np
     import scipy.io
 
-    from qmrpy.models.t2 import MultiComponentT2
+    from qmrpy.models.t2 import T2MultiComponent
 
     mat = scipy.io.loadmat(out_mat, squeeze_me=True, struct_as_record=False)
     echo_times_ms = np.asarray(mat["EchoTimes_ms"], dtype=float).reshape(-1)
@@ -135,8 +135,8 @@ def run_case(
     fit_results = _mat_struct_to_dict(mat["FitResults"])
 
     lower_basis = float(1.5 * echo_times_ms[0])
-    basis = MultiComponentT2.default_t2_basis_ms(t2_min_ms=lower_basis, t2_max_ms=float(t2_basis_max_ms), n=int(t2_basis_n))
-    model = MultiComponentT2(te_ms=echo_times_ms, t2_basis_ms=basis)
+    basis = T2MultiComponent.default_t2_basis_ms(t2_min_ms=lower_basis, t2_max_ms=float(t2_basis_max_ms), n=int(t2_basis_n))
+    model = T2MultiComponent(te_ms=echo_times_ms, t2_basis_ms=basis)
     py = model.fit(
         signal,
         regularization_alpha=float(regularization_alpha),
@@ -169,20 +169,20 @@ def run_case(
         },
         "qmrlab": {"mwf_percent": qmrlab_mwf_percent, "t2mw_ms": qmrlab_t2mw_ms, "t2iew_ms": qmrlab_t2iew_ms},
         "qmrpy": {
-            "mwf_percent": float(100.0 * py["mwf"]),
-            "t2mw_ms": float(py["t2mw_ms"]),
-            "t2iew_ms": float(py["t2iew_ms"]),
-            "gmt2_ms": float(py["gmt2_ms"]),
-            "resid_l2": float(py["resid_l2"]),
+            "mwf_percent": float(100.0 * py["params"]["mwf"]),
+            "t2mw_ms": float(py["params"]["t2mw_ms"]),
+            "t2iew_ms": float(py["params"]["t2iew_ms"]),
+            "gmt2_ms": float(py["params"]["gmt2_ms"]),
+            "resid_l2": float(py["quality"]["rmse"]),
             "regularization_alpha": float(regularization_alpha),
             "regularization_mode": str(regularization_mode),
             "basis": {"t2_min_ms": lower_basis, "t2_max_ms": float(t2_basis_max_ms), "n": int(t2_basis_n)},
             "upper_cutoff_iew_ms": float(upper_cutoff_iew_ms),
         },
         "diff": {
-            "mwf_percent": float(100.0 * py["mwf"] - qmrlab_mwf_percent),
-            "t2mw_ms": float(py["t2mw_ms"] - qmrlab_t2mw_ms),
-            "t2iew_ms": float(py["t2iew_ms"] - qmrlab_t2iew_ms),
+            "mwf_percent": float(100.0 * py["params"]["mwf"] - qmrlab_mwf_percent),
+            "t2mw_ms": float(py["params"]["t2mw_ms"] - qmrlab_t2mw_ms),
+            "t2iew_ms": float(py["params"]["t2iew_ms"] - qmrlab_t2iew_ms),
         },
         "artifacts": {"qmrlab_out_mat": str(out_mat)},
     }

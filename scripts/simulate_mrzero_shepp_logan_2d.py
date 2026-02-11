@@ -104,7 +104,9 @@ def _make_simdata(
     size = torch.tensor([float(s) * 1e-3 for s in voxel_size_mm])
     voxel_pos = torch.tensor([[p * 1e-3 for p in voxel_pos_mm]], dtype=torch.float32)
     nyquist = torch.tensor([1, 1, 1])
-    dephasing_func = lambda b0_in, t: torch.zeros_like(b0_in)
+    def dephasing_func(b0_in: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
+        _ = t
+        return torch.zeros_like(b0_in)
 
     return mr0.SimData(pd_t, t1, t2, t2dash, d, b0_t, b1_t, coil_sens, size, voxel_pos, nyquist, dephasing_func)
 

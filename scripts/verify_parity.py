@@ -6,14 +6,10 @@ Usage:
     uv run scripts/verify_parity.py --model mono_t2
 """
 import argparse
-import csv
 import json
 import os
 import subprocess
-import sys
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -56,7 +52,7 @@ def run_octave(model_name: str, input_csv: Path, output_csv: Path) -> None:
 
 
 def verify_mono_t2() -> None:
-    from qmrpy.models.t2 import MonoT2
+    from qmrpy.models.t2 import T2Mono
 
     model_name = "mono_t2"
     input_csv = PARITY_DATA_DIR / f"{model_name}_input.csv"
@@ -75,7 +71,7 @@ def verify_mono_t2() -> None:
     # Actually qMRLab needs Signal and Protocol.
     # We will save strict columns: "id", "T2_true", "M0_true", "S_0", "S_1", ... 
     
-    model_py = MonoT2(te_ms=te_ms)
+    model_py = T2Mono(te_ms=te_ms)
     signals = []
     for i in range(n_samples):
         s = model_py.forward(m0=m0_true[i], t2_ms=t2_true[i])
@@ -113,8 +109,8 @@ def verify_mono_t2() -> None:
     
     for i in range(n_samples):
         res = model_py.fit(signals[i])
-        fitted_t2.append(res["t2_ms"])
-        fitted_m0.append(res["m0"])
+        fitted_t2.append(res["params"]["t2_ms"])
+        fitted_m0.append(res["params"]["m0"])
         
     df_py = pd.DataFrame({
         "id": df_in["id"],
@@ -150,7 +146,7 @@ def verify_mono_t2() -> None:
 
 
 def verify_vfat1() -> None:
-    from qmrpy.models.t1 import VFAT1
+    from qmrpy.models.t1 import T1VFA
 
     model_name = "vfa_t1"
     input_csv = PARITY_DATA_DIR / f"{model_name}_input.csv"
@@ -167,11 +163,10 @@ def verify_vfat1() -> None:
     b1_true = rng.uniform(0.8, 1.2, n_samples)
     
     # Python Forward
-    model_nominal = VFAT1(flip_angle_deg=flip_angles, tr_ms=tr_ms, b1=1.0)
     signals = []
     for i in range(n_samples):
         # Forward with actual B1
-        model_act = VFAT1(flip_angle_deg=flip_angles, tr_ms=tr_ms, b1=b1_true[i])
+        model_act = T1VFA(flip_angle_deg=flip_angles, tr_ms=tr_ms, b1=b1_true[i])
         s = model_act.forward(m0=m0_true[i], t1_ms=t1_true[i])
         signals.append(s)
     signals = np.stack(signals)
@@ -205,10 +200,10 @@ def verify_vfat1() -> None:
     
     for i in range(n_samples):
         # We must provide B1 to fit
-        model_fit = VFAT1(flip_angle_deg=flip_angles, tr_ms=tr_ms, b1=b1_true[i])
+        model_fit = T1VFA(flip_angle_deg=flip_angles, tr_ms=tr_ms, b1=b1_true[i])
         res = model_fit.fit(signals[i]) # Linear fit default
-        fitted_t1.append(res["t1_ms"])
-        fitted_m0.append(res["m0"])
+        fitted_t1.append(res["params"]["t1_ms"])
+        fitted_m0.append(res["params"]["m0"])
         
     df_py = pd.DataFrame({
         "id": df_in["id"],
@@ -239,7 +234,7 @@ def verify_vfat1() -> None:
 
 
 def verify_b1_dam() -> None:
-    from qmrpy.models.b1 import B1Dam
+    from qmrpy.models.b1 import B1DAM
 
     model_name = "b1_dam"
     input_csv = PARITY_DATA_DIR / f"{model_name}_input.csv"
@@ -254,7 +249,7 @@ def verify_b1_dam() -> None:
     m0_true = rng.uniform(1000, 3000, n_samples)
     
     # Python Forward
-    model = B1Dam(alpha_deg=alpha_deg)
+    model = B1DAM(alpha_deg=alpha_deg)
     signals = []
     for i in range(n_samples):
         s = model.forward(m0=m0_true[i], b1=b1_true[i])
@@ -295,7 +290,7 @@ def verify_b1_dam() -> None:
     fitted_b1 = []
     for i in range(n_samples):
         res = model.fit(signals[i])
-        fitted_b1.append(res["b1_raw"])
+        fitted_b1.append(res["params"]["b1_raw"])
         
     df_py = pd.DataFrame({
         "id": df_in["id"],
@@ -323,7 +318,7 @@ def verify_b1_dam() -> None:
 
 
 def verify_inversion_recovery() -> None:
-    from qmrpy.models.t1 import InversionRecovery
+    from qmrpy.models.t1 import T1InversionRecovery
 
     model_name = "inversion_recovery"
     input_csv = PARITY_DATA_DIR / f"{model_name}_input.csv"
@@ -337,13 +332,13 @@ def verify_inversion_recovery() -> None:
     t1_true = rng.uniform(500, 2000, n_samples)
     m0_true = rng.uniform(1000, 3000, n_samples)
     # in qMRLab IR: S = M0 * (1 - 2*exp(-TI/T1)) ideally, or general Barral
-    # My InversionRecovery supports ra, rb.
+    # My T1InversionRecovery supports ra, rb.
     # Barral: S = ra + rb * exp(-TI/T1)
     # Ideally ra ~ M0, rb ~ -2M0
     ra = m0_true
     rb = -2.0 * m0_true
     
-    model = InversionRecovery(ti_ms=ti_ms)
+    model = T1InversionRecovery(ti_ms=ti_ms)
     signals = []
     for i in range(n_samples):
         s = model.forward(t1_ms=t1_true[i], ra=ra[i], rb=rb[i], magnitude=True)
@@ -377,7 +372,7 @@ def verify_inversion_recovery() -> None:
     for i in range(n_samples):
         # qMRLab default is magnitude; align to magnitude fit.
         res = model.fit(signals[i], method="magnitude", solver="rdnls")
-        fitted_t1.append(res["t1_ms"])
+        fitted_t1.append(res["params"]["t1_ms"])
         
     df_py = pd.DataFrame({
         "id": df_in["id"],
@@ -405,7 +400,7 @@ def verify_inversion_recovery() -> None:
 
 
 def verify_mwf() -> None:
-    from qmrpy.models.t2.mwf import MultiComponentT2
+    from qmrpy.models.t2.mwf import T2MultiComponent
 
     model_name = "mwf"
     input_csv = PARITY_DATA_DIR / f"{model_name}_input.csv"
@@ -457,11 +452,11 @@ def verify_mwf() -> None:
     
     # Initialize model with default basis (10ms-2000ms), 
     # check if 20ms and 80ms are covered roughly.
-    model = MultiComponentT2(te_ms=te_ms)
+    model = T2MultiComponent(te_ms=te_ms)
     
     for i in range(n_samples):
         res = model.fit(signals[i], regularization_alpha=0.001) # small reg
-        fitted_mwf.append(res["mwf"])
+        fitted_mwf.append(res["params"]["mwf"])
         
     df_py = pd.DataFrame({
         "id": df_in["id"],

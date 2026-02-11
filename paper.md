@@ -1,5 +1,5 @@
 ---
-title: 'qmrpy: A Python package for quantitative MRI modeling'
+title: 'qmrpy: A verification-first Python reference implementation for quantitative MRI modeling'
 tags:
   - Python
   - MRI
@@ -22,85 +22,101 @@ bibliography: paper.bib
 
 # Summary
 
-`qmrpy` is a Python package for quantitative MRI (qMRI) modeling, fitting, and
-simulation. It reimplements core models and workflows originating from qMRLab
-[@Karakuzu2020] and DECAES [@Doucette2020] in a unified, Python-native API,
-while maintaining outputs compatible with established conventions. The library
-provides both object-oriented model classes and functional entry points to
-support single-voxel fitting, image/volume fitting, and protocol-driven
-simulation workflows.
+`qmrpy` is a verification-first Python reference implementation for
+quantitative MRI (qMRI) modeling, fitting, and simulation. The package provides
+T1/T2/B1/QSM/noise/simulation components under a unified API and pairs those
+implementations with reproducible validation artifacts generated from fixed
+configurations and deterministic seeds.
 
-Quantitative MRI enables the measurement of tissue properties such as T1 and T2
-relaxation times, which provide valuable biomarkers for clinical diagnosis and
-neuroscience research. `qmrpy` brings these capabilities to the Python
-ecosystem, enabling seamless integration with modern data science workflows.
+Rather than framing contribution primarily as "Python reimplementation", `qmrpy`
+focuses on making qMRI model behavior auditable and comparable across domains in
+one environment. This includes a common model interface (`forward`, `fit`,
+`fit_image`), consistent output conventions, and a validation suite that
+produces machine-readable pass/fail summaries.
 
 # Statement of need
 
-Many qMRI pipelines and reference implementations are distributed in MATLAB or
-Julia, which can hinder integration with Python-based analysis stacks and
-reproducible workflows. `qmrpy` fills this gap by offering Python
-implementations of widely used qMRI models, with consistent parameter naming,
-structured return keys, and testable interfaces. This enables researchers to
-embed qMRI modeling directly into Python data pipelines and to compare methods
-under a single, reproducible environment.
+qMRI pipelines are often implemented in ecosystem-specific tools (e.g., MATLAB,
+Julia), and many cross-method workflows in Python rely on ad hoc wrappers or
+single-model scripts. A key gap is not only language availability but
+**verification consistency**: users need a practical way to evaluate whether
+multiple model families remain numerically stable under one reproducible setup.
 
-The package targets MRI researchers, neuroscientists, and medical physicists
-who need accessible tools for relaxometry analysis. It has been designed to
-lower the barrier for students learning qMRI techniques while providing
-production-ready implementations for experienced users.
+`qmrpy` addresses this gap by providing:
+
+- Cross-domain qMRI models in a single Python package
+- A shared API contract for voxel-wise and image-wise fitting
+- Reproducible validation configurations (`configs/exp/validation_core.toml`)
+- Scripted summaries (`scripts/summarize_parity.py`) that emit CSV/Markdown/JSON
+
+This targets MRI researchers, neuroscientists, and medical physicists who need
+software that is both easy to integrate into Python workflows and defensible in
+terms of reproducibility and regression detection.
 
 # State of the field
 
-Several tools exist for quantitative MRI analysis. qMRLab [@Karakuzu2020]
-provides a comprehensive MATLAB framework for qMRI model fitting and simulation.
-DECAES [@Doucette2020] offers a Julia implementation for multi-component T2
-mapping with non-negative least squares and regularization strategies.
+qMRLab [@Karakuzu2020] provides a comprehensive MATLAB framework for qMRI model
+fitting and simulation. DECAES [@Doucette2020] provides a Julia implementation
+for multicomponent T2 mapping with regularized NNLS.
 
-`qmrpy` was built to bring these capabilities to the Python ecosystem, where a
-unified, tested, and reproducible implementation remains limited. The package
-bridges these ecosystems while preserving the behavior and output conventions
-expected by users of the upstream tools. Key implemented models include:
+`qmrpy` is complementary to these tools. Its core differentiation is a
+verification-oriented packaging of multiple qMRI domains in Python with a
+single interface and explicit validation outputs. Implemented methods include:
 
 - DESPOT1-style variable flip angle T1 mapping [@Deoni2005]
 - Inversion recovery T1 fitting [@Barral2010]
-- Multi-component T2 analysis for myelin water imaging [@MacKay1994]
-- EPG-corrected T2 fitting with B1 inhomogeneity correction
+- Mono-exponential and EPG-corrected T2 fitting
+- Multi-component T2 / myelin water fraction analysis [@MacKay1994]
 - MPPCA denoising [@Veraart2016]
-- Split-Bregman regularization for QSM inverse problems [@Goldstein2009]
+- Split-Bregman-based QSM reconstruction [@Goldstein2009]
 
 # Software design
 
-`qmrpy`'s design philosophy centers on providing a consistent, user-friendly API
-across all model types. The package exposes model classes with a common
-interface:
+`qmrpy` is organized around two layers:
 
-- `forward()` for signal simulation given tissue parameters
-- `fit()` for single-voxel parameter estimation
-- `fit_image()` for volume-wise fitting with optional parallelization
+1. Model layer (`qmrpy.models`): domain-specific implementations with a common
+   API (`forward`, `fit`, `fit_image`).
+2. Validation layer (`scripts/summarize_parity.py` +
+   `configs/exp/validation_core.toml`): reproducible case definitions,
+   thresholds, and machine-readable summaries.
 
-A functional API (`qmrpy.functional`) mirrors these model interfaces for
-lightweight, stateless use. The codebase separates model logic
-(`qmrpy.models`), simulation utilities (`qmrpy.sim`), and I/O operations,
-allowing both direct model usage and composable workflows.
+The validation script supports suite selection (`core`, `decaes`, `qmrlab`,
+`all`) and output format selection (`csv`, `markdown`, `json`). The
+external-dependency-free core suite validates T1/T2/B1/QSM/simulation behavior
+without requiring qMRLab/Octave.
 
-All `fit_image()` methods support parallel execution via the `n_jobs` parameter,
-Otsu-based automatic masking, and progress bars for long-running fits. Numerical
-parity is verified against reference data where available, and a comprehensive
-test suite covers model outputs, shape consistency, and error handling.
+A standard run is:
+
+```bash
+uv run --locked -- python scripts/summarize_parity.py \
+  --suite core \
+  --formats csv,markdown,json \
+  --config configs/exp/validation_core.toml \
+  --out-dir output/reports/parity_summary
+```
 
 # Research impact statement
 
-`qmrpy` reduces the barrier to reuse and comparison of established qMRI models
-in Python-based workflows. Parity checks against DECAES reference data show
-small absolute discrepancies across multiple regularization strategies,
-indicating faithful reproduction of upstream behavior.
+The main impact of `qmrpy` is enabling reproducible cross-domain verification of
+qMRI implementations within a single Python environment. Using the default core
+validation configuration, all eight validation cases passed with deterministic
+outputs across five domains (T1, T2, B1, QSM, Simulation).
 
-The project provides broad test coverage across T1/T2/B1/QSM/noise/simulation
-components, helping maintain numerical consistency over time and enabling
-reproducible method comparisons within a single ecosystem. By providing
-accessible Python implementations, `qmrpy` enables researchers to rapidly
-prototype and validate qMRI analysis pipelines.
+Primary metrics from `core_validation.csv` are:
+
+| Domain | Model | Primary metric | Value | Threshold |
+|---|---|---|---:|---:|
+| T1 | `vfa_t1` | `t1_rel_mae` | 0.0232 | 0.08 |
+| T1 | `inversion_recovery` | `t1_rel_mae` | 0.0642 | 0.08 |
+| T2 | `mono_t2` | `t2_rel_mae` | 0.00782 | 0.06 |
+| T2 | `epg_t2` | `t2_rel_mae` | 0.00555 | 0.10 |
+| T2 | `mwf` | `mwf_mae_abs` | 0.0129 | 0.06 |
+| B1 | `b1_dam` | `b1_mae_abs` | 0.00681 | 0.08 |
+| QSM | `qsm` | `chi_l2_repro_rmse` | 0.0 | 1e-12 |
+| Simulation | `simulation` | `t2_rel_mae` | 0.0152 | 0.10 |
+
+These artifacts support regression monitoring and method comparison workflows,
+while preserving interoperability with established qMRI conventions.
 
 # AI usage disclosure
 

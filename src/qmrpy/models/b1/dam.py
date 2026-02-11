@@ -21,7 +21,7 @@ def _as_1d_float_array(values: ArrayLike, *, name: str) -> NDArray[np.float64]:
 
 
 @dataclass(frozen=True, slots=True)
-class B1Dam:
+class B1DAM:
     """Double-Angle Method (DAM) for B1+ mapping (qMRLab: b1_dam).
 
     qMRLab formula:
@@ -151,7 +151,7 @@ class B1Dam:
         n_voxels = int(np.sum(valid))
 
         if verbose:
-            logger.info("B1Dam: %d voxels (vectorized), shape=%s", n_voxels, spatial_shape)
+            logger.info("B1DAM: %d voxels (vectorized), shape=%s", n_voxels, spatial_shape)
 
         ratio = np.empty_like(s1, dtype=np.float64)
         ratio[valid] = s2[valid] / (2.0 * s1[valid])
@@ -165,6 +165,6 @@ class B1Dam:
         spurious[valid] = ((~np.isfinite(b1[valid])) | (b1[valid] < 0.5)).astype(np.float64)
 
         if verbose:
-            logger.info("B1Dam complete: %d voxels processed", n_voxels)
+            logger.info("B1DAM complete: %d voxels processed", n_voxels)
 
         return {"b1_raw": b1_raw, "spurious": spurious}

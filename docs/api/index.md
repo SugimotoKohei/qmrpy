@@ -6,9 +6,11 @@ This section provides detailed API documentation for all qmrpy modules.
 
 | Module | Description |
 |--------|-------------|
-| [T1 Models](t1.md) | VFA T1, Inversion Recovery |
-| [T2 Models](t2.md) | MonoT2, EPGT2, MWF, DECAES |
-| [B1 Models](b1.md) | DAM, AFI |
+| [T1 Models](t1.md) | VFA T1, Inversion Recovery, DESPOT1-HIFI, T1MP2RAGE |
+| [T2 Models](t2.md) | T2Mono, T2EPG, EMC, MWF, DECAES |
+| [T2* Models](t2star.md) | R2Star mono/complex, ESTATICS |
+| [B0 Models](b0.md) | Dual-echo, Multi-echo phase regression |
+| [B1 Models](b1.md) | DAM, AFI, Bloch-Siegert |
 
 ## Utilities
 

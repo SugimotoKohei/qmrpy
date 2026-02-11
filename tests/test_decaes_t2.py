@@ -32,9 +32,9 @@ def test_decaes_t2_map_fit_runs():
 
     np = pytest.importorskip("numpy")
 
-    from qmrpy.models.t2.decaes_t2 import DECAEST2Map
+    from qmrpy.models.t2 import T2DECAESMap
 
-    m = DECAEST2Map(
+    m = T2DECAESMap(
         n_te=16,
         te_ms=10.0,
         n_t2=30,
@@ -48,7 +48,7 @@ def test_decaes_t2_map_fit_runs():
     te = m.echotimes_ms()
     sig = np.exp(-te / t2)
     out = m.fit(sig)
-    assert "distribution" in out
-    assert out["distribution"].shape == (m.n_t2,)
+    assert "distribution" in out["params"]
+    assert out["params"]["distribution"].shape == (m.n_t2,)
     for key in ("echotimes_ms", "t2times_ms", "alpha_deg", "gdn", "ggm", "gva", "fnr", "snr"):
-        assert key in out
+        assert key in out["params"]

@@ -153,8 +153,8 @@ def main(argv: list[str] | None = None) -> int:
                 "noise_model": str(noise_model),
                 "noise_sigma": float(noise_sigma),
                 "dmwf_percent": float(diff["mwf_percent"]),
-                "dt2mw_ms": float(diff["t2mw_ms"]),
-                "dt2iew_ms": float(diff["t2iew_ms"]),
+                "dt2mw_ms": float(diff["params"]["t2mw_ms"]),
+                "dt2iew_ms": float(diff["params"]["t2iew_ms"]),
             }
         )
 

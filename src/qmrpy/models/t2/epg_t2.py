@@ -23,7 +23,7 @@ def _as_1d_float_array(values: ArrayLike, *, name: str) -> NDArray[np.float64]:
 
 
 @dataclass(frozen=True, slots=True)
-class EPGT2:
+class T2EPG:
     """EPG-corrected mono-exponential T2 model for multi-echo spin-echo data.
 
     Signal model:
@@ -115,6 +115,10 @@ class EPGT2:
         drop_first_echo: bool = False,
         offset_term: bool = False,
         b1: float | None = None,
+        estimate_b1: bool = False,
+        b1_bounds: tuple[float, float] = (0.5, 1.5),
+        b1_init: float | None = None,
+        b0_hz: float | None = None,
         m0_init: float | None = None,
         t2_init_ms: float | None = None,
         bounds_ms: tuple[tuple[float, float], tuple[float, float]] | None = None,
@@ -167,8 +171,15 @@ class EPGT2:
         else:
             lower, upper = bounds_ms
 
+        _ = b0_hz
         if b1 is not None and float(b1) <= 0:
             raise ValueError("b1 must be > 0")
+        if b1 is not None and estimate_b1:
+            raise ValueError("use either fixed b1 or estimate_b1=True, not both")
+        b1_lo = float(b1_bounds[0])
+        b1_hi = float(b1_bounds[1])
+        if estimate_b1 and (b1_lo <= 0 or b1_hi <= b1_lo):
+            raise ValueError("b1_bounds must satisfy 0 < lo < hi")
 
         def residuals(params: NDArray[np.float64]) -> NDArray[np.float64]:
             m0_value = float(params[0])
@@ -182,6 +193,37 @@ class EPGT2:
             return (m0_value * curve) - y_abs
 
         if offset_term:
+            if estimate_b1:
+                b1_guess = float(self.b1 if b1_init is None else b1_init)
+                b1_guess = min(max(b1_guess, b1_lo), b1_hi)
+                x0 = np.array([m0_init, float(t2_init_ms), 0.0, b1_guess], dtype=np.float64)
+                lower4 = (float(lower[0]), float(lower[1]), -np.inf, b1_lo)
+                upper4 = (float(upper[0]), float(upper[1]), np.inf, b1_hi)
+
+                def residuals_joint_off(params: NDArray[np.float64]) -> NDArray[np.float64]:
+                    m0_value = float(params[0])
+                    t2_value = float(params[1])
+                    offset_value = float(params[2])
+                    b1_value = float(params[3])
+                    curve = self._decay_curve(t2_ms=t2_value, b1=b1_value)
+                    if drop_first_echo:
+                        curve = curve[1:]
+                    return (m0_value * curve + offset_value) - y_abs
+
+                result = least_squares(
+                    residuals_joint_off,
+                    x0=x0,
+                    bounds=(np.asarray(lower4, dtype=np.float64), np.asarray(upper4, dtype=np.float64)),
+                    max_nfev=max_nfev,
+                )
+                m0_hat, t2_hat, offset_hat, b1_hat = result.x
+                return {
+                    "m0": float(m0_hat),
+                    "t2_ms": float(t2_hat),
+                    "offset": float(offset_hat),
+                    "b1": float(b1_hat),
+                }
+
             x0 = np.array([m0_init, float(t2_init_ms), 0.0], dtype=np.float64)
             lower3 = (float(lower[0]), float(lower[1]), -np.inf)
             upper3 = (float(upper[0]), float(upper[1]), np.inf)
@@ -193,6 +235,31 @@ class EPGT2:
             )
             m0_hat, t2_hat, offset_hat = result.x
             return {"m0": float(m0_hat), "t2_ms": float(t2_hat), "offset": float(offset_hat)}
+
+        if estimate_b1:
+            b1_guess = float(self.b1 if b1_init is None else b1_init)
+            b1_guess = min(max(b1_guess, b1_lo), b1_hi)
+
+            def residuals_joint(params: NDArray[np.float64]) -> NDArray[np.float64]:
+                m0_value = float(params[0])
+                t2_value = float(params[1])
+                b1_value = float(params[2])
+                curve = self._decay_curve(t2_ms=t2_value, b1=b1_value)
+                if drop_first_echo:
+                    curve = curve[1:]
+                return (m0_value * curve) - y_abs
+
+            result = least_squares(
+                residuals_joint,
+                x0=np.array([m0_init, float(t2_init_ms), b1_guess], dtype=np.float64),
+                bounds=(
+                    np.asarray((float(lower[0]), float(lower[1]), b1_lo), dtype=np.float64),
+                    np.asarray((float(upper[0]), float(upper[1]), b1_hi), dtype=np.float64),
+                ),
+                max_nfev=max_nfev,
+            )
+            m0_hat, t2_hat, b1_hat = result.x
+            return {"m0": float(m0_hat), "t2_ms": float(t2_hat), "b1": float(b1_hat)}
 
         result = least_squares(
             residuals,
@@ -265,6 +332,8 @@ class EPGT2:
 
         if b1_map is not None and "b1" in kwargs:
             raise ValueError("use either b1_map or b1, not both")
+        if b1_map is not None and bool(kwargs.get("estimate_b1", False)):
+            raise ValueError("b1_map cannot be used with estimate_b1=True")
         b1_flat = None
         if b1_map is not None:
             b1_arr = np.asarray(b1_map, dtype=np.float64)
@@ -273,9 +342,12 @@ class EPGT2:
             b1_flat = b1_arr.reshape((-1,))
 
         offset_term = bool(kwargs.get("offset_term", False))
+        estimate_b1 = bool(kwargs.get("estimate_b1", False))
         output_keys = ["m0", "t2_ms"]
         if offset_term:
             output_keys.append("offset")
+        if estimate_b1:
+            output_keys.append("b1")
 
         # If b1_map is provided, we need custom parallel logic
         if b1_flat is not None:
@@ -293,7 +365,7 @@ class EPGT2:
                 return out
 
             if verbose:
-                logger.info("EPGT2: %d voxels, n_jobs=%s, shape=%s", n_voxels, n_jobs, spatial_shape)
+                logger.info("T2EPG: %d voxels, n_jobs=%s, shape=%s", n_voxels, n_jobs, spatial_shape)
 
             def fit_with_b1(idx: int) -> tuple[int, dict[str, float]]:
                 return idx, self.fit(flat[idx], b1=float(b1_flat[idx]), **kwargs)
@@ -302,7 +374,7 @@ class EPGT2:
                 iterator = indices
                 if verbose:
                     from tqdm import tqdm
-                    iterator = tqdm(indices, desc="EPGT2", unit="voxel")
+                    iterator = tqdm(indices, desc="T2EPG", unit="voxel")
 
                 for idx in iterator:
                     res = self.fit(flat[idx], b1=float(b1_flat[idx]), **kwargs)
@@ -314,7 +386,7 @@ class EPGT2:
                     from tqdm import tqdm
                     results = Parallel(n_jobs=n_jobs)(
                         delayed(fit_with_b1)(idx)
-                        for idx in tqdm(indices, desc="EPGT2", unit="voxel")
+                        for idx in tqdm(indices, desc="T2EPG", unit="voxel")
                     )
                 else:
                     results = Parallel(n_jobs=n_jobs)(
@@ -326,7 +398,7 @@ class EPGT2:
                             out[key].flat[idx] = float(res[key])
 
             if verbose:
-                logger.info("EPGT2 complete: %d voxels processed", n_voxels)
+                logger.info("T2EPG complete: %d voxels processed", n_voxels)
 
             return out
         else:
@@ -336,5 +408,5 @@ class EPGT2:
 
             return parallel_fit(
                 fit_func, flat, mask_flat, output_keys, spatial_shape,
-                n_jobs=n_jobs, verbose=verbose, desc="EPGT2"
+                n_jobs=n_jobs, verbose=verbose, desc="T2EPG"
             )

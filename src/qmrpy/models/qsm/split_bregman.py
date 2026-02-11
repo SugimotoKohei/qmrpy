@@ -169,8 +169,10 @@ def qsm_split_bregman(
                 magn_weight,
             ).ravel()
 
-        linop = LinearOperator((fu.size, fu.size), matvec=lambda x: matvec(x))
-        precond = lambda x: (sb_reg.ravel() * x)
+        linop = LinearOperator((fu.size, fu.size), matvec=matvec)
+
+        def precond(x: NDArray[np.complex128]) -> NDArray[np.complex128]:
+            return sb_reg.ravel() * x
     else:
         fu = np.zeros(shape, dtype=np.complex128)
         linop = None
@@ -282,8 +284,10 @@ def calc_chi_l2(
             magn_weight,
         ).ravel()
 
-    linop = LinearOperator((b.size, b.size), matvec=lambda x: matvec(x))
-    precond = lambda x: (a_inv.ravel() * x)
+    linop = LinearOperator((b.size, b.size), matvec=matvec)
+
+    def precond(x: NDArray[np.complex128]) -> NDArray[np.complex128]:
+        return a_inv.ravel() * x
 
     f_chi0 = np.fft.fftn(d_regx)
     f_chi_vec, _ = cg(

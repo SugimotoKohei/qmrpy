@@ -1,0 +1,215 @@
+[meta]
+name = "validation_core"
+seed = 20260211
+
+[run]
+n_samples = 48
+
+[core.mono_t2]
+enabled = true
+n_samples = 48
+te_ms = [10.0, 20.0, 40.0, 80.0]
+m0 = 1000.0
+t2_range_ms = [30.0, 150.0]
+noise_model = "gaussian"
+noise_sigma = 3.0
+fit_type = "exponential"
+drop_first_echo = false
+offset_term = false
+threshold_t2_rel_mae = 0.06
+threshold_m0_rel_mae = 0.08
+
+[core.r2star_mono]
+enabled = true
+n_samples = 40
+te_ms = [4.0, 8.0, 12.0, 16.0, 20.0]
+s0 = 1000.0
+t2star_range_ms = [15.0, 45.0]
+noise_model = "gaussian"
+noise_sigma = 2.0
+threshold_t2star_rel_mae = 0.08
+threshold_r2star_rel_mae = 0.08
+
+[core.r2star_complex]
+enabled = true
+n_samples = 32
+te_ms = [4.0, 8.0, 12.0, 16.0, 20.0, 24.0]
+s0 = 600.0
+t2star_range_ms = [15.0, 45.0]
+delta_f_range_hz = [-25.0, 25.0]
+noise_sigma = 1.0
+threshold_t2star_rel_mae = 0.10
+threshold_delta_f_mae_hz = 2.0
+
+[core.vfa_t1]
+enabled = true
+n_samples = 48
+flip_angle_deg = [3.0, 8.0, 15.0, 25.0]
+tr_ms = 15.0
+m0 = 2000.0
+t1_range_ms = [500.0, 2000.0]
+b1_range = [0.85, 1.15]
+noise_model = "gaussian"
+noise_sigma = 2.0
+robust = false
+outlier_reject = false
+threshold_t1_rel_mae = 0.08
+threshold_m0_rel_mae = 0.08
+
+[core.despot1_hifi]
+enabled = true
+n_samples = 36
+flip_angle_deg = [3.0, 10.0, 18.0]
+tr_ms = 18.0
+m0 = 1200.0
+t1_range_ms = [600.0, 1800.0]
+b1_range = [0.85, 1.15]
+ti_ms = [200.0, 500.0, 900.0, 1500.0, 2500.0]
+noise_model = "gaussian"
+noise_sigma = 2.0
+threshold_t1_rel_mae = 0.10
+threshold_b1_mae_abs = 0.08
+threshold_m0_rel_mae = 0.20
+
+[core.mp2rage]
+enabled = true
+n_samples = 36
+ti1_ms = 700.0
+ti2_ms = 2500.0
+alpha1_deg = 4.0
+alpha2_deg = 5.0
+m0 = 900.0
+t1_range_ms = [600.0, 2000.0]
+b1_range = [0.90, 1.10]
+noise_model = "gaussian"
+noise_sigma = 1.0
+method = "nls"
+threshold_t1_rel_mae = 0.12
+threshold_b1_mae_abs = 0.08
+
+[core.inversion_recovery]
+enabled = true
+n_samples = 40
+ti_ms = [350.0, 500.0, 650.0, 800.0, 950.0, 1100.0, 1250.0, 1400.0, 1700.0]
+t1_range_ms = [500.0, 1800.0]
+ra = 500.0
+rb = -1000.0
+noise_model = "gaussian"
+noise_sigma = 5.0
+method = "magnitude"
+solver = "rdnls"
+threshold_t1_rel_mae = 0.08
+
+[core.epg_t2]
+enabled = true
+n_samples = 36
+n_te = 16
+te_ms = 10.0
+t1_ms = 1000.0
+alpha_deg = 180.0
+beta_deg = 180.0
+m0 = 1000.0
+t2_range_ms = [40.0, 120.0]
+b1_range = [0.85, 1.10]
+noise_model = "gaussian"
+noise_sigma = 4.0
+threshold_t2_rel_mae = 0.10
+threshold_m0_rel_mae = 0.10
+
+[core.emc_t2]
+enabled = true
+n_samples = 36
+n_te = 16
+te_ms = 10.0
+t1_ms = 1000.0
+alpha_deg = 180.0
+beta_deg = 180.0
+m0 = 1000.0
+t2_range_ms = [40.0, 120.0]
+b1_range = [0.85, 1.15]
+noise_model = "gaussian"
+noise_sigma = 3.0
+threshold_t2_rel_mae = 0.12
+threshold_b1_mae_abs = 0.10
+
+[core.mwf]
+enabled = true
+n_samples = 36
+te_ms = [
+  10.0, 20.0, 30.0, 40.0, 50.0, 60.0, 70.0, 80.0,
+  90.0, 100.0, 110.0, 120.0, 130.0, 140.0, 150.0, 160.0,
+  170.0, 180.0, 190.0, 200.0, 210.0, 220.0, 230.0, 240.0,
+  250.0, 260.0, 270.0, 280.0, 290.0, 300.0, 310.0, 320.0,
+]
+m0 = 1000.0
+mwf_range = [0.08, 0.25]
+t2mw_ms = 20.0
+t2iew_ms = 80.0
+noise_model = "gaussian"
+noise_sigma = 2.0
+regularization_mode = "qmrlab_regnnls"
+qmrlab_sigma = 20.0
+cutoff_ms = 40.0
+upper_cutoff_iew_ms = 200.0
+threshold_mwf_mae_abs = 0.06
+threshold_t2mw_mae_ms = 20.0
+threshold_t2iew_mae_ms = 20.0
+
+[core.b1_dam]
+enabled = true
+n_samples = 48
+alpha_deg = 60.0
+m0 = 1000.0
+b1_range = [0.7, 1.3]
+noise_model = "gaussian"
+noise_sigma = 8.0
+threshold_b1_mae_abs = 0.08
+threshold_spurious_rate = 0.10
+
+[core.b1_bloch_siegert]
+enabled = true
+n_samples = 48
+k_bs_rad_per_b1sq = 2.0
+b1_range = [0.20, 1.00]
+phase_noise_rad = 0.02
+threshold_b1_mae_abs = 0.06
+threshold_spurious_rate = 0.10
+
+[core.b0_dual_echo]
+enabled = true
+n_samples = 48
+te1_ms = 4.0
+te2_ms = 6.0
+b0_range_hz = [-80.0, 80.0]
+phase_noise_rad = 0.02
+threshold_b0_mae_hz = 2.0
+threshold_phase0_mae_rad = 0.2
+
+[core.b0_multi_echo]
+enabled = true
+n_samples = 48
+te_ms = [4.0, 8.0, 12.0, 16.0, 20.0]
+b0_range_hz = [-120.0, 120.0]
+phase_noise_rad = 0.02
+threshold_b0_mae_hz = 1.5
+threshold_phase0_mae_rad = 0.2
+
+[core.qsm]
+enabled = true
+shape = [6, 6, 6]
+pad_size = [1, 1, 1]
+lambda_l2 = 0.01
+threshold_repro_rmse = 1.0e-12
+threshold_nan_ratio = 0.0
+
+[core.simulation]
+enabled = true
+te_ms = [10.0, 20.0, 40.0, 80.0]
+t2_nominal_ms = 60.0
+t2_range_ms = [40.0, 100.0]
+m0 = 1000.0
+n_steps = 5
+n_runs = 8
+noise_model = "gaussian"
+noise_snr = 80.0
+threshold_t2_rel_mae = 0.10

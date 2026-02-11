@@ -267,9 +267,6 @@ def bssfp(
     signals = np.zeros(n_pulses, dtype=np.complex128)
 
     for i in range(n_pulses):
-        # Alternating RF phase for bSSFP (phase cycling)
-        rf_phase = np.pi * i
-
         # Apply RF with phase
         # For simplicity, we apply the flip angle directly
         # (full implementation would include RF phase)
@@ -346,9 +343,6 @@ def bssfp_steady_state(
     alpha = np.deg2rad(float(fa_deg) * float(b1))
     e1 = np.exp(-tr_ms / t1_ms)
     e2 = np.exp(-tr_ms / t2_ms)
-
-    # Off-resonance phase
-    phi = 2.0 * np.pi * float(off_resonance_hz) * (tr_ms / 1000.0)
 
     # Freeman-Hill formula for bSSFP
     cos_a = np.cos(alpha)

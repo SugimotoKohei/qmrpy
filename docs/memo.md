@@ -9,7 +9,7 @@
 - README に `EpgT2` の使用例と B1 補正の説明を追記
 - `uv run pytest tests/test_epg_t2.py` を再実行（4 passed）
 - `uv run --locked -m pytest` を実行（51 passed, warnings 5件）
-- `qmrpy.functional` に `epg_t2_forward` / `epg_t2_fit` を追加
+- `qmrpy.functional` に `simulate_t2_epg` / `fit_t2_epg` を追加
 - README に Functional API と B1連携の例を追記
 - `uv run --locked -m pytest` を再実行（51 passed, warnings 5件）
 - `tests/test_epg_t2_functional.py` を追加して Functional API の回帰テストを追加
@@ -31,7 +31,7 @@
 - v0.7.0: 全 `fit_image` に `verbose` パラメータ追加、tqdm 進捗バー + logging サポート
 - v0.7.1: mkdocs-material ドキュメント基盤追加、GitHub Pages 自動デプロイ設定
 - v0.8.0: PEP 8 厳密準拠のため破壊的変更を実施
-  - クラス名: `VfaT1`→`VFAT1`, `EpgT2`→`EPGT2`, `DecaesT2Map`→`DECAEST2Map`, `DecaesT2Part`→`DECAEST2Part`
+  - クラス名: `VfaT1`→`T1VFA`, `EpgT2`→`T2EPG`, `DecaesT2Map`→`T2DECAESMap`, `DecaesT2Part`→`T2DECAESPart`
   - 関数名: `SimVary`→`sim_vary`, `SimRnd`→`sim_rnd`, `SimFisherMatrix`→`sim_fisher_matrix`, `SimCRLB`→`sim_crlb`
   - パラメータ名・戻り値キーも snake_case 化
 - `docs/index.md` のライセンス表記を BSD-2-Clause → MIT に修正（LICENSE ファイルと統一）
@@ -64,3 +64,47 @@
 - GitHub About の説明文を "qmrpy: Python library for quantitative MRI." に更新（`gh repo edit`）
 - qmrpy アイコンを `docs/assets/` に配置し、MkDocs の logo/favicon と README のロゴ表示を更新
 - ルートの `qmrpy.png` を削除（アイコンは `docs/assets/` に集約）
+- GitHub の Social preview はAPI/CLIで更新不可のため、`docs/assets/qmrpy-icon.png` を使って手動設定する方針を共有
+
+## 2026-02-11
+- `configs/exp/validation_core.toml` を追加し、`T1/T2/B1/QSM/Simulation` の検証ケース・seed・閾値を定義
+- `scripts/summarize_parity.py` を拡張し、`--suite`/`--formats`/`--config` 対応と core 検証（外部依存なし）を追加
+- core 検証の成果物として `core_validation.csv` / `core_validation_metrics.csv` / `core_validation.json` / `summary.json` を出力する仕様を追加
+- `tests/test_validation_suite.py` を追加し、出力スキーマ・閾値判定整合・seed 再現性を検証
+- `docs/guide/validation.md` を新規作成し、検証手順・出力定義・閾値運用を文書化
+- `mkdocs.yml` の User Guide に Validation ページを追加
+- `README.md` に JOSS 向けの検証実行セクション（英語/日本語）を追加
+- `paper.md` を verification-first 方針に改稿し、`core_validation.csv` の実測値を含む定量表を追記
+- `uv run --locked -m pytest tests/test_validation_suite.py` を実行（2 passed）
+- `uv run --locked -m pytest` を実行（95 passed, warnings 5件）
+- `$memo-entry`: T1/T2/T2* + B0/B1 拡張を実装（`src/qmrpy/models/b0/`, `src/qmrpy/models/t2star/`, `src/qmrpy/models/t1/despot1_hifi.py`, `src/qmrpy/models/t1/mp2rage.py`, `src/qmrpy/models/t2/emc_t2.py`）
+- `T2EPG.fit` に `estimate_b1`/`b1_bounds`/`b1_init`/`b0_hz` を追加し、`fit_image` でも `estimate_b1` のマップ出力を対応
+- 公開APIを更新（`src/qmrpy/models/__init__.py`, `src/qmrpy/models/t1/__init__.py`, `src/qmrpy/models/t2/__init__.py`, `src/qmrpy/models/b1/__init__.py`, `src/qmrpy/functional.py`, `src/qmrpy/__init__.py`）
+- 新規テストを追加（`tests/test_b0.py`, `tests/test_b1_bloch_siegert.py`, `tests/test_r2star.py`, `tests/test_t1_advanced.py`, `tests/test_emc_t2.py`, `tests/test_functional_extended.py`）
+- ドキュメントを更新（`docs/api/b0.md`, `docs/api/t2star.md`, `docs/api/index.md`, `docs/api/t1.md`, `docs/api/t2.md`, `docs/api/b1.md`, `docs/api/functional.md`, `docs/guide/t1-mapping.md`, `docs/guide/t2-mapping.md`, `docs/guide/b1-mapping.md`, `docs/index.md`, `mkdocs.yml`, `README.md`）
+- `uv run --locked -m pytest` を実行（113 passed, warnings 5件）
+- `uv run --locked ruff check` は既存コード由来の警告が残るため全体では未解消（今回追加ファイル対象の lint は通過）
+- 次アクション: 既存コード由来の ruff 指摘（`src/qmrpy/_decaes/surrogate_1d.py` ほか）を別PRで整理するか判断 (TBD)
+- `$memo-entry`: `scripts/summarize_parity.py` の core validator を拡張し、`B0DualEcho/B0MultiEcho/B1BlochSiegert/T2StarMonoR2/T2StarComplexR2/T1DESPOT1HIFI/T1MP2RAGE/T2EMC` の合成回収検証を追加
+- `src/qmrpy/models/t1/despot1_hifi.py` を VFA+IR 同時最適化対応に更新し、`src/qmrpy/models/t1/mp2rage.py` は UNI 指標ベース LUT と `signal=(1,)` 受理を追加
+- `src/qmrpy/models/t1/mp2rage.py` の NLS 初期値境界違反を修正（`m0` 非負化と `x0` の bounds 内クリップ）し、`tests/test_validation_suite.py` の失敗を解消
+- `uv run --locked -m pytest tests/test_validation_suite.py tests/test_t1_advanced.py tests/test_functional_extended.py` を再実行（6 passed）
+- `uv run --locked ruff check src tests scripts` を再実行（All checks passed）
+- `uv run --locked -m pytest` を再実行（113 passed, warnings 5件）
+- `$memo-entry`: `scripts/report_b0_b1_correction_effect.py` を追加し、`T1/T2/T2*` の補正なし vs `B1/B0` 補正あり比較（合成データ）を再現可能化
+- `uv run --locked -- python scripts/report_b0_b1_correction_effect.py --seed 20260211 --n-samples 300 --json-out output/reports/b0_b1_correction_report.json` を実行し、補正後の閾値判定が全通過することを確認
+- `docs/guide/validation.md` に補正効果レポートの実行手順と出力定義を追記
+- `uv run --locked ruff check scripts/report_b0_b1_correction_effect.py` を実行（All checks passed）
+- `uv run --locked -m pytest tests/test_validation_suite.py` を実行（2 passed）
+- `$memo-entry`: `src/qmrpy/models/t1/mp2rage.py` をリファクタし、`fit()` の前処理・grid探索・LUT/NLS分岐を内部ヘルパーへ分解して可読性を改善
+- `src/qmrpy/models/t1/mp2rage.py` に `t1_grid_ms` の空配列・非有限値・非正値を明示的に弾くバリデーションを追加
+- `tests/test_t1_advanced.py` に `test_mp2rage_rejects_empty_t1_grid` を追加し、空グリッド時の `ValueError` を回帰テスト化
+- `uv run --locked ruff check src/qmrpy/models/t1/mp2rage.py tests/test_t1_advanced.py` を実行（All checks passed）
+- `uv run --locked -m pytest tests/test_t1_advanced.py tests/test_validation_suite.py` を実行（6 passed）
+- `$memo-entry`: v1.0 全面リファクタ残件として `ResultSchemaMixin` 継承ラッパを `ResultAdapterBase` 委譲ラッパへ統一（`src/qmrpy/models/t2/__init__.py`, `src/qmrpy/models/t2star/__init__.py`, `src/qmrpy/models/b0/__init__.py`, `src/qmrpy/models/b1/__init__.py`, `src/qmrpy/models/qsm/__init__.py`）
+- `T2DECAESMap.fit_image` と `QSMSplitBregman.fit` を個別ラップし、`fit_image` 内部の `self.fit` 干渉と QSM シグネチャ不整合を解消
+- `src/qmrpy/sim/simulation.py` を更新し、`simulate_single_voxel/sensitivity_analysis/simulate_parameter_distribution` の `fit` 出力を `params/quality/diagnostics` 構造で一貫化
+- 失敗していたテスト群を新スキーマ参照へ追随（`tests/test_decaes_parity.py`, `tests/test_decaes_t2.py`, `tests/test_decaes_t2part.py`, `tests/test_emc_t2.py`, `tests/test_epg_t2.py`, `tests/test_functional_extended.py`, `tests/test_inversion_recovery.py`, `tests/test_mono_t2.py`, `tests/test_mwf.py`, `tests/test_qsm_pipeline.py`, `tests/test_simulation.py`）
+- `uv run --locked -m pytest tests/test_decaes_parity.py tests/test_decaes_t2.py tests/test_decaes_t2part.py tests/test_emc_t2.py tests/test_epg_t2.py tests/test_functional_extended.py tests/test_inversion_recovery.py tests/test_mono_t2.py tests/test_mwf.py tests/test_qsm_pipeline.py tests/test_simulation.py tests/test_validation_suite.py` を実行（43 passed）
+- `uv run --locked ruff check src tests scripts` を実行（All checks passed）
+- `uv run --locked -m pytest` を実行（114 passed, warnings 5件）

@@ -21,7 +21,7 @@ def _as_1d_float_array(values: ArrayLike, *, name: str) -> NDArray[np.float64]:
 
 
 @dataclass(frozen=True, slots=True)
-class MonoT2:
+class T2Mono:
     """Mono-exponential T2 relaxometry model.
 
     Signal model:
@@ -236,5 +236,5 @@ class MonoT2:
 
         return parallel_fit(
             fit_func, flat, mask_flat, output_keys, spatial_shape,
-            n_jobs=n_jobs, verbose=verbose, desc="MonoT2"
+            n_jobs=n_jobs, verbose=verbose, desc="T2Mono"
         )

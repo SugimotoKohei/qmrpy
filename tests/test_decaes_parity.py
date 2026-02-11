@@ -1,6 +1,6 @@
 import numpy as np
 
-from qmrpy.models.t2.decaes_t2 import DECAEST2Map
+from qmrpy.models.t2 import T2DECAESMap
 
 
 def _load_csv_1d(path: str) -> np.ndarray:
@@ -16,7 +16,7 @@ def test_decaes_parity_fixed_flip_no_reg() -> None:
     alpha_ref = float(_load_csv_1d("tests/data/decaes_ref_alpha.csv")[0])
     dist_ref = _load_csv_1d("tests/data/decaes_ref_dist.csv")
 
-    m = DECAEST2Map(
+    m = T2DECAESMap(
         n_te=len(echotimes),
         te_ms=float(echotimes[0]),
         n_t2=len(t2times),
@@ -31,9 +31,9 @@ def test_decaes_parity_fixed_flip_no_reg() -> None:
 
     out = m.fit(signal)
 
-    assert np.isclose(out["alpha_deg"], alpha_ref, rtol=0, atol=1e-9)
-    assert np.allclose(out["t2times_ms"], t2times, rtol=0, atol=1e-9)
-    assert np.allclose(out["distribution"], dist_ref, rtol=1e-8, atol=1e-10)
+    assert np.isclose(out["params"]["alpha_deg"], alpha_ref, rtol=0, atol=1e-9)
+    assert np.allclose(out["params"]["t2times_ms"], t2times, rtol=0, atol=1e-9)
+    assert np.allclose(out["params"]["distribution"], dist_ref, rtol=1e-8, atol=1e-10)
 
 
 def test_decaes_parity_opt_alpha_gcv() -> None:
@@ -43,7 +43,7 @@ def test_decaes_parity_opt_alpha_gcv() -> None:
     dist_ref = _load_csv_1d("tests/data/decaes_ref2_dist.csv")
     signal = _load_csv_1d("tests/data/decaes_ref_signal.csv")
 
-    m = DECAEST2Map(
+    m = T2DECAESMap(
         n_te=16,
         te_ms=10.0,
         n_t2=30,
@@ -55,9 +55,9 @@ def test_decaes_parity_opt_alpha_gcv() -> None:
     )
     out = m.fit(signal)
 
-    assert np.isclose(out["alpha_deg"], alpha_ref, rtol=0, atol=1e-6)
-    assert np.isclose(out["mu"], mu_ref, rtol=1e-5, atol=0)
-    assert np.allclose(out["distribution"], dist_ref, rtol=1e-5, atol=1e-7)
+    assert np.isclose(out["params"]["alpha_deg"], alpha_ref, rtol=0, atol=1e-6)
+    assert np.isclose(out["diagnostics"]["mu"], mu_ref, rtol=1e-5, atol=0)
+    assert np.allclose(out["params"]["distribution"], dist_ref, rtol=1e-5, atol=1e-7)
 
 
 def _assert_reg_parity(reg: str, *, chi2_factor: float | None = None, noise_level: float | None = None) -> None:
@@ -67,7 +67,7 @@ def _assert_reg_parity(reg: str, *, chi2_factor: float | None = None, noise_leve
     dist_ref = _load_csv_1d(f"tests/data/decaes_ref_{reg}_dist.csv")
     signal = _load_csv_1d("tests/data/decaes_ref_signal.csv")
 
-    m = DECAEST2Map(
+    m = T2DECAESMap(
         n_te=16,
         te_ms=10.0,
         n_t2=30,
@@ -81,10 +81,10 @@ def _assert_reg_parity(reg: str, *, chi2_factor: float | None = None, noise_leve
     )
     out = m.fit(signal)
 
-    assert np.isclose(out["alpha_deg"], alpha_ref, rtol=0, atol=1e-6)
-    assert np.isclose(out["mu"], mu_ref, rtol=1e-5, atol=0)
-    assert np.isclose(out["chi2factor"], chi2_ref, rtol=1e-5, atol=0)
-    assert np.allclose(out["distribution"], dist_ref, rtol=1e-5, atol=1e-7)
+    assert np.isclose(out["params"]["alpha_deg"], alpha_ref, rtol=0, atol=1e-6)
+    assert np.isclose(out["diagnostics"]["mu"], mu_ref, rtol=1e-5, atol=0)
+    assert np.isclose(out["diagnostics"]["chi2factor"], chi2_ref, rtol=1e-5, atol=0)
+    assert np.allclose(out["params"]["distribution"], dist_ref, rtol=1e-5, atol=1e-7)
 
 
 def test_decaes_parity_opt_alpha_lcurve() -> None:

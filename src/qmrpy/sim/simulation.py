@@ -20,6 +20,30 @@ class SimulationProtocol:
     fit_kwargs: Mapping[str, Any] = field(default_factory=dict)
 
 
+def _as_scalar_float(value: Any) -> float | None:
+    import numpy as np
+
+    if isinstance(value, (bool, np.bool_)):
+        return None
+    if np.isscalar(value):
+        try:
+            return float(value)
+        except (TypeError, ValueError):
+            return None
+    return None
+
+
+def _extract_scalar_mapping(values: Mapping[str, Any] | Any) -> dict[str, float]:
+    if not isinstance(values, Mapping):
+        return {}
+    out: dict[str, float] = {}
+    for key, value in values.items():
+        scalar = _as_scalar_float(value)
+        if scalar is not None:
+            out[str(key)] = scalar
+    return out
+
+
 def _resolve_protocol(
     protocol: SimulationProtocol | None,
     *,
@@ -324,7 +348,14 @@ def sensitivity_analysis(
         protocol=proto,
     )["fit"]
 
-    fit_store: dict[str, Any] = {k: np.full((n_steps, n_runs), np.nan, dtype=np.float64) for k in probe}
+    fit_store: dict[str, dict[str, Any]] = {
+        "params": {k: np.full((n_steps, n_runs), np.nan, dtype=np.float64) for k in probe.get("params", {})},
+        "quality": {k: np.full((n_steps, n_runs), np.nan, dtype=np.float64) for k in probe.get("quality", {})},
+        "diagnostics": {
+            k: np.full((n_steps, n_runs), np.nan, dtype=np.float64)
+            for k in probe.get("diagnostics", {})
+        },
+    }
 
     for i, xv in enumerate(x):
         for r in range(n_runs):
@@ -335,11 +366,27 @@ def sensitivity_analysis(
                 params=params,
                 protocol=proto,
             )["fit"]
-            for k, v in fitted.items():
-                fit_store[k][i, r] = float(v)
+            for section in ("params", "quality", "diagnostics"):
+                section_values = fitted.get(section, {})
+                if not isinstance(section_values, Mapping):
+                    continue
+                for key, value in section_values.items():
+                    scalar = _as_scalar_float(value)
+                    if scalar is None:
+                        continue
+                    store = fit_store.setdefault(section, {})
+                    if key not in store:
+                        store[key] = np.full((n_steps, n_runs), np.nan, dtype=np.float64)
+                    store[key][i, r] = scalar
 
-    mean = {k: np.mean(v, axis=1) for k, v in fit_store.items()}
-    std = {k: np.std(v, axis=1, ddof=0) for k, v in fit_store.items()}
+    mean = {
+        section: {k: np.mean(v, axis=1) for k, v in values.items()}
+        for section, values in fit_store.items()
+    }
+    std = {
+        section: {k: np.std(v, axis=1, ddof=0) for k, v in values.items()}
+        for section, values in fit_store.items()
+    }
 
     return {
         "vary_param": str(vary_param),
@@ -436,7 +483,8 @@ def simulate_parameter_distribution(
         params=p0,
         protocol=proto,
     )["fit"]
-    for k in probe:
+    probe_params = probe.get("params", {}) if isinstance(probe, Mapping) else {}
+    for k in probe_params:
         hat[k] = np.full(n_samples, np.nan, dtype=np.float64)
 
     for i in range(n_samples):
@@ -446,8 +494,13 @@ def simulate_parameter_distribution(
             params=params,
             protocol=proto,
         )["fit"]
-        for k, v in fitted.items():
-            hat[k][i] = float(v)
+        fitted_params = fitted.get("params", {}) if isinstance(fitted, Mapping) else {}
+        for key, value in fitted_params.items():
+            if key not in hat:
+                hat[key] = np.full(n_samples, np.nan, dtype=np.float64)
+            scalar = _as_scalar_float(value)
+            if scalar is not None:
+                hat[key][i] = scalar
 
     for k, v_hat in hat.items():
         if k in true:
@@ -458,7 +511,12 @@ def simulate_parameter_distribution(
         metrics[f"{k}_mae"] = float(np.mean(np.abs(e)))
         metrics[f"{k}_rmse"] = float(np.sqrt(np.mean(e**2)))
 
-    return {"true": true, "hat": hat, "err": err, "metrics": metrics}
+    return {
+        "true": {"params": true},
+        "hat": {"params": hat},
+        "err": {"params": err},
+        "metrics": metrics,
+    }
 
 
 def fisher_information_gaussian(
@@ -633,7 +691,7 @@ def sim_vary(
             fit_kwargs=opts.get("fit_kwargs", None),
         )
         # qMRLab adds ground_truth per fitted param name
-        for k in res["mean"]:
+        for k in res.get("mean", {}).get("params", {}):
             res.setdefault("ground_truth", {})[k] = float(st[xnames.index(k)]) if k in xnames else None
         results[name] = res
 
@@ -666,14 +724,17 @@ def sim_rnd(model: Any, rnd_param: Mapping[str, Any], opt: Mapping[str, Any] | N
     rmse: dict[str, float] = {}
     nrmse: dict[str, float] = {}
 
-    for k in set(out["true"]).intersection(out["hat"]):
-        e = np.asarray(out["hat"][k] - out["true"][k], dtype=np.float64)
+    true_params = out.get("true", {}).get("params", {})
+    hat_params = out.get("hat", {}).get("params", {})
+
+    for k in set(true_params).intersection(hat_params):
+        e = np.asarray(hat_params[k] - true_params[k], dtype=np.float64)
         error[k] = e
         with np.errstate(divide="ignore", invalid="ignore"):
-            pct_error[k] = 100.0 * e / np.asarray(out["true"][k], dtype=np.float64)
+            pct_error[k] = 100.0 * e / np.asarray(true_params[k], dtype=np.float64)
         mpe[k] = float(np.nanmean(pct_error[k]))
         rmse[k] = float(np.sqrt(np.nanmean(e**2)))
-        denom = float(np.max(out["true"][k]) - np.min(out["true"][k]))
+        denom = float(np.max(true_params[k]) - np.min(true_params[k]))
         nrmse[k] = float(rmse[k] / denom) if denom != 0 else float("nan")
 
     out.update({"error": error, "pct_error": pct_error, "mpe": mpe, "rmse": rmse, "nrmse": nrmse})
@@ -752,7 +813,7 @@ def sim_crlb(
     return f, var_names, crlb, fall
 
 
-def _fit_model(model: Any, signal: Any, *, fit_kwargs: Mapping[str, Any]) -> dict[str, float]:
+def _fit_model(model: Any, signal: Any, *, fit_kwargs: Mapping[str, Any]) -> dict[str, Any]:
     if hasattr(model, "fit"):
         fitted = model.fit(signal, **dict(fit_kwargs))
     elif hasattr(model, "fit_linear"):
@@ -760,4 +821,16 @@ def _fit_model(model: Any, signal: Any, *, fit_kwargs: Mapping[str, Any]) -> dic
     else:
         raise TypeError("model must provide fit(...) or fit_linear(...)")
 
-    return {k: float(v) for k, v in dict(fitted).items() if isinstance(v, (int, float))}
+    fit_dict = dict(fitted)
+    if "params" in fit_dict and isinstance(fit_dict["params"], Mapping):
+        return {
+            "params": _extract_scalar_mapping(fit_dict.get("params", {})),
+            "quality": _extract_scalar_mapping(fit_dict.get("quality", {})),
+            "diagnostics": _extract_scalar_mapping(fit_dict.get("diagnostics", {})),
+        }
+
+    return {
+        "params": _extract_scalar_mapping(fit_dict),
+        "quality": {},
+        "diagnostics": {},
+    }

@@ -398,8 +398,6 @@ class TestVariableFlipAngle:
         # B1<1 reduces initial magnetization
         assert signal_b1_08[0] < signal_b1_1[0]
 
-        # M0 ratio should be sin(B1 × 90°)
-        expected_ratio = np.sin(np.deg2rad(90 * 0.8))
         actual_ratio = signal_b1_08[0] / signal_b1_1[0]
         # Not exact match due to different decay, but should be close at first echo
         assert actual_ratio < 1.0

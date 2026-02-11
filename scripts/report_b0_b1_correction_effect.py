@@ -8,7 +8,7 @@ from typing import Any
 import numpy as np
 from scipy.optimize import least_squares
 
-from qmrpy.models import B0MultiEcho, B1BlochSiegert, EPGT2, R2StarComplex, VFAT1
+from qmrpy.models import B0MultiEcho, B1BlochSiegert, T2EPG, T2StarComplexR2, T1VFA
 
 
 def _fit_complex_df_fixed0(signal: np.ndarray, te_ms: np.ndarray) -> float:
@@ -39,7 +39,7 @@ def run_benchmark(*, seed: int = 20260211, n_samples: int = 300) -> dict[str, An
 
     b1_model = B1BlochSiegert(k_bs_rad_per_b1sq=1.0)
     b0_model = B0MultiEcho(te_ms=te_ms_t2star)
-    r2star_model = R2StarComplex(te_ms=te_ms_t2star)
+    r2star_model = T2StarComplexR2(te_ms=te_ms_t2star)
 
     t1_err_unc: list[float] = []
     t1_err_cor: list[float] = []
@@ -61,17 +61,17 @@ def run_benchmark(*, seed: int = 20260211, n_samples: int = 300) -> dict[str, An
 
         bs_signal = b1_model.forward(b1=b1_true, phase0_rad=phase0_true_rad)
         bs_signal_noisy = bs_signal + rng.normal(0.0, 0.008, size=2)
-        b1_hat = float(b1_model.fit(bs_signal_noisy)["b1_raw"])
+        b1_hat = float(b1_model.fit(bs_signal_noisy)["params"]["b1_raw"])
         b1_abs_err.append(abs(b1_hat - b1_true))
 
-        t1_signal = VFAT1(flip_angle_deg=flip_angle_deg, tr_ms=18.0, b1=b1_true).forward(m0=m0, t1_ms=t1_true_ms)
+        t1_signal = T1VFA(flip_angle_deg=flip_angle_deg, tr_ms=18.0, b1=b1_true).forward(m0=m0, t1_ms=t1_true_ms)
         t1_signal_noisy = t1_signal + rng.normal(0.0, 2.0, size=t1_signal.shape)
-        t1_out_unc = VFAT1(flip_angle_deg=flip_angle_deg, tr_ms=18.0, b1=1.0).fit(t1_signal_noisy)
-        t1_out_cor = VFAT1(flip_angle_deg=flip_angle_deg, tr_ms=18.0, b1=b1_hat).fit(t1_signal_noisy)
-        t1_err_unc.append(abs(float(t1_out_unc["t1_ms"]) - t1_true_ms) / t1_true_ms)
-        t1_err_cor.append(abs(float(t1_out_cor["t1_ms"]) - t1_true_ms) / t1_true_ms)
+        t1_out_unc = T1VFA(flip_angle_deg=flip_angle_deg, tr_ms=18.0, b1=1.0).fit(t1_signal_noisy)
+        t1_out_cor = T1VFA(flip_angle_deg=flip_angle_deg, tr_ms=18.0, b1=b1_hat).fit(t1_signal_noisy)
+        t1_err_unc.append(abs(float(t1_out_unc["params"]["t1_ms"]) - t1_true_ms) / t1_true_ms)
+        t1_err_cor.append(abs(float(t1_out_cor["params"]["t1_ms"]) - t1_true_ms) / t1_true_ms)
 
-        t2_signal = EPGT2(
+        t2_signal = T2EPG(
             n_te=16,
             te_ms=10.0,
             t1_ms=1000.0,
@@ -80,7 +80,7 @@ def run_benchmark(*, seed: int = 20260211, n_samples: int = 300) -> dict[str, An
             b1=b1_true,
         ).forward(m0=m0, t2_ms=t2_true_ms)
         t2_signal_noisy = t2_signal + rng.normal(0.0, 2.0, size=t2_signal.shape)
-        t2_out_unc = EPGT2(
+        t2_out_unc = T2EPG(
             n_te=16,
             te_ms=10.0,
             t1_ms=1000.0,
@@ -88,7 +88,7 @@ def run_benchmark(*, seed: int = 20260211, n_samples: int = 300) -> dict[str, An
             beta_deg=180.0,
             b1=1.0,
         ).fit(t2_signal_noisy)
-        t2_out_cor = EPGT2(
+        t2_out_cor = T2EPG(
             n_te=16,
             te_ms=10.0,
             t1_ms=1000.0,
@@ -96,12 +96,12 @@ def run_benchmark(*, seed: int = 20260211, n_samples: int = 300) -> dict[str, An
             beta_deg=180.0,
             b1=b1_hat,
         ).fit(t2_signal_noisy)
-        t2_err_unc.append(abs(float(t2_out_unc["t2_ms"]) - t2_true_ms) / t2_true_ms)
-        t2_err_cor.append(abs(float(t2_out_cor["t2_ms"]) - t2_true_ms) / t2_true_ms)
+        t2_err_unc.append(abs(float(t2_out_unc["params"]["t2_ms"]) - t2_true_ms) / t2_true_ms)
+        t2_err_cor.append(abs(float(t2_out_cor["params"]["t2_ms"]) - t2_true_ms) / t2_true_ms)
 
         b0_phase = np.angle(np.exp(1j * (phase0_true_rad + 2.0 * np.pi * b0_true_hz * te_s_t2star)))
         b0_phase_noisy = b0_phase + rng.normal(0.0, 0.03, size=te_ms_t2star.shape)
-        b0_hat = float(b0_model.fit(b0_phase_noisy)["b0_hz"])
+        b0_hat = float(b0_model.fit(b0_phase_noisy)["params"]["b0_hz"])
         b0_sq_err.append((b0_hat - b0_true_hz) ** 2)
 
         t2star_signal = r2star_model.forward(

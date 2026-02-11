@@ -3,20 +3,20 @@ def test_b1_dam_fit_noise_free():
 
     np = pytest.importorskip("numpy")
 
-    from qmrpy.models.b1 import B1Dam
+    from qmrpy.models.b1 import B1DAM
 
-    model = B1Dam(alpha_deg=60.0)
+    model = B1DAM(alpha_deg=60.0)
     b1_true = 1.1
     m0 = 1000.0
     signal = model.forward(m0=m0, b1=b1_true)
     fitted = model.fit(signal)
-    assert abs(fitted["b1_raw"] - b1_true) < 1e-12
-    assert fitted["spurious"] == 0.0
+    assert abs(fitted["params"]["b1_raw"] - b1_true) < 1e-12
+    assert fitted["diagnostics"]["spurious"] == 0.0
 
     img = np.stack([signal, signal], axis=0).reshape(2, 1, 2)
     out = model.fit_image(img)
-    assert out["b1_raw"].shape == img.shape[:-1]
-    assert out["spurious"].shape == img.shape[:-1]
+    assert out["params"]["b1_raw"].shape == img.shape[:-1]
+    assert out["diagnostics"]["spurious"].shape == img.shape[:-1]
 
 
 def test_b1_dam_fit_image_rejects_mask_for_1d():
@@ -24,9 +24,9 @@ def test_b1_dam_fit_image_rejects_mask_for_1d():
 
     np = pytest.importorskip("numpy")
 
-    from qmrpy.models.b1 import B1Dam
+    from qmrpy.models.b1 import B1DAM
 
-    model = B1Dam(alpha_deg=60.0)
+    model = B1DAM(alpha_deg=60.0)
     signal = np.array([1000.0, 900.0], dtype=float)
 
     with pytest.raises(ValueError, match="mask must be None for 1D data"):

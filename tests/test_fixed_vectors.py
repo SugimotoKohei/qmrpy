@@ -3,10 +3,10 @@ def test_fixed_vectors_mono_t2_forward_matches_expected():
 
     np = pytest.importorskip("numpy")
 
-    from qmrpy.models.t2 import MonoT2
+    from qmrpy.models.t2 import T2Mono
 
     te_ms = np.array([0.0, 10.0, 20.0, 40.0], dtype=float)
-    model = MonoT2(te_ms=te_ms)
+    model = T2Mono(te_ms=te_ms)
     out = model.forward(m0=2.0, t2_ms=10.0)
     expected = np.array([2.0, 2.0 * np.exp(-1.0), 2.0 * np.exp(-2.0), 2.0 * np.exp(-4.0)], dtype=float)
     assert np.allclose(out, expected, rtol=0, atol=1e-12)
@@ -17,10 +17,10 @@ def test_fixed_vectors_vfa_t1_forward_matches_expected():
 
     np = pytest.importorskip("numpy")
 
-    from qmrpy.models.t1 import VFAT1
+    from qmrpy.models.t1 import T1VFA
 
     fa = np.array([10.0], dtype=float)
-    model = VFAT1(flip_angle_deg=fa, tr_ms=15.0, b1=1.0)
+    model = T1VFA(flip_angle_deg=fa, tr_ms=15.0, b1=1.0)
     out = model.forward(m0=1000.0, t1_ms=1000.0)
 
     alpha = np.deg2rad(10.0)

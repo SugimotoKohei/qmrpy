@@ -21,7 +21,7 @@ def _as_1d_float_array(values: ArrayLike, *, name: str) -> NDArray[np.float64]:
 
 
 @dataclass(frozen=True, slots=True)
-class MultiComponentT2:
+class T2MultiComponent:
     """Multi-component T2 relaxometry (MWF) using NNLS.
 
     Signal model:

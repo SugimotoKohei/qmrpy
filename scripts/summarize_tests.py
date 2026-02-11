@@ -46,7 +46,7 @@ def _rows() -> list[dict[str, Any]]:
         },
         {
             "category": "T2",
-            "target": "MonoT2",
+            "target": "T2Mono",
             "verification": "forward/fit/linear",
             "tests": "tests/test_mono_t2.py; tests/test_import.py",
         },
@@ -70,7 +70,7 @@ def _rows() -> list[dict[str, Any]]:
         },
         {
             "category": "T2",
-            "target": "MWF (MultiComponentT2)",
+            "target": "MWF (T2MultiComponent)",
             "verification": "keys/consistency",
             "tests": "tests/test_mwf.py",
         },

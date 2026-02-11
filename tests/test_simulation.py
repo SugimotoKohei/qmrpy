@@ -21,10 +21,10 @@ def test_generate_4d_phantom_no_noise() -> None:
 
 
 def test_simulate_single_voxel_with_fit_runs() -> None:
-    from qmrpy.models.t2 import MonoT2
+    from qmrpy.models.t2 import T2Mono
     from qmrpy.sim import SimulationProtocol, simulate_single_voxel
 
-    model = MonoT2(te_ms=np.array([10.0, 20.0, 40.0, 80.0], dtype=np.float64))
+    model = T2Mono(te_ms=np.array([10.0, 20.0, 40.0, 80.0], dtype=np.float64))
 
     out = simulate_single_voxel(
         model,
@@ -38,7 +38,7 @@ def test_simulate_single_voxel_with_fit_runs() -> None:
     assert set(out.keys()) == {"signal_clean", "signal", "fit"}
     assert out["signal"].shape == (4,)
     assert out["signal_clean"].shape == (4,)
-    assert "t2_ms" in out["fit"]
+    assert "t2_ms" in out["fit"]["params"]
 
     proto = SimulationProtocol(simulation_backend="analytic", noise_model="none", fit=True)
     out_proto = simulate_single_voxel(
@@ -57,7 +57,7 @@ def test_simulate_single_voxel_with_fit_runs() -> None:
         fit=True,
     )
     out_from_class = simulate_single_voxel(
-        MonoT2,
+        T2Mono,
         params={"m0": 1000.0, "t2_ms": 60.0},
         protocol=proto_model,
     )
@@ -65,10 +65,10 @@ def test_simulate_single_voxel_with_fit_runs() -> None:
 
 
 def test_simulate_single_voxel_no_noise() -> None:
-    from qmrpy.models.t2 import MonoT2
+    from qmrpy.models.t2 import T2Mono
     from qmrpy.sim import simulate_single_voxel
 
-    model = MonoT2(te_ms=np.array([10.0, 20.0, 40.0], dtype=np.float64))
+    model = T2Mono(te_ms=np.array([10.0, 20.0, 40.0], dtype=np.float64))
 
     out = simulate_single_voxel(
         model,
@@ -83,10 +83,10 @@ def test_simulate_single_voxel_no_noise() -> None:
 
 
 def test_simulate_single_voxel_rician_noise() -> None:
-    from qmrpy.models.t2 import MonoT2
+    from qmrpy.models.t2 import T2Mono
     from qmrpy.sim import simulate_single_voxel
 
-    model = MonoT2(te_ms=np.array([10.0, 20.0, 40.0, 80.0], dtype=np.float64))
+    model = T2Mono(te_ms=np.array([10.0, 20.0, 40.0, 80.0], dtype=np.float64))
 
     out = simulate_single_voxel(
         model,
@@ -106,10 +106,10 @@ def test_simulate_single_voxel_rician_noise() -> None:
 def test_simulate_single_voxel_invalid_backend() -> None:
     import pytest
 
-    from qmrpy.models.t2 import MonoT2
+    from qmrpy.models.t2 import T2Mono
     from qmrpy.sim import simulate_single_voxel
 
-    model = MonoT2(te_ms=np.array([10.0, 20.0], dtype=np.float64))
+    model = T2Mono(te_ms=np.array([10.0, 20.0], dtype=np.float64))
 
     with pytest.raises(ValueError, match="unknown simulation_backend"):
         simulate_single_voxel(
@@ -122,10 +122,10 @@ def test_simulate_single_voxel_invalid_backend() -> None:
 def test_simulate_single_voxel_invalid_noise_model() -> None:
     import pytest
 
-    from qmrpy.models.t2 import MonoT2
+    from qmrpy.models.t2 import T2Mono
     from qmrpy.sim import simulate_single_voxel
 
-    model = MonoT2(te_ms=np.array([10.0, 20.0], dtype=np.float64))
+    model = T2Mono(te_ms=np.array([10.0, 20.0], dtype=np.float64))
 
     with pytest.raises(ValueError, match="unknown noise_model"):
         simulate_single_voxel(
@@ -137,10 +137,10 @@ def test_simulate_single_voxel_invalid_noise_model() -> None:
 
 
 def test_sensitivity_analysis_basic() -> None:
-    from qmrpy.models.t2 import MonoT2
+    from qmrpy.models.t2 import T2Mono
     from qmrpy.sim import sensitivity_analysis
 
-    model = MonoT2(te_ms=np.array([10.0, 20.0, 40.0, 80.0], dtype=np.float64))
+    model = T2Mono(te_ms=np.array([10.0, 20.0, 40.0, 80.0], dtype=np.float64))
 
     result = sensitivity_analysis(
         model,
@@ -158,7 +158,7 @@ def test_sensitivity_analysis_basic() -> None:
 
     assert result["vary_param"] == "t2_ms"
     assert len(result["x"]) == 3
-    assert result["fit"]["t2_ms"].shape == (3, 2)
+    assert result["fit"]["params"]["t2_ms"].shape == (3, 2)
     assert "mean" in result
     assert "std" in result
 
@@ -166,10 +166,10 @@ def test_sensitivity_analysis_basic() -> None:
 def test_sensitivity_analysis_invalid_n_steps() -> None:
     import pytest
 
-    from qmrpy.models.t2 import MonoT2
+    from qmrpy.models.t2 import T2Mono
     from qmrpy.sim import sensitivity_analysis
 
-    model = MonoT2(te_ms=np.array([10.0, 20.0], dtype=np.float64))
+    model = T2Mono(te_ms=np.array([10.0, 20.0], dtype=np.float64))
 
     with pytest.raises(ValueError, match="n_steps must be >= 2"):
         sensitivity_analysis(
@@ -185,10 +185,10 @@ def test_sensitivity_analysis_invalid_n_steps() -> None:
 
 
 def test_simulate_parameter_distribution_basic() -> None:
-    from qmrpy.models.t2 import MonoT2
+    from qmrpy.models.t2 import T2Mono
     from qmrpy.sim import simulate_parameter_distribution
 
-    model = MonoT2(te_ms=np.array([10.0, 20.0, 40.0], dtype=np.float64))
+    model = T2Mono(te_ms=np.array([10.0, 20.0, 40.0], dtype=np.float64))
 
     result = simulate_parameter_distribution(
         model,
@@ -203,5 +203,5 @@ def test_simulate_parameter_distribution_basic() -> None:
     assert "hat" in result
     assert "err" in result
     assert "metrics" in result
-    assert result["true"]["m0"].shape == (3,)
-    assert result["hat"]["t2_ms"].shape == (3,)
+    assert result["true"]["params"]["m0"].shape == (3,)
+    assert result["hat"]["params"]["t2_ms"].shape == (3,)

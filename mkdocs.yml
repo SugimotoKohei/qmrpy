@@ -60,10 +60,13 @@ nav:
       - T1 Mapping: guide/t1-mapping.md
       - T2 Mapping: guide/t2-mapping.md
       - B1 Mapping: guide/b1-mapping.md
+      - Validation: guide/validation.md
   - API Reference:
       - Overview: api/index.md
       - T1 Models: api/t1.md
       - T2 Models: api/t2.md
+      - T2* Models: api/t2star.md
+      - B0 Models: api/b0.md
       - B1 Models: api/b1.md
       - EPG Simulation: api/epg.md
       - Functional API: api/functional.md

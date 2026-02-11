@@ -13,13 +13,13 @@ All models follow a consistent pattern:
 
 ```python
 import numpy as np
-from qmrpy.models.t2 import MonoT2
+from qmrpy.models.t2 import T2Mono
 
 # Echo times in milliseconds
 te_ms = np.array([10, 20, 30, 40, 50])
 
 # Create model
-model = MonoT2(te_ms=te_ms)
+model = T2Mono(te_ms=te_ms)
 
 # Single voxel fit
 signal = np.array([100, 80, 64, 51, 41])
@@ -37,7 +37,7 @@ volume = np.random.rand(64, 64, 10, 5) * 100  # (x, y, z, n_echoes)
 
 # Fit with automatic Otsu masking
 maps = model.fit_image(volume, mask="otsu")
-t2_map = maps["t2_ms"]  # Shape: (64, 64, 10)
+t2_map = maps["params"]["t2_ms"]  # Shape: (64, 64, 10)
 ```
 
 ## Parallel Processing
@@ -58,8 +58,8 @@ import logging
 logging.basicConfig(level=logging.INFO)
 
 maps = model.fit_image(volume, mask="otsu", n_jobs=-1, verbose=True)
-# Output: MonoT2: 4096 voxels, n_jobs=-1, shape=(64, 64, 10)
-#         MonoT2: 100%|██████| 4096/4096 [00:05<00:00, 800voxel/s]
+# Output: T2Mono: 4096 voxels, n_jobs=-1, shape=(64, 64, 10)
+#         T2Mono: 100%|██████| 4096/4096 [00:05<00:00, 800voxel/s]
 ```
 
 ## Functional API
@@ -67,9 +67,9 @@ maps = model.fit_image(volume, mask="otsu", n_jobs=-1, verbose=True)
 For quick one-off fits:
 
 ```python
-from qmrpy import mono_t2_fit
+from qmrpy import fit_t2_mono
 
-result = mono_t2_fit(signal, te_ms=te_ms)
+result = fit_t2_mono(signal, te_ms=te_ms)
 ```
 
 ## Next Steps

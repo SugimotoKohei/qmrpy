@@ -35,14 +35,14 @@ from pypulseq.calc_duration import calc_duration
 from pypulseq.opts import Opts
 
 from qmrpy.sim import simulate_bloch
-from qmrpy.models.t1 import VFAT1
-from qmrpy.models.b1 import B1Afi
-from qmrpy.models.t2 import MonoT2
+from qmrpy.models.t1 import T1VFA
+from qmrpy.models.b1 import B1AFI
+from qmrpy.models.t2 import T2Mono
 try:
-    from qmrpy.models.t2 import MultiComponentT2
+    from qmrpy.models.t2 import T2MultiComponent
 except ImportError:
-    from qmrpy.models.t2.mwf import MultiComponentT2
-from qmrpy.models.qsm.pipeline import QsmSplitBregman
+    from qmrpy.models.t2.mwf import T2MultiComponent
+from qmrpy.models.qsm.pipeline import QSMSplitBregman
 from qmrpy.models.qsm.utils import kspace_kernel
 
 # Setup Output Directory
@@ -189,7 +189,7 @@ sig_afi = np.abs(np.asarray(raw_afi).reshape(200, 2))
 s1, s2 = np.mean(sig_afi[-10:, 0]), np.mean(sig_afi[-10:, 1])
 
 # Estimate B1
-afi_model = B1Afi(nom_fa_deg=60, tr1_ms=20, tr2_ms=100)
+afi_model = B1AFI(nom_fa_deg=60, tr1_ms=20, tr2_ms=100)
 est_b1 = afi_model.fit(np.array([s1, s2]))['b1_raw']
 print(f"True B1: {TRUE_B1}, Estimated B1: {est_b1:.4f}")
 
@@ -219,8 +219,8 @@ np.random.seed(42)
 sig_noisy = np.abs(np.array(signals) + np.random.normal(0, np.max(signals)/50, size=len(signals)))
 
 # Fit (Uncorrected vs Corrected)
-vfa_nocorr = VFAT1(flip_angle_deg=np.array(flip_angles), tr_ms=15.0, b1=1.0)
-vfa_corr = VFAT1(flip_angle_deg=np.array(flip_angles), tr_ms=15.0, b1=est_b1)
+vfa_nocorr = T1VFA(flip_angle_deg=np.array(flip_angles), tr_ms=15.0, b1=1.0)
+vfa_corr = T1VFA(flip_angle_deg=np.array(flip_angles), tr_ms=15.0, b1=est_b1)
 
 t1_nocorr = vfa_nocorr.fit(sig_noisy)['t1_ms']
 t1_corr = vfa_corr.fit(sig_noisy)['t1_ms']
@@ -260,10 +260,10 @@ sig_noisy = np.abs(sig_total + np.random.normal(0, sig_total[0]/200, size=sig_to
 
 # 1. Mono Fit
 te_ms = (np.arange(32) + 1) * 10.0
-t2_mono = MonoT2(te_ms).fit(sig_noisy)['t2_ms']
+t2_mono = T2Mono(te_ms).fit(sig_noisy)['t2_ms']
 
 # 2. Multi Fit
-res_mwf = MultiComponentT2(te_ms).fit(sig_noisy)
+res_mwf = T2MultiComponent(te_ms).fit(sig_noisy)
 mwf_est = res_mwf['mwf']
 
 print(f"Mono T2: {t2_mono:.1f} ms (Average)")
@@ -345,7 +345,7 @@ images = np.stack([np.exp(-te/0.1) * np.exp(-1j * 2 * np.pi * DF * te) for te in
 # QSM Reconstruction
 dPhi = np.angle(images[..., 1] * np.conj(images[..., 0]))
 field_map = dPhi # Phase at delta_TE
-qsm = QsmSplitBregman(sharp_filter=True, l1_regularized=True, lambda_l1=1e-3, pad_size=(4, 4, 4))
+qsm = QSMSplitBregman(sharp_filter=True, l1_regularized=True, lambda_l1=1e-3, pad_size=(4, 4, 4))
 res = qsm.fit(phase=dPhi, mask=np.ones((N,N,N)), image_resolution_mm=np.array([dx*1000]*3))
 
 # Compare Center Slice

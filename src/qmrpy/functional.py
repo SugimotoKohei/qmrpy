@@ -2,224 +2,157 @@ from __future__ import annotations
 
 from typing import Any
 
-import numpy as np
-from numpy.typing import ArrayLike, NDArray
+from numpy.typing import ArrayLike
+
+from qmrpy.models import (
+    B0DualEcho,
+    B0MultiEcho,
+    T1DESPOT1HIFI,
+    T1InversionRecovery,
+    T1MP2RAGE,
+    T1VFA,
+    T2DECAESMap,
+    T2EMC,
+    T2EPG,
+    T2Mono,
+    T2MultiComponent,
+    T2StarComplexR2,
+    T2StarMonoR2,
+)
+
+MODEL_REGISTRY: dict[str, type[Any]] = {
+    "t1_vfa": T1VFA,
+    "t1_inversion_recovery": T1InversionRecovery,
+    "t1_despot1_hifi": T1DESPOT1HIFI,
+    "t1_mp2rage": T1MP2RAGE,
+    "t2_mono": T2Mono,
+    "t2_epg": T2EPG,
+    "t2_emc": T2EMC,
+    "t2_decaes_map": T2DECAESMap,
+    "t2_multi_component": T2MultiComponent,
+    "t2star_mono_r2": T2StarMonoR2,
+    "t2star_complex_r2": T2StarComplexR2,
+    "b0_dual_echo": B0DualEcho,
+    "b0_multi_echo": B0MultiEcho,
+}
 
 
-def vfa_t1_forward(
+def _build_model(model_id: str, **kwargs: Any) -> Any:
+    model_cls = MODEL_REGISTRY[model_id]
+    return model_cls(**kwargs)
+
+
+def simulate_t1_vfa(
     *,
     m0: float,
     t1_ms: float,
     flip_angle_deg: ArrayLike,
     tr_ms: float,
     b1: ArrayLike | float = 1.0,
-) -> NDArray[np.floating[Any]]:
-    """Functional wrapper for VFA T1 forward model (ms).
-
-    Parameters
-    ----------
-    m0 : float
-        Proton density scale.
-    t1_ms : float
-        T1 in milliseconds.
-    flip_angle_deg : array-like
-        Flip angles in degrees.
-    tr_ms : float
-        Repetition time in milliseconds.
-    b1 : float or array-like, optional
-        B1 scaling (scalar or array).
-
-    Returns
-    -------
-    ndarray
-        Simulated FLASH/SPGR signal array.
-    """
-    from qmrpy.models.t1.vfa_t1 import VFAT1
-
-    return VFAT1(flip_angle_deg=flip_angle_deg, tr_ms=tr_ms, b1=b1).forward(m0=m0, t1_ms=t1_ms)
+) -> Any:
+    return _build_model("t1_vfa", flip_angle_deg=flip_angle_deg, tr_ms=tr_ms, b1=b1).forward(
+        m0=m0, t1_ms=t1_ms
+    )
 
 
-def vfa_t1_fit(
+def fit_t1_vfa(
     signal: ArrayLike,
     *,
     flip_angle_deg: ArrayLike,
     tr_ms: float,
     b1: ArrayLike | float = 1.0,
     **kwargs: Any,
-) -> dict[str, float]:
-    """Functional wrapper for VFA T1 fit (ms).
-
-    Parameters
-    ----------
-    signal : array-like
-        Observed signal array.
-    flip_angle_deg : array-like
-        Flip angles in degrees.
-    tr_ms : float
-        Repetition time in milliseconds.
-    b1 : float or array-like, optional
-        B1 scaling (scalar or array).
-    **kwargs
-        Passed to ``VFAT1.fit``.
-
-    Returns
-    -------
-    dict
-        Fit results dict (e.g., ``t1_ms``, ``m0``, ``n_points``).
-    """
-    from qmrpy.models.t1.vfa_t1 import VFAT1
-
-    return VFAT1(flip_angle_deg=flip_angle_deg, tr_ms=tr_ms, b1=b1).fit(signal, **kwargs)
+) -> dict[str, Any]:
+    return _build_model("t1_vfa", flip_angle_deg=flip_angle_deg, tr_ms=tr_ms, b1=b1).fit(
+        signal, **kwargs
+    )
 
 
-def vfa_t1_fit_linear(
+def fit_t1_vfa_linear(
     signal: ArrayLike,
     *,
     flip_angle_deg: ArrayLike,
     tr_ms: float,
     b1: ArrayLike | float = 1.0,
     **kwargs: Any,
-) -> dict[str, float]:
-    """Functional wrapper for VFA T1 linear fit (ms).
-
-    Parameters
-    ----------
-    signal : array-like
-        Observed signal array.
-    flip_angle_deg : array-like
-        Flip angles in degrees.
-    tr_ms : float
-        Repetition time in milliseconds.
-    b1 : float or array-like, optional
-        B1 scaling (scalar or array).
-    **kwargs
-        Passed to ``VFAT1.fit_linear``.
-
-    Returns
-    -------
-    dict
-        Fit results dict (e.g., ``t1_ms``, ``m0``, ``n_points``).
-    """
-    from qmrpy.models.t1.vfa_t1 import VFAT1
-
-    return VFAT1(flip_angle_deg=flip_angle_deg, tr_ms=tr_ms, b1=b1).fit_linear(signal, **kwargs)
+) -> dict[str, Any]:
+    return _build_model("t1_vfa", flip_angle_deg=flip_angle_deg, tr_ms=tr_ms, b1=b1).fit_linear(
+        signal, **kwargs
+    )
 
 
-def inversion_recovery_forward(
+def simulate_t1_inversion_recovery(
     *,
     t1_ms: float,
     ra: float,
     rb: float,
     ti_ms: ArrayLike,
     magnitude: bool = False,
-) -> NDArray[np.floating[Any]]:
-    """Functional wrapper for inversion recovery forward model (ms).
-
-    Parameters
-    ----------
-    t1_ms : float
-        T1 in milliseconds.
-    ra : float
-        Offset term.
-    rb : float
-        Amplitude term.
-    ti_ms : array-like
-        Inversion times in milliseconds.
-    magnitude : bool, optional
-        If True, return magnitude signal.
-
-    Returns
-    -------
-    ndarray
-        Simulated inversion recovery signal.
-    """
-    from qmrpy.models.t1.inversion_recovery import InversionRecovery
-
-    return InversionRecovery(ti_ms=ti_ms).forward(t1_ms=t1_ms, ra=ra, rb=rb, magnitude=magnitude)
+) -> Any:
+    return _build_model("t1_inversion_recovery", ti_ms=ti_ms).forward(
+        t1_ms=t1_ms, ra=ra, rb=rb, magnitude=magnitude
+    )
 
 
-def inversion_recovery_fit(
+def fit_t1_inversion_recovery(
     signal: ArrayLike,
     *,
     ti_ms: ArrayLike,
     **kwargs: Any,
-) -> dict[str, float]:
-    """Functional wrapper for inversion recovery fit (ms).
-
-    Parameters
-    ----------
-    signal : array-like
-        Observed signal array.
-    ti_ms : array-like
-        Inversion times in milliseconds.
-    **kwargs
-        Passed to ``InversionRecovery.fit``.
-
-    Returns
-    -------
-    dict
-        Fit results dict (e.g., ``t1_ms``, ``ra``, ``rb``).
-    """
-    from qmrpy.models.t1.inversion_recovery import InversionRecovery
-
-    return InversionRecovery(ti_ms=ti_ms).fit(signal, **kwargs)
+) -> dict[str, Any]:
+    return _build_model("t1_inversion_recovery", ti_ms=ti_ms).fit(signal, **kwargs)
 
 
-def mono_t2_forward(
+def fit_t1_despot1_hifi(
+    signal: ArrayLike,
+    *,
+    flip_angle_deg: ArrayLike,
+    tr_ms: float,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    return _build_model("t1_despot1_hifi", flip_angle_deg=flip_angle_deg, tr_ms=tr_ms).fit(
+        signal, **kwargs
+    )
+
+
+def fit_t1_mp2rage(
+    signal: ArrayLike,
+    *,
+    ti1_ms: float,
+    ti2_ms: float,
+    alpha1_deg: float,
+    alpha2_deg: float,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    model = _build_model(
+        "t1_mp2rage",
+        ti1_ms=ti1_ms,
+        ti2_ms=ti2_ms,
+        alpha1_deg=alpha1_deg,
+        alpha2_deg=alpha2_deg,
+    )
+    return model.fit(signal, **kwargs)
+
+
+def simulate_t2_mono(
     *,
     m0: float,
     t2_ms: float,
     te_ms: ArrayLike,
-) -> NDArray[np.floating[Any]]:
-    """Functional wrapper for mono-exponential T2 forward model (ms).
-
-    Parameters
-    ----------
-    m0 : float
-        Proton density scale.
-    t2_ms : float
-        T2 in milliseconds.
-    te_ms : array-like
-        Echo times in milliseconds.
-
-    Returns
-    -------
-    ndarray
-        Simulated mono-exponential signal array.
-    """
-    from qmrpy.models.t2.mono_t2 import MonoT2
-
-    return MonoT2(te_ms=te_ms).forward(m0=m0, t2_ms=t2_ms)
+) -> Any:
+    return _build_model("t2_mono", te_ms=te_ms).forward(m0=m0, t2_ms=t2_ms)
 
 
-def mono_t2_fit(
+def fit_t2_mono(
     signal: ArrayLike,
     *,
     te_ms: ArrayLike,
     **kwargs: Any,
-) -> dict[str, float]:
-    """Functional wrapper for mono-exponential T2 fit (ms).
-
-    Parameters
-    ----------
-    signal : array-like
-        Observed signal array.
-    te_ms : array-like
-        Echo times in milliseconds.
-    **kwargs
-        Passed to ``MonoT2.fit``.
-
-    Returns
-    -------
-    dict
-        Fit results dict (e.g., ``t2_ms``, ``m0``).
-    """
-    from qmrpy.models.t2.mono_t2 import MonoT2
-
-    return MonoT2(te_ms=te_ms).fit(signal, **kwargs)
+) -> dict[str, Any]:
+    return _build_model("t2_mono", te_ms=te_ms).fit(signal, **kwargs)
 
 
-def epg_t2_forward(
+def simulate_t2_epg(
     *,
     m0: float,
     t2_ms: float,
@@ -231,40 +164,9 @@ def epg_t2_forward(
     b1: float | None = None,
     offset: float = 0.0,
     epg_backend: str = "decaes",
-) -> NDArray[np.floating[Any]]:
-    """Functional wrapper for EPG-corrected T2 forward model (ms).
-
-    Parameters
-    ----------
-    m0 : float
-        Proton density scale.
-    t2_ms : float
-        T2 in milliseconds.
-    n_te : int
-        Number of echoes.
-    te_ms : float
-        Echo spacing in milliseconds.
-    t1_ms : float, optional
-        T1 in milliseconds.
-    alpha_deg : float, optional
-        Refocusing flip angle in degrees.
-    beta_deg : float, optional
-        Refocusing phase angle in degrees.
-    b1 : float, optional
-        B1 scaling factor.
-    offset : float, optional
-        Constant offset term.
-    epg_backend : {"decaes"}, optional
-        Backend for EPG decay computation.
-
-    Returns
-    -------
-    ndarray
-        Simulated multi-echo signal array.
-    """
-    from qmrpy.models.t2.epg_t2 import EPGT2
-
-    return EPGT2(
+) -> Any:
+    return _build_model(
+        "t2_epg",
         n_te=n_te,
         te_ms=te_ms,
         t1_ms=t1_ms,
@@ -274,7 +176,7 @@ def epg_t2_forward(
     ).forward(m0=m0, t2_ms=t2_ms, offset=offset, b1=b1)
 
 
-def epg_t2_fit(
+def fit_t2_epg(
     signal: ArrayLike,
     *,
     n_te: int,
@@ -285,38 +187,9 @@ def epg_t2_fit(
     b1: float | None = None,
     epg_backend: str = "decaes",
     **kwargs: Any,
-) -> dict[str, float]:
-    """Functional wrapper for EPG-corrected T2 fit (ms).
-
-    Parameters
-    ----------
-    signal : array-like
-        Observed signal array (length ``n_te``).
-    n_te : int
-        Number of echoes.
-    te_ms : float
-        Echo spacing in milliseconds.
-    t1_ms : float, optional
-        T1 in milliseconds.
-    alpha_deg : float, optional
-        Refocusing flip angle in degrees.
-    beta_deg : float, optional
-        Refocusing phase angle in degrees.
-    b1 : float, optional
-        B1 scaling factor.
-    epg_backend : {"decaes"}, optional
-        Backend for EPG decay computation.
-    **kwargs
-        Passed to ``EPGT2.fit``.
-
-    Returns
-    -------
-    dict
-        Fit results dict (e.g., ``t2_ms``, ``m0``).
-    """
-    from qmrpy.models.t2.epg_t2 import EPGT2
-
-    model = EPGT2(
+) -> dict[str, Any]:
+    model = _build_model(
+        "t2_epg",
         n_te=n_te,
         te_ms=te_ms,
         t1_ms=t1_ms,
@@ -327,34 +200,26 @@ def epg_t2_fit(
     return model.fit(signal, b1=b1, **kwargs)
 
 
-def mwf_fit(
+def fit_t2_emc(
+    signal: ArrayLike,
+    *,
+    n_te: int,
+    te_ms: float,
+    **kwargs: Any,
+) -> dict[str, Any]:
+    return _build_model("t2_emc", n_te=n_te, te_ms=te_ms).fit(signal, **kwargs)
+
+
+def fit_t2_multi_component(
     signal: ArrayLike,
     *,
     te_ms: ArrayLike,
     **kwargs: Any,
 ) -> dict[str, Any]:
-    """Functional wrapper for multi-component T2 (MWF) fit (ms).
-
-    Parameters
-    ----------
-    signal : array-like
-        Observed signal array.
-    te_ms : array-like
-        Echo times in milliseconds.
-    **kwargs
-        Passed to ``MultiComponentT2.fit``.
-
-    Returns
-    -------
-    dict
-        Fit results dict including spectrum and MWF metrics.
-    """
-    from qmrpy.models.t2.mwf import MultiComponentT2
-
-    return MultiComponentT2(te_ms=te_ms).fit(signal, **kwargs)
+    return _build_model("t2_multi_component", te_ms=te_ms).fit(signal, **kwargs)
 
 
-def decaes_t2map_fit(
+def fit_t2_decaes_map(
     signal: ArrayLike,
     *,
     n_te: int,
@@ -364,33 +229,8 @@ def decaes_t2map_fit(
     reg: str,
     **kwargs: Any,
 ) -> dict[str, Any]:
-    """Functional wrapper for DECAES T2 map fit (ms).
-
-    Parameters
-    ----------
-    signal : array-like
-        Observed signal array (length ``n_te``).
-    n_te : int
-        Number of echoes.
-    te_ms : float
-        Echo spacing in milliseconds.
-    n_t2 : int
-        Number of T2 components.
-    t2_range_ms : tuple of float
-        T2 range in milliseconds.
-    reg : str
-        Regularization method (``none``, ``lcurve``, ``gcv``, ``chi2``, ``mdp``).
-    **kwargs
-        Passed to ``DECAEST2Map``.
-
-    Returns
-    -------
-    dict
-        Fit results dict including spectrum and diagnostics.
-    """
-    from qmrpy.models.t2.decaes_t2 import DECAEST2Map
-
-    model = DECAEST2Map(
+    model = _build_model(
+        "t2_decaes_map",
         n_te=n_te,
         te_ms=te_ms,
         n_t2=n_t2,
@@ -401,47 +241,42 @@ def decaes_t2map_fit(
     return model.fit(signal)
 
 
-def decaes_t2map_spectrum(
+def fit_t2star_mono_r2(
     signal: ArrayLike,
     *,
-    n_te: int,
-    te_ms: float,
-    n_t2: int,
-    t2_range_ms: tuple[float, float],
-    reg: str,
+    te_ms: ArrayLike,
     **kwargs: Any,
-) -> NDArray[np.floating[Any]] | None:
-    """Return T2 spectrum (distribution) from DECAES T2 map fit (ms).
+) -> dict[str, Any]:
+    return _build_model("t2star_mono_r2", te_ms=te_ms).fit(signal, **kwargs)
 
-    Parameters
-    ----------
-    signal : array-like
-        Observed signal array (length ``n_te``).
-    n_te : int
-        Number of echoes.
-    te_ms : float
-        Echo spacing in milliseconds.
-    n_t2 : int
-        Number of T2 components.
-    t2_range_ms : tuple of float
-        T2 range in milliseconds.
-    reg : str
-        Regularization method (``none``, ``lcurve``, ``gcv``, ``chi2``, ``mdp``).
-    **kwargs
-        Passed to ``DECAEST2Map``.
 
-    Returns
-    -------
-    ndarray
-        T2 distribution array.
-    """
-    fit = decaes_t2map_fit(
-        signal,
-        n_te=n_te,
-        te_ms=te_ms,
-        n_t2=n_t2,
-        t2_range_ms=t2_range_ms,
-        reg=reg,
-        **kwargs,
-    )
-    return fit.get("distribution")
+def fit_t2star_complex_r2(
+    signal: ArrayLike,
+    *,
+    te_ms: ArrayLike,
+) -> dict[str, Any]:
+    return _build_model("t2star_complex_r2", te_ms=te_ms).fit(signal)
+
+
+def fit_b0_dual_echo(
+    signal: ArrayLike,
+    *,
+    te1_ms: float,
+    te2_ms: float,
+    unwrap_phase: bool = False,
+) -> dict[str, Any]:
+    return _build_model(
+        "b0_dual_echo",
+        te1_ms=te1_ms,
+        te2_ms=te2_ms,
+        unwrap_phase=unwrap_phase,
+    ).fit(signal)
+
+
+def fit_b0_multi_echo(
+    signal: ArrayLike,
+    *,
+    te_ms: ArrayLike,
+    unwrap_phase: bool = True,
+) -> dict[str, Any]:
+    return _build_model("b0_multi_echo", te_ms=te_ms, unwrap_phase=unwrap_phase).fit(signal)

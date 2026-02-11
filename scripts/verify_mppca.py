@@ -6,7 +6,6 @@ calls Octave MPPCA, and compares.
 """
 
 import subprocess
-import tempfile
 from pathlib import Path
 import os
 
@@ -72,7 +71,7 @@ def run_octave(mat_path_in, mat_path_out):
         "--eval",
         f"qMRLab_path='{qMRLab_path}'; input_mat='{mat_path_in}'; output_mat='{mat_path_out}'; source('{OCTAVE_SCRIPT_PATH}');"
     ]
-    print(f"Running Octave...")
+    print("Running Octave...")
     subprocess.check_call(cmd)
 
 

@@ -13,7 +13,7 @@ from .unwrap import unwrap_phase_laplacian
 
 
 @dataclass(frozen=True, slots=True)
-class QsmSplitBregman:
+class QSMSplitBregman:
     """High-level QSM pipeline (qMRLab qsm_sb, simplified).
 
     Steps:

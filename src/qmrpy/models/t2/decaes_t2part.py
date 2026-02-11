@@ -58,7 +58,7 @@ def _sigmoid_weights(
 
 
 @dataclass(frozen=True, slots=True)
-class DECAEST2Part:
+class T2DECAESPart:
     """DECAES-like T2-parts analysis (`T2partSEcorr`) on precomputed T2 distributions.
 
     Computes myelin water fraction (MWF) and other metrics from T2 spectra
