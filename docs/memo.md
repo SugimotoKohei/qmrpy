@@ -110,3 +110,6 @@
 - `uv run --locked -m pytest` を実行（114 passed, warnings 5件）
 - `$memo-entry`: `README.md` のクイックスタート（英日）を新結果スキーマに追随し、`fit()` の戻り値例を `params/quality/diagnostics` 形式へ更新
 - `README.md` の旧クラス名・旧functional名を再検索し、旧命名参照が残っていないことを確認
+- `$memo-entry`: `gh run view` で `Deploy Docs` 失敗原因を調査し、`docs/api/functional.md` の `qmrpy.functional.decaes_t2map_spectrum` 参照が未実装であることを確認
+- `docs/api/functional.md` から未実装 API 参照を削除して mkdocstrings のビルドエラーを解消
+- `uv run --locked mkdocs build` を実行（build 成功）

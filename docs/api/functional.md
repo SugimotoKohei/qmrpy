@@ -32,8 +32,6 @@ Convenience functions for quick fitting without creating model objects.
 
 ::: qmrpy.functional.fit_t2_decaes_map
 
-::: qmrpy.functional.decaes_t2map_spectrum
-
 ::: qmrpy.functional.fit_t2_emc
 
 ## T2* Functions
