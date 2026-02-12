@@ -126,3 +126,11 @@
 - ガイド内の参照を `result["params"][...]` / `maps["params"][...]` から `result["..."]` / `maps["..."]` に統一し、`quality`/`diagnostics` は属性アクセス（`result.quality`, `maps.diagnostics`）へ変更
 - `docs/guide/t2-mapping.md` の `T2DECAESMap.fit_image` 戻り値説明を現仕様に合わせ、`maps, dist = ...` から `maps = ...; dist = maps["distribution"]` へ修正
 - `uv run --locked mkdocs build` を再実行（build 成功）
+
+## 2026-02-13
+- `$memo-entry`: ルートの `/Users/sugim/Developments/qmrpy/qmrpy.png` をアイコン元画像として採用
+- `docs/assets/qmrpy-icon.png` を `qmrpy.png` で更新
+- `docs/assets/qmrpy-icon-32.png` を `qmrpy.png` から 32x32 にリサイズして更新（`sips -z 32 32`）
+- `$memo-entry`: 旧アイコン置換の運用に合わせ、ルート `qmrpy.png` を廃止して `docs/assets/qmrpy-icon.png` へ移動統一
+- `docs/assets/qmrpy-icon-32.png` を `docs/assets/qmrpy-icon.png` から再生成し、MkDocs の logo/favicon 参照先を維持したまま置換
+- 次アクション: 置換コミットを作成して反映 (完了)
