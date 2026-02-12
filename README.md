@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="https://raw.githubusercontent.com/SugimotoKohei/qmrpy/main/docs/assets/qmrpy-icon.png" alt="qmrpy logo" width="160">
+  <img src="https://raw.githubusercontent.com/SugimotoKohei/qmrpy/main/docs/assets/qmrpy-icon.png?v=20260213" alt="qmrpy logo" width="160">
 </p>
 
 # qmrpy

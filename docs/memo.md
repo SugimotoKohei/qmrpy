@@ -134,3 +134,5 @@
 - `$memo-entry`: 旧アイコン置換の運用に合わせ、ルート `qmrpy.png` を廃止して `docs/assets/qmrpy-icon.png` へ移動統一
 - `docs/assets/qmrpy-icon-32.png` を `docs/assets/qmrpy-icon.png` から再生成し、MkDocs の logo/favicon 参照先を維持したまま置換
 - 次アクション: 置換コミットを作成して反映 (完了)
+- `$memo-entry`: README 画像が更新されない表示問題に対し、`raw.githubusercontent.com` キャッシュ回避のため `README.md` のロゴURLへ `?v=20260213` を付与
+- 次アクション: 変更をコミットして `origin/main` へ push し、表示更新を確認 (完了)
