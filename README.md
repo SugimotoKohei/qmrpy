@@ -12,6 +12,8 @@ Python toolkit for quantitative MRI (qMRI) modeling, fitting, and simulation.
 
 ```bash
 pip install qmrpy
+# Optional real-data I/O helpers
+pip install "qmrpy[io]"
 # or
 uv add qmrpy
 ```
@@ -43,8 +45,24 @@ result = model.fit_image(image_data, mask="otsu", n_jobs=-1)
 - **Models**: T1 (VFA, IR, DESPOT1-HIFI, T1MP2RAGE), T2/T2* (mono-exp, EPG, EMC, R2*), B0/B1, QSM, denoising
 - **Parallel fitting**: `n_jobs=-1` for multi-core acceleration
 - **Auto-masking**: `mask="otsu"` for automatic thresholding
-- **I/O**: `save_tiff()` / `load_tiff()` for uncompressed TIFF export
+- **I/O**: TIFF in core; optional NIfTI, DICOM, and BIDS helpers for real-data workflows
 - **Validation suite**: reproducible cross-domain checks for `T1/T2/B1/QSM/Simulation`
+
+## Real-data I/O
+
+```python
+from qmrpy.io import load_nifti, save_nifti_map
+from qmrpy.models import T2Mono
+
+data, affine, header = load_nifti("sub-01_echoes.nii.gz")
+model = T2Mono(te_ms=[10, 20, 40, 80])
+maps = model.fit_image(data, mask="otsu", n_jobs=-1)
+save_nifti_map("sub-01_t2map.nii.gz", maps, "t2_ms", affine=affine, header=header)
+```
+
+`load_dicom_series()` returns sorted 3D or 4D arrays plus TE/TR/FA/TI metadata.
+`load_bids_relaxometry()` reads minimal qMRI-BIDS NIfTI + JSON sidecar inputs and
+normalizes timing fields to `_ms` keys.
 
 ## Validation (JOSS-friendly, external dependency free)
 
@@ -92,6 +110,8 @@ MIT
 
 ```bash
 pip install qmrpy
+# 実データ I/O の optional helper
+pip install "qmrpy[io]"
 # または
 uv add qmrpy
 ```
@@ -123,8 +143,24 @@ result = model.fit_image(image_data, mask="otsu", n_jobs=-1)
 - **モデル**: T1（VFA, IR, DESPOT1-HIFI, T1MP2RAGE）、T2/T2*（単指数、EPG、EMC、R2*）、B0/B1、QSM、ノイズ除去
 - **並列フィッティング**: `n_jobs=-1`でマルチコア高速化
 - **自動マスク**: `mask="otsu"`でOtsu二値化
-- **I/O**: `save_tiff()` / `load_tiff()`で非圧縮TIFF保存
+- **I/O**: コアのTIFF入出力に加え、optionalでNIfTI/DICOM/BIDSの実データ入出力に対応
 - **検証スイート**: `T1/T2/B1/QSM/Simulation` を横断した再現可能な検証
+
+## 実データ I/O
+
+```python
+from qmrpy.io import load_nifti, save_nifti_map
+from qmrpy.models import T2Mono
+
+data, affine, header = load_nifti("sub-01_echoes.nii.gz")
+model = T2Mono(te_ms=[10, 20, 40, 80])
+maps = model.fit_image(data, mask="otsu", n_jobs=-1)
+save_nifti_map("sub-01_t2map.nii.gz", maps, "t2_ms", affine=affine, header=header)
+```
+
+`load_dicom_series()` はソート済みの3D/4D配列とTE/TR/FA/TIメタデータを返します。
+`load_bids_relaxometry()` は最小限の qMRI-BIDS NIfTI + JSON sidecar を読み込み、
+時間フィールドを `_ms` キーへ正規化します。
 
 ## 検証実行（JOSS向け・外部依存なし）
 

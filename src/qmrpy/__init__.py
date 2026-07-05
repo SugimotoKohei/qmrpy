@@ -19,7 +19,15 @@ from .functional import (
     simulate_t2_epg,
     simulate_t2_mono,
 )
-from .io import load_tiff, save_tiff
+from .io import (
+    load_bids_relaxometry,
+    load_dicom_series,
+    load_nifti,
+    load_tiff,
+    save_nifti,
+    save_nifti_map,
+    save_tiff,
+)
 
 __all__ = [
     "__version__",
@@ -38,7 +46,12 @@ __all__ = [
     "fit_t2_multi_component",
     "fit_t2star_complex_r2",
     "fit_t2star_mono_r2",
+    "load_bids_relaxometry",
+    "load_dicom_series",
+    "load_nifti",
     "load_tiff",
+    "save_nifti",
+    "save_nifti_map",
     "save_tiff",
     "simulate_t1_inversion_recovery",
     "simulate_t1_vfa",

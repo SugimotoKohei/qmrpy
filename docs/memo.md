@@ -136,3 +136,17 @@
 - 次アクション: 置換コミットを作成して反映 (完了)
 - `$memo-entry`: README 画像が更新されない表示問題に対し、`raw.githubusercontent.com` キャッシュ回避のため `README.md` のロゴURLへ `?v=20260213` を付与
 - 次アクション: 変更をコミットして `origin/main` へ push し、表示更新を確認 (完了)
+
+## 2026-05-07
+- context: qmrpy ソフトウェア論文の新規性検討 / change: 論文主張を単なる Python 移植ではなく、検証基盤・qMRI-BIDS 連携・Pulseq/MRzero 連携・実データ応用のいずれかへ強化する方針を整理 / reason: 既存 `paper.md` の verification-first 主張だけでは方法論的な新規性が弱い可能性があるため / artifact: `docs/memo.md` / next: 採用する新規性軸を 1 つ選び、必要な実装・検証・論文改稿範囲を決める
+
+## 2026-05-15
+- context: T1/T2 限定の次期機能候補調査 / change: DWI/ADC ではなく、近年の同時 T1-T2 mapping・MR fingerprinting・EPG/辞書ベース T2 水/脂肪分離を候補として整理 / reason: 既存 qmrpy の T1/T2/EPG/Pulseq/MRzero 足場と整合し、再現可能な文献再現テーマになりやすいため / artifact: `docs/memo.md` / next: 実装候補を `JointT1T2MRF` または `T2WaterFatEPG` のどちらに絞る
+
+## 2026-05-16
+- context: GitHub repository topics 整備 / change: `python`, `quantitative-mri`, `qmri`, `mri`, `medical-imaging`, `simulation` を GitHub topics に追加 / reason: qmrpy の用途・公開内容を GitHub 上で見つけやすくするため / artifact: GitHub repository metadata / next: 必要なら topic の追加・削除を見直す
+
+## 2026-07-05
+- context: qmrpy 完全化タスク フェーズ1着手前ベースライン / change: `uv sync --locked` は通常権限で uv cache 権限エラー、昇格実行で成功。`uv lock --check` は成功。`uv run --locked -m pytest` は `pytest` 未同期で失敗、`uv run --locked --extra dev -m pytest` は 117 passed。`uv run --locked ruff check src tests scripts` は All checks passed。`uv run --locked mypy src/qmrpy` は mypy 未導入で失敗。`uv run --locked mkdocs build` は mkdocs 未同期で失敗、`uv run --locked --group docs mkdocs build` は成功。`uv run --locked scripts/summarize_parity.py --suite core` は成功 / reason: 実データ I/O 実装前にテスト・lint・型・docs・検証スイートの現状を固定するため / artifact: `docs/memo.md`, `output/reports/parity_summary/` / next: フェーズ1として NIfTI/DICOM/BIDS I/O と optional dependency、テスト、docs を実装する
+- context: qmrpy 完全化タスク フェーズ1 実データ I/O / change: `nibabel`/`pydicom` を optional `io` 依存へ追加し、`load_nifti`/`save_nifti`/`save_nifti_map`/`load_dicom_series`/`load_bids_relaxometry` と公開 export、合成 NIfTI/DICOM/BIDS テスト、README/API/I/O guide を追加。NIfTI/DICOM/BIDS は遅延 import とし、未インストール時に `qmrpy[io]` 案内を出す設計にした / reason: 実データ relaxometry 入出力と結果マップの空間メタデータ継承を、既存 TIFF API とコア import 互換性を壊さず追加するため / artifact: `src/qmrpy/io.py`, `src/qmrpy/__init__.py`, `tests/test_io.py`, `docs/guide/io.md`, `docs/api/io.md`, `README.md`, `pyproject.toml`, `uv.lock` / next: フェーズ2の T1rho 実装へ進む前に、型チェックゲートは mypy 未導入のためフェーズ5で整備する (TBD)
+- context: qmrpy 完全化タスク フェーズ1 検証 / change: `uv lock --check` 成功、`uv run --locked -m pytest` は 122 passed、`uv run --locked ruff check src tests scripts` は All checks passed、`uv run --locked mkdocs build` は成功、`uv run --locked scripts/summarize_parity.py --suite core` は成功、`uv run --locked mypy src/qmrpy` は mypy 未導入で失敗 / reason: フェーズ1完了前にテスト・lint・docs・検証スイートの品質ゲートを確認するため / artifact: `docs/memo.md`, `output/reports/parity_summary/` / next: 型チェック導入は CI/品質ゲート整備フェーズで対応する

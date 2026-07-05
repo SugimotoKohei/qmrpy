@@ -57,6 +57,7 @@ nav:
       - Installation: getting-started/installation.md
       - Quick Start: getting-started/quickstart.md
   - User Guide:
+      - Real Data I/O: guide/io.md
       - T1 Mapping: guide/t1-mapping.md
       - T2 Mapping: guide/t2-mapping.md
       - B1 Mapping: guide/b1-mapping.md

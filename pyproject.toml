@@ -47,6 +47,10 @@ dev = [
   "nbclient>=0.10.2",
   "nbformat>=5.10.4",
 ]
+io = [
+    "nibabel>=5",
+    "pydicom>=2.4",
+]
 
 [tool.hatch.version]
 path = "src/qmrpy/__init__.py"
