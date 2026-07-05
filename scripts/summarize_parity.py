@@ -753,6 +753,100 @@ def _validate_b1_dam(cfg: dict[str, Any], *, seed: int, default_n_samples: int) 
     return case_row, metrics
 
 
+def _validate_mtr(
+    cfg: dict[str, Any], *, seed: int, default_n_samples: int
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    from qmrpy.models import MTR
+
+    rng = np.random.default_rng(seed)
+    n_samples = int(cfg.get("n_samples", default_n_samples))
+    s0 = float(cfg.get("s0", 1000.0))
+    mtr_lo, mtr_hi = _as_pair(cfg.get("mtr_range", [0.05, 0.40]), name="core.mtr.mtr_range")
+    noise_model = str(cfg.get("noise_model", "gaussian"))
+    noise_sigma = float(cfg.get("noise_sigma", 0.0))
+
+    model = MTR()
+    mtr_true = rng.uniform(mtr_lo, mtr_hi, size=n_samples)
+    mtr_hat = np.empty(n_samples, dtype=np.float64)
+    for i in range(n_samples):
+        signal = model.forward(s0=s0, mtr=float(mtr_true[i]))
+        signal = _add_noise(signal, model=noise_model, sigma=noise_sigma, rng=rng)
+        out = model.fit(signal)
+        mtr_hat[i] = float(out["params"]["mtr"])
+
+    mtr_mae_abs = float(np.mean(np.abs(mtr_hat - mtr_true)))
+    metrics = [
+        _metric_row(
+            domain="MT",
+            model="mtr",
+            case="mtr_ratio",
+            metric="mtr_mae_abs",
+            value=mtr_mae_abs,
+            threshold=float(cfg.get("threshold_mtr_mae_abs", 0.03)),
+            unit="ratio",
+        )
+    ]
+    case_row = _case_row(
+        domain="MT",
+        model="mtr",
+        case="mtr_ratio",
+        seed=seed,
+        n_samples=n_samples,
+        primary_metric="mtr_mae_abs",
+        metrics=metrics,
+    )
+    return case_row, metrics
+
+
+def _validate_mtsat(
+    cfg: dict[str, Any], *, seed: int, default_n_samples: int
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    from qmrpy.models import MTsat
+
+    rng = np.random.default_rng(seed)
+    n_samples = int(cfg.get("n_samples", default_n_samples))
+    flip_angle_deg = float(cfg.get("flip_angle_deg", 6.0))
+    tr_ms = float(cfg.get("tr_ms", 25.0))
+    m0 = float(cfg.get("m0", 1000.0))
+    t1_lo, t1_hi = _as_pair(cfg.get("t1_range_ms", [700.0, 1600.0]), name="core.mtsat.t1_range_ms")
+    mtsat_lo, mtsat_hi = _as_pair(cfg.get("mtsat_range", [0.02, 0.12]), name="core.mtsat.mtsat_range")
+    noise_model = str(cfg.get("noise_model", "gaussian"))
+    noise_sigma = float(cfg.get("noise_sigma", 0.0))
+
+    model = MTsat(flip_angle_deg=flip_angle_deg, tr_ms=tr_ms)
+    t1_true = rng.uniform(t1_lo, t1_hi, size=n_samples)
+    mtsat_true = rng.uniform(mtsat_lo, mtsat_hi, size=n_samples)
+    mtsat_hat = np.empty(n_samples, dtype=np.float64)
+    for i in range(n_samples):
+        signal = model.forward(m0=m0, t1_ms=float(t1_true[i]), mtsat=float(mtsat_true[i]))
+        signal = _add_noise(signal, model=noise_model, sigma=noise_sigma, rng=rng)
+        out = model.fit(signal, m0=m0, t1_ms=float(t1_true[i]))
+        mtsat_hat[i] = float(out["params"]["mtsat"])
+
+    mtsat_mae_abs = float(np.mean(np.abs(mtsat_hat - mtsat_true)))
+    metrics = [
+        _metric_row(
+            domain="MT",
+            model="mtsat",
+            case="mtsat_t1_corrected",
+            metric="mtsat_mae_abs",
+            value=mtsat_mae_abs,
+            threshold=float(cfg.get("threshold_mtsat_mae_abs", 0.03)),
+            unit="ratio",
+        )
+    ]
+    case_row = _case_row(
+        domain="MT",
+        model="mtsat",
+        case="mtsat_t1_corrected",
+        seed=seed,
+        n_samples=n_samples,
+        primary_metric="mtsat_mae_abs",
+        metrics=metrics,
+    )
+    return case_row, metrics
+
+
 def _validate_qsm(cfg: dict[str, Any], *, seed: int, default_n_samples: int) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     from qmrpy.models.qsm import QSMSplitBregman
 
@@ -1464,6 +1558,8 @@ def _core_validation_rows(config: dict[str, Any]) -> tuple[list[dict[str, Any]],
         ("mwf", _validate_mwf),
         ("b1_dam", _validate_b1_dam),
         ("b1_bloch_siegert", _validate_b1_bloch_siegert),
+        ("mtr", _validate_mtr),
+        ("mtsat", _validate_mtsat),
         ("b0_dual_echo", _validate_b0_dual_echo),
         ("b0_multi_echo", _validate_b0_multi_echo),
         ("qsm", _validate_qsm),

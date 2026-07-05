@@ -49,3 +49,13 @@ Convenience functions for quick fitting without creating model objects.
 ::: qmrpy.functional.fit_b0_dual_echo
 
 ::: qmrpy.functional.fit_b0_multi_echo
+
+## Magnetization Transfer Functions
+
+::: qmrpy.functional.simulate_mtr
+
+::: qmrpy.functional.fit_mtr
+
+::: qmrpy.functional.simulate_mtsat
+
+::: qmrpy.functional.fit_mtsat

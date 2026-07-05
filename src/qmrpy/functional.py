@@ -8,6 +8,8 @@ from qmrpy.core import FitResult
 from qmrpy.models import (
     B0DualEcho,
     B0MultiEcho,
+    MTR,
+    MTsat,
     T1DESPOT1HIFI,
     T1InversionRecovery,
     T1MP2RAGE,
@@ -37,6 +39,8 @@ MODEL_REGISTRY: dict[str, type[Any]] = {
     "t2star_complex_r2": T2StarComplexR2,
     "b0_dual_echo": B0DualEcho,
     "b0_multi_echo": B0MultiEcho,
+    "mtr": MTR,
+    "mtsat": MTsat,
 }
 
 
@@ -301,3 +305,45 @@ def fit_b0_multi_echo(
     unwrap_phase: bool = True,
 ) -> FitResult:
     return _build_model("b0_multi_echo", te_ms=te_ms, unwrap_phase=unwrap_phase).fit(signal)
+
+
+def simulate_mtr(
+    *,
+    s0: float,
+    mtr: float,
+) -> Any:
+    return _build_model("mtr").forward(s0=s0, mtr=mtr)
+
+
+def fit_mtr(signal: ArrayLike) -> FitResult:
+    return _build_model("mtr").fit(signal)
+
+
+def simulate_mtsat(
+    *,
+    m0: float,
+    t1_ms: float,
+    mtsat: float,
+    flip_angle_deg: float,
+    tr_ms: float,
+) -> Any:
+    return _build_model("mtsat", flip_angle_deg=flip_angle_deg, tr_ms=tr_ms).forward(
+        m0=m0,
+        t1_ms=t1_ms,
+        mtsat=mtsat,
+    )
+
+
+def fit_mtsat(
+    signal: ArrayLike,
+    *,
+    flip_angle_deg: float,
+    tr_ms: float,
+    m0: float,
+    t1_ms: float,
+) -> FitResult:
+    return _build_model("mtsat", flip_angle_deg=flip_angle_deg, tr_ms=tr_ms).fit(
+        signal,
+        m0=m0,
+        t1_ms=t1_ms,
+    )
