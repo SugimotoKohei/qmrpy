@@ -11,7 +11,7 @@ license = { text = "MIT" }
 authors = [
   { name = "Kohei Sugimoto" },
 ]
-keywords = ["qMRI", "MRI", "quantitative", "relaxometry", "diffusion", "simulation"]
+keywords = ["qMRI", "MRI", "quantitative", "relaxometry", "magnetization-transfer", "simulation"]
 classifiers = [
   "Development Status :: 2 - Pre-Alpha",
   "Intended Audience :: Science/Research",
