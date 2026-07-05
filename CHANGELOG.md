@@ -4,6 +4,8 @@
 
 ## [Unreleased]
 
+## [1.1.0] - 2026-07-06
+
 ### Added
 
 - NIfTI、DICOM、最小 qMRI-BIDS I/O helper を追加。
@@ -29,5 +31,6 @@
 - `FitResult` による params 辞書互換 + `quality` / `diagnostics` メタデータスキーマを追加。
 - core validation suite と JOSS 向け検証出力を整備。
 
-[Unreleased]: https://github.com/SugimotoKohei/qmrpy/compare/v1.0.0...HEAD
+[Unreleased]: https://github.com/SugimotoKohei/qmrpy/compare/v1.1.0...HEAD
+[1.1.0]: https://github.com/SugimotoKohei/qmrpy/compare/v1.0.0...v1.1.0
 [1.0.0]: https://github.com/SugimotoKohei/qmrpy/releases/tag/v1.0.0

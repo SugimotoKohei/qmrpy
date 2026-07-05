@@ -79,4 +79,4 @@ __all__ = [
     "simulate_t2_water_fat",
 ]
 
-__version__ = "1.0.0"
+__version__ = "1.1.0"
