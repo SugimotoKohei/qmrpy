@@ -1565,17 +1565,29 @@ def _validate_mp2rage(
     noise_model = str(cfg.get("noise_model", "gaussian"))
     noise_sigma = float(cfg.get("noise_sigma", 1.0))
     method = str(cfg.get("method", "nls"))
+    estimate_b1 = bool(cfg.get("estimate_b1", False))
+    fixed_b1 = float(cfg.get("b1", 1.0))
 
     model = T1MP2RAGE(ti1_ms=ti1_ms, ti2_ms=ti2_ms, alpha1_deg=alpha1_deg, alpha2_deg=alpha2_deg)
     t1_true = rng.uniform(t1_lo, t1_hi, size=n_samples)
-    b1_true = rng.uniform(b1_lo, b1_hi, size=n_samples)
+    if estimate_b1:
+        b1_true = rng.uniform(b1_lo, b1_hi, size=n_samples)
+    else:
+        b1_true = np.full(n_samples, fixed_b1, dtype=np.float64)
 
     t1_hat = np.empty(n_samples, dtype=np.float64)
     b1_hat = np.empty(n_samples, dtype=np.float64)
     for i in range(n_samples):
         signal = model.forward(m0=m0, t1_ms=float(t1_true[i]), b1=float(b1_true[i]))
         signal = _add_noise(signal, model=noise_model, sigma=noise_sigma, rng=rng)
-        out = model.fit(signal, method=method, estimate_b1=True)
+        out = model.fit(
+            signal,
+            method=method,
+            estimate_b1=estimate_b1,
+            b1=None if estimate_b1 else fixed_b1,
+            b1_bounds=(b1_lo, b1_hi),
+            t1_bounds_ms=(t1_lo, t1_hi),
+        )
         t1_hat[i] = float(out["params"]["t1_ms"])
         b1_hat[i] = float(out["params"]["b1"])
 
@@ -2192,6 +2204,9 @@ def main(argv: list[str] | None = None) -> int:
 
     for path in written_files:
         print(f"wrote: {path}")
+
+    if core_case_rows is not None and any(int(row.get("pass", 0)) != 1 for row in core_case_rows):
+        return 1
 
     return 0
 

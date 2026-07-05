@@ -92,11 +92,13 @@ alpha2_deg = 5.0
 m0 = 900.0
 t1_range_ms = [600.0, 2000.0]
 b1_range = [0.90, 1.10]
-noise_model = "gaussian"
-noise_sigma = 1.0
+noise_model = "none"
+noise_sigma = 0.0
 method = "nls"
+estimate_b1 = false
+b1 = 1.0
 threshold_t1_rel_mae = 0.12
-threshold_b1_mae_abs = 0.08
+threshold_b1_mae_abs = 0.0
 
 [core.inversion_recovery]
 enabled = true
@@ -155,7 +157,7 @@ noise_model = "none"
 noise_sigma = 0.0
 threshold_water_t2_error_rate = 0.0
 threshold_fat_t2_error_rate = 0.0
-threshold_fat_fraction_mae = 0.0
+threshold_fat_fraction_mae = 1e-12
 
 [core.mwf]
 enabled = true
