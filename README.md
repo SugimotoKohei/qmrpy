@@ -64,6 +64,14 @@ save_nifti_map("sub-01_t2map.nii.gz", maps, "t2_ms", affine=affine, header=heade
 `load_bids_relaxometry()` reads minimal qMRI-BIDS NIfTI + JSON sidecar inputs and
 normalizes timing fields to `_ms` keys.
 
+## CLI
+
+```bash
+qmrpy info
+qmrpy fit t2-mono --input sub-01_echoes.nii.gz --output sub-01_t2map.nii.gz --te-ms 10,20,40,80
+qmrpy validate --suite core
+```
+
 ## Validation (JOSS-friendly, external dependency free)
 
 Run the core validation suite:
@@ -161,6 +169,14 @@ save_nifti_map("sub-01_t2map.nii.gz", maps, "t2_ms", affine=affine, header=heade
 `load_dicom_series()` はソート済みの3D/4D配列とTE/TR/FA/TIメタデータを返します。
 `load_bids_relaxometry()` は最小限の qMRI-BIDS NIfTI + JSON sidecar を読み込み、
 時間フィールドを `_ms` キーへ正規化します。
+
+## CLI
+
+```bash
+qmrpy info
+qmrpy fit t2-mono --input sub-01_echoes.nii.gz --output sub-01_t2map.nii.gz --te-ms 10,20,40,80
+qmrpy validate --suite core
+```
 
 ## 検証実行（JOSS向け・外部依存なし）
 

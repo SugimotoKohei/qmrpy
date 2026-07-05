@@ -35,6 +35,9 @@ dynamic = ["version"]
 Repository = "https://github.com/SugimotoKohei/qmrpy"
 Issues = "https://github.com/SugimotoKohei/qmrpy/issues"
 
+[project.scripts]
+qmrpy = "qmrpy.cli:main"
+
 [project.optional-dependencies]
 viz = [
   "pandas>=2.3.3",
