@@ -46,7 +46,7 @@ def test_validation_suite_core_output_schema(tmp_path: Path) -> None:
     assert metric_rows
 
     domains = {row["domain"] for row in case_rows}
-    assert domains == {"T1", "T2", "T2*", "B1", "B0", "MT", "QSM", "Simulation"}
+    assert domains == {"T1", "T2", "T2*", "B1", "B0", "MT", "MRF", "QSM", "Simulation"}
 
     models = {row["model"] for row in case_rows}
     assert {
@@ -65,6 +65,7 @@ def test_validation_suite_core_output_schema(tmp_path: Path) -> None:
         "b1_bloch_siegert",
         "mtr",
         "mtsat",
+        "mrf_dictionary",
         "b0_dual_echo",
         "b0_multi_echo",
         "qsm",

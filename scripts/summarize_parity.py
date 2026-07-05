@@ -847,6 +847,81 @@ def _validate_mtsat(
     return case_row, metrics
 
 
+def _validate_mrf_dictionary(
+    cfg: dict[str, Any], *, seed: int, default_n_samples: int
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    from qmrpy.models import MRFDictionary
+
+    rng = np.random.default_rng(seed)
+    n_samples = int(cfg.get("n_samples", min(default_n_samples, 24)))
+    flip_angle_deg = np.asarray(
+        _as_float_list(
+            cfg.get("flip_angle_deg", [5.0, 25.0, 10.0, 35.0, 15.0, 30.0]),
+            name="core.mrf_dictionary.flip_angle_deg",
+        )
+    )
+    tr_ms = np.asarray(
+        _as_float_list(cfg.get("tr_ms", [12.0, 14.0, 11.0, 16.0, 13.0, 15.0]), name="core.mrf_dictionary.tr_ms")
+    )
+    te_raw = cfg.get("te_ms", [3.0, 6.0, 4.0, 8.0, 5.0, 7.0])
+    if isinstance(te_raw, list):
+        te_ms: Any = np.asarray(_as_float_list(te_raw, name="core.mrf_dictionary.te_ms"))
+    else:
+        te_ms = float(te_raw)
+    t1_grid = np.asarray(_as_float_list(cfg.get("t1_grid_ms", [800.0, 1000.0, 1200.0]), name="core.mrf_dictionary.t1_grid_ms"))
+    t2_grid = np.asarray(_as_float_list(cfg.get("t2_grid_ms", [60.0, 80.0, 100.0]), name="core.mrf_dictionary.t2_grid_ms"))
+    m0 = float(cfg.get("m0", 1000.0))
+    noise_model = str(cfg.get("noise_model", "gaussian"))
+    noise_sigma = float(cfg.get("noise_sigma", 0.0))
+
+    model = MRFDictionary(flip_angle_deg=flip_angle_deg, tr_ms=tr_ms, te_ms=te_ms)
+    t1_true = rng.choice(t1_grid, size=n_samples)
+    t2_true = rng.choice(t2_grid, size=n_samples)
+    t2_true = np.minimum(t2_true, t1_true)
+
+    t1_hat = np.empty(n_samples, dtype=np.float64)
+    t2_hat = np.empty(n_samples, dtype=np.float64)
+    for i in range(n_samples):
+        signal = model.forward(m0=m0, t1_ms=float(t1_true[i]), t2_ms=float(t2_true[i]))
+        signal = _add_noise(signal, model=noise_model, sigma=noise_sigma, rng=rng)
+        out = model.fit(signal, t1_grid_ms=t1_grid, t2_grid_ms=t2_grid)
+        t1_hat[i] = float(out["params"]["t1_ms"])
+        t2_hat[i] = float(out["params"]["t2_ms"])
+
+    t1_accuracy = float(np.mean(t1_hat == t1_true))
+    t2_accuracy = float(np.mean(t2_hat == t2_true))
+    metrics = [
+        _metric_row(
+            domain="MRF",
+            model="mrf_dictionary",
+            case="mrf_dictionary_grid_recovery",
+            metric="t1_error_rate",
+            value=1.0 - t1_accuracy,
+            threshold=float(cfg.get("threshold_t1_error_rate", 0.0)),
+            unit="error_rate",
+        ),
+        _metric_row(
+            domain="MRF",
+            model="mrf_dictionary",
+            case="mrf_dictionary_grid_recovery",
+            metric="t2_error_rate",
+            value=1.0 - t2_accuracy,
+            threshold=float(cfg.get("threshold_t2_error_rate", 0.0)),
+            unit="error_rate",
+        ),
+    ]
+    case_row = _case_row(
+        domain="MRF",
+        model="mrf_dictionary",
+        case="mrf_dictionary_grid_recovery",
+        seed=seed,
+        n_samples=n_samples,
+        primary_metric="t1_error_rate",
+        metrics=metrics,
+    )
+    return case_row, metrics
+
+
 def _validate_qsm(cfg: dict[str, Any], *, seed: int, default_n_samples: int) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     from qmrpy.models.qsm import QSMSplitBregman
 
@@ -1560,6 +1635,7 @@ def _core_validation_rows(config: dict[str, Any]) -> tuple[list[dict[str, Any]],
         ("b1_bloch_siegert", _validate_b1_bloch_siegert),
         ("mtr", _validate_mtr),
         ("mtsat", _validate_mtsat),
+        ("mrf_dictionary", _validate_mrf_dictionary),
         ("b0_dual_echo", _validate_b0_dual_echo),
         ("b0_multi_echo", _validate_b0_multi_echo),
         ("qsm", _validate_qsm),

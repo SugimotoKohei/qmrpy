@@ -1,6 +1,7 @@
 from .b0 import B0DualEcho, B0MultiEcho
 from .b1 import B1AFI, B1BlochSiegert, B1DAM
 from .mt import MTR, MTsat
+from .mrf import MRFDictionary
 from .noise import MPPCA
 from .qsm import (
     QSMSplitBregman,
@@ -23,6 +24,7 @@ __all__ = [
     "B1DAM",
     "MTR",
     "MTsat",
+    "MRFDictionary",
     "T1DESPOT1HIFI",
     "T1InversionRecovery",
     "T1MP2RAGE",

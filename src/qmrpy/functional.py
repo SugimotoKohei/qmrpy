@@ -8,6 +8,7 @@ from qmrpy.core import FitResult
 from qmrpy.models import (
     B0DualEcho,
     B0MultiEcho,
+    MRFDictionary,
     MTR,
     MTsat,
     T1DESPOT1HIFI,
@@ -39,6 +40,7 @@ MODEL_REGISTRY: dict[str, type[Any]] = {
     "t2star_complex_r2": T2StarComplexR2,
     "b0_dual_echo": B0DualEcho,
     "b0_multi_echo": B0MultiEcho,
+    "mrf_dictionary": MRFDictionary,
     "mtr": MTR,
     "mtsat": MTsat,
 }
@@ -346,4 +348,40 @@ def fit_mtsat(
         signal,
         m0=m0,
         t1_ms=t1_ms,
+    )
+
+
+def simulate_mrf_dictionary(
+    *,
+    m0: float,
+    t1_ms: float,
+    t2_ms: float,
+    flip_angle_deg: ArrayLike,
+    tr_ms: ArrayLike,
+    te_ms: ArrayLike | float | None = None,
+    b1: float = 1.0,
+) -> Any:
+    return _build_model("mrf_dictionary", flip_angle_deg=flip_angle_deg, tr_ms=tr_ms, te_ms=te_ms).forward(
+        m0=m0,
+        t1_ms=t1_ms,
+        t2_ms=t2_ms,
+        b1=b1,
+    )
+
+
+def fit_mrf_dictionary(
+    signal: ArrayLike,
+    *,
+    flip_angle_deg: ArrayLike,
+    tr_ms: ArrayLike,
+    t1_grid_ms: ArrayLike,
+    t2_grid_ms: ArrayLike,
+    te_ms: ArrayLike | float | None = None,
+    b1: float = 1.0,
+) -> FitResult:
+    return _build_model("mrf_dictionary", flip_angle_deg=flip_angle_deg, tr_ms=tr_ms, te_ms=te_ms).fit(
+        signal,
+        t1_grid_ms=t1_grid_ms,
+        t2_grid_ms=t2_grid_ms,
+        b1=b1,
     )

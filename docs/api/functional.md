@@ -59,3 +59,9 @@ Convenience functions for quick fitting without creating model objects.
 ::: qmrpy.functional.simulate_mtsat
 
 ::: qmrpy.functional.fit_mtsat
+
+## MRF Functions
+
+::: qmrpy.functional.simulate_mrf_dictionary
+
+::: qmrpy.functional.fit_mrf_dictionary

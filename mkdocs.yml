@@ -60,6 +60,7 @@ nav:
       - Real Data I/O: guide/io.md
       - T1 Mapping: guide/t1-mapping.md
       - Magnetization Transfer: guide/mt-mapping.md
+      - MR Fingerprinting: guide/mrf.md
       - T2 Mapping: guide/t2-mapping.md
       - B1 Mapping: guide/b1-mapping.md
       - Validation: guide/validation.md
@@ -68,6 +69,7 @@ nav:
       - T1 Models: api/t1.md
       - T1rho Models: api/t1rho.md
       - Magnetization Transfer: api/mt.md
+      - MR Fingerprinting: api/mrf.md
       - T2 Models: api/t2.md
       - T2* Models: api/t2star.md
       - B0 Models: api/b0.md

@@ -207,6 +207,20 @@ noise_model = "gaussian"
 noise_sigma = 0.5
 threshold_mtsat_mae_abs = 0.02
 
+[core.mrf_dictionary]
+enabled = true
+n_samples = 24
+flip_angle_deg = [5.0, 25.0, 10.0, 35.0, 15.0, 30.0]
+tr_ms = [12.0, 14.0, 11.0, 16.0, 13.0, 15.0]
+te_ms = [3.0, 6.0, 4.0, 8.0, 5.0, 7.0]
+t1_grid_ms = [800.0, 1000.0, 1200.0]
+t2_grid_ms = [60.0, 80.0, 100.0]
+m0 = 1000.0
+noise_model = "none"
+noise_sigma = 0.0
+threshold_t1_error_rate = 0.0
+threshold_t2_error_rate = 0.0
+
 [core.b0_dual_echo]
 enabled = true
 n_samples = 48
