@@ -2,7 +2,7 @@
 
 ## Requirements
 
-- Python 3.11+
+- Python 3.11
 - NumPy, SciPy
 
 ## Install from PyPI
@@ -16,7 +16,7 @@ pip install qmrpy
 ```bash
 git clone https://github.com/SugimotoKohei/qmrpy.git
 cd qmrpy
-pip install -e .
+uv sync --locked --extra dev --extra io --group docs
 ```
 
 ## Using uv (recommended for development)
@@ -24,17 +24,24 @@ pip install -e .
 ```bash
 git clone https://github.com/SugimotoKohei/qmrpy.git
 cd qmrpy
-uv sync
+uv sync --locked --extra dev --extra io --group docs
 ```
 
 ## Optional Dependencies
 
-For TIFF I/O:
+TIFF I/O is available in the core package through Pillow.
+
+For NIfTI, DICOM, and minimal qMRI-BIDS helpers:
+
 ```bash
-pip install pillow
+pip install "qmrpy[io]"
 ```
 
-For parallel processing (included by default):
+For local development quality gates:
+
 ```bash
-pip install joblib tqdm
+uv run --locked pre-commit run --all-files
+uv run --locked mypy src/qmrpy
+uv run --locked -m pytest
+uv run --locked mkdocs build
 ```

@@ -6,12 +6,15 @@ qmrpy provides tools for fitting, simulating, and analyzing quantitative MRI dat
 
 ## Features
 
-- 🧲 **T1 Mapping**: VFA, Inversion Recovery
-- 🧲 **T2/T2* Mapping**: Mono-exponential, EPG/EMC, R2* (mono/complex/ESTATICS)
-- 📡 **B1/B0 Mapping**: DAM, AFI, Bloch-Siegert, dual/multi-echo B0
-- 🔬 **Simulation**: Bloch equation, EPG, phantoms
-- ⚡ **Performance**: Parallel fitting with joblib, progress bars with tqdm
-- 🎯 **Masking**: Built-in Otsu thresholding
+- **T1 Mapping**: VFA, inversion recovery, DESPOT1-HIFI, MP2RAGE, T1rho
+- **Magnetization Transfer**: MTR and MTsat
+- **MR Fingerprinting**: dictionary-based simultaneous T1-T2 matching
+- **T2/T2* Mapping**: mono-exponential, EPG/EMC, water/fat, MWF, R2*, ESTATICS
+- **B1/B0 Mapping**: DAM, AFI, Bloch-Siegert, dual/multi-echo B0
+- **QSM and denoising**: SHARP, split-Bregman QSM, MPPCA
+- **Real-data I/O**: TIFF plus optional NIfTI, DICOM series, and minimal qMRI-BIDS helpers
+- **CLI and validation**: `qmrpy fit`, `qmrpy info`, `qmrpy validate`
+- **Performance**: parallel fitting, progress bars, Otsu auto-masking
 
 ## Quick Example
 
@@ -37,6 +40,7 @@ maps = model.fit_image(volume, mask="otsu", n_jobs=-1, verbose=True)
 
 ```bash
 pip install qmrpy
+pip install "qmrpy[io]"  # optional NIfTI/DICOM/BIDS helpers
 ```
 
 ## Documentation
