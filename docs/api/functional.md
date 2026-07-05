@@ -18,6 +18,10 @@ Convenience functions for quick fitting without creating model objects.
 
 ::: qmrpy.functional.fit_t1_mp2rage
 
+::: qmrpy.functional.simulate_t1rho
+
+::: qmrpy.functional.fit_t1rho
+
 ## T2 Functions
 
 ::: qmrpy.functional.simulate_t2_mono

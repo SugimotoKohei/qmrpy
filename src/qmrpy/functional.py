@@ -11,6 +11,7 @@ from qmrpy.models import (
     T1DESPOT1HIFI,
     T1InversionRecovery,
     T1MP2RAGE,
+    T1Rho,
     T1VFA,
     T2DECAESMap,
     T2EMC,
@@ -26,6 +27,7 @@ MODEL_REGISTRY: dict[str, type[Any]] = {
     "t1_inversion_recovery": T1InversionRecovery,
     "t1_despot1_hifi": T1DESPOT1HIFI,
     "t1_mp2rage": T1MP2RAGE,
+    "t1rho": T1Rho,
     "t2_mono": T2Mono,
     "t2_epg": T2EPG,
     "t2_emc": T2EMC,
@@ -133,6 +135,24 @@ def fit_t1_mp2rage(
         alpha2_deg=alpha2_deg,
     )
     return model.fit(signal, **kwargs)
+
+
+def simulate_t1rho(
+    *,
+    m0: float,
+    t1rho_ms: float,
+    tsl_ms: ArrayLike,
+) -> Any:
+    return _build_model("t1rho", tsl_ms=tsl_ms).forward(m0=m0, t1rho_ms=t1rho_ms)
+
+
+def fit_t1rho(
+    signal: ArrayLike,
+    *,
+    tsl_ms: ArrayLike,
+    **kwargs: Any,
+) -> FitResult:
+    return _build_model("t1rho", tsl_ms=tsl_ms).fit(signal, **kwargs)
 
 
 def simulate_t2_mono(

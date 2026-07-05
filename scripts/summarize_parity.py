@@ -371,6 +371,69 @@ def _validate_vfa_t1(cfg: dict[str, Any], *, seed: int, default_n_samples: int) 
     return case_row, metrics
 
 
+def _validate_t1rho(
+    cfg: dict[str, Any], *, seed: int, default_n_samples: int
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    from qmrpy.models import T1Rho
+
+    rng = np.random.default_rng(seed)
+    n_samples = int(cfg.get("n_samples", default_n_samples))
+    tsl_ms = np.asarray(_as_float_list(cfg.get("tsl_ms", [0.0, 10.0, 30.0, 60.0]), name="core.t1rho.tsl_ms"))
+    t1rho_lo, t1rho_hi = _as_pair(cfg.get("t1rho_range_ms", [30.0, 120.0]), name="core.t1rho.t1rho_range_ms")
+    m0 = float(cfg.get("m0", 1000.0))
+    noise_model = str(cfg.get("noise_model", "gaussian"))
+    noise_sigma = float(cfg.get("noise_sigma", 0.0))
+
+    model = T1Rho(tsl_ms=tsl_ms)
+    t1rho_true = rng.uniform(t1rho_lo, t1rho_hi, size=n_samples)
+    m0_true = np.full(n_samples, m0, dtype=np.float64)
+    signals = np.stack(
+        [model.forward(m0=float(m0_true[i]), t1rho_ms=float(t1rho_true[i])) for i in range(n_samples)]
+    )
+    signals = _add_noise(signals, model=noise_model, sigma=noise_sigma, rng=rng)
+
+    t1rho_hat = np.empty(n_samples, dtype=np.float64)
+    m0_hat = np.empty(n_samples, dtype=np.float64)
+    for i in range(n_samples):
+        out = model.fit(signals[i])
+        t1rho_hat[i] = float(out["params"]["t1rho_ms"])
+        m0_hat[i] = float(out["params"]["m0"])
+
+    t1rho_rel_mae = float(np.mean(np.abs(t1rho_hat - t1rho_true) / t1rho_true))
+    m0_rel_mae = float(np.mean(np.abs(m0_hat - m0_true) / np.maximum(m0_true, 1e-12)))
+
+    metrics = [
+        _metric_row(
+            domain="T1",
+            model="t1rho",
+            case="t1rho_spin_lock",
+            metric="t1rho_rel_mae",
+            value=t1rho_rel_mae,
+            threshold=float(cfg.get("threshold_t1rho_rel_mae", 0.08)),
+            unit="ratio",
+        ),
+        _metric_row(
+            domain="T1",
+            model="t1rho",
+            case="t1rho_spin_lock",
+            metric="m0_rel_mae",
+            value=m0_rel_mae,
+            threshold=float(cfg.get("threshold_m0_rel_mae", 0.08)),
+            unit="ratio",
+        ),
+    ]
+    case_row = _case_row(
+        domain="T1",
+        model="t1rho",
+        case="t1rho_spin_lock",
+        seed=seed,
+        n_samples=n_samples,
+        primary_metric="t1rho_rel_mae",
+        metrics=metrics,
+    )
+    return case_row, metrics
+
+
 def _validate_inversion_recovery(
     cfg: dict[str, Any], *, seed: int, default_n_samples: int
 ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
@@ -1392,6 +1455,7 @@ def _core_validation_rows(config: dict[str, Any]) -> tuple[list[dict[str, Any]],
         ("r2star_mono", _validate_r2star_mono),
         ("r2star_complex", _validate_r2star_complex),
         ("vfa_t1", _validate_vfa_t1),
+        ("t1rho", _validate_t1rho),
         ("despot1_hifi", _validate_despot1_hifi),
         ("mp2rage", _validate_mp2rage),
         ("inversion_recovery", _validate_inversion_recovery),

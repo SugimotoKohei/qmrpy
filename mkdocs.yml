@@ -65,6 +65,7 @@ nav:
   - API Reference:
       - Overview: api/index.md
       - T1 Models: api/t1.md
+      - T1rho Models: api/t1rho.md
       - T2 Models: api/t2.md
       - T2* Models: api/t2star.md
       - B0 Models: api/b0.md

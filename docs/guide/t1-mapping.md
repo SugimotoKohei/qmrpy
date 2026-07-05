@@ -1,9 +1,10 @@
 # T1 Mapping
 
-qmrpy provides two T1 mapping methods:
+qmrpy provides multiple T1 and T1rho mapping methods:
 
 - **VFA (Variable Flip Angle)**: Fast T1 mapping using FLASH sequence
 - **Inversion Recovery**: Gold standard T1 measurement
+- **T1rho**: Spin-lock mono-exponential T1rho mapping
 
 ## VFA T1 Mapping
 
@@ -123,9 +124,27 @@ print(result["t1_ms"], result["b1"])
 print(result.quality["rmse"])
 ```
 
+## T1rho Spin-Lock Mapping
+
+T1rho uses spin-lock time (`tsl_ms`) as the acquisition axis and fits
+`S(TSL) = m0 * exp(-TSL / T1rho)`.
+
+```python
+from qmrpy.models import T1Rho
+
+model = T1Rho(tsl_ms=[0, 10, 30, 60])
+signal = model.forward(m0=1000, t1rho_ms=70)
+result = model.fit(signal)
+print(result["t1rho_ms"])
+
+maps = model.fit_image(image_data, mask="otsu", n_jobs=-1)
+t1rho_map = maps["t1rho_ms"]
+```
+
 ## API Reference
 
 - [T1VFA](../api/t1.md#qmrpy.models.t1.T1VFA)
 - [T1InversionRecovery](../api/t1.md#qmrpy.models.t1.T1InversionRecovery)
 - [T1DESPOT1HIFI](../api/t1.md#qmrpy.models.t1.T1DESPOT1HIFI)
 - [T1MP2RAGE](../api/t1.md#qmrpy.models.t1.T1MP2RAGE)
+- [T1Rho](../api/t1rho.md#qmrpy.models.t1rho.T1Rho)

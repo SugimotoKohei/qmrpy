@@ -54,6 +54,7 @@ def test_validation_suite_core_output_schema(tmp_path: Path) -> None:
         "r2star_mono",
         "r2star_complex",
         "vfa_t1",
+        "t1rho",
         "despot1_hifi",
         "mp2rage",
         "inversion_recovery",

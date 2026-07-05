@@ -7,6 +7,7 @@ This section provides detailed API documentation for all qmrpy modules.
 | Module | Description |
 |--------|-------------|
 | [T1 Models](t1.md) | VFA T1, Inversion Recovery, DESPOT1-HIFI, T1MP2RAGE |
+| [T1rho Models](t1rho.md) | Spin-lock T1rho mapping |
 | [T2 Models](t2.md) | T2Mono, T2EPG, EMC, MWF, DECAES |
 | [T2* Models](t2star.md) | R2Star mono/complex, ESTATICS |
 | [B0 Models](b0.md) | Dual-echo, Multi-echo phase regression |
@@ -17,7 +18,7 @@ This section provides detailed API documentation for all qmrpy modules.
 | Module | Description |
 |--------|-------------|
 | [Functional API](functional.md) | Convenience functions |
-| [I/O Utilities](io.md) | TIFF save/load |
+| [I/O Utilities](io.md) | TIFF, NIfTI, DICOM, and BIDS helpers |
 | [Simulation](simulation.md) | Phantoms, Bloch simulation |
 
 ## Common Interface

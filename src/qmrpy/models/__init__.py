@@ -10,6 +10,7 @@ from .qsm import (
     unwrap_phase_laplacian,
 )
 from .t1 import T1DESPOT1HIFI, T1InversionRecovery, T1MP2RAGE, T1VFA
+from .t1rho import T1Rho
 from .t2 import T2DECAESMap, T2DECAESPart, T2EMC, T2EPG, T2Mono, T2MultiComponent
 from .t2star import T2StarComplexR2, T2StarESTATICS, T2StarMonoR2
 
@@ -22,6 +23,7 @@ __all__ = [
     "T1DESPOT1HIFI",
     "T1InversionRecovery",
     "T1MP2RAGE",
+    "T1Rho",
     "T1VFA",
     "T2DECAESMap",
     "T2DECAESPart",
