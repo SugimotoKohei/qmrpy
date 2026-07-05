@@ -1604,6 +1604,90 @@ def _validate_emc_t2(
     return case_row, metrics
 
 
+def _validate_t2_water_fat(
+    cfg: dict[str, Any], *, seed: int, default_n_samples: int
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+    from qmrpy.models import T2WaterFat
+
+    rng = np.random.default_rng(seed)
+    n_samples = int(cfg.get("n_samples", min(default_n_samples, 32)))
+    te_ms = np.asarray(
+        _as_float_list(
+            cfg.get("te_ms", [10.0, 20.0, 40.0, 80.0, 120.0, 160.0]),
+            name="core.t2_water_fat.te_ms",
+        )
+    )
+    water_grid = np.asarray(_as_float_list(cfg.get("water_t2_grid_ms", [60.0, 80.0, 100.0]), name="core.t2_water_fat.water_t2_grid_ms"))
+    fat_grid = np.asarray(_as_float_list(cfg.get("fat_t2_grid_ms", [25.0, 35.0, 45.0]), name="core.t2_water_fat.fat_t2_grid_ms"))
+    water_amp = float(cfg.get("water_amplitude", 800.0))
+    fat_amp = float(cfg.get("fat_amplitude", 200.0))
+    noise_model = str(cfg.get("noise_model", "gaussian"))
+    noise_sigma = float(cfg.get("noise_sigma", 0.0))
+
+    model = T2WaterFat(te_ms=te_ms)
+    water_true = rng.choice(water_grid, size=n_samples)
+    fat_true = rng.choice(fat_grid, size=n_samples)
+    water_hat = np.empty(n_samples, dtype=np.float64)
+    fat_hat = np.empty(n_samples, dtype=np.float64)
+    fat_fraction_hat = np.empty(n_samples, dtype=np.float64)
+    for i in range(n_samples):
+        signal = model.forward(
+            water_amplitude=water_amp,
+            fat_amplitude=fat_amp,
+            water_t2_ms=float(water_true[i]),
+            fat_t2_ms=float(fat_true[i]),
+        )
+        signal = _add_noise(signal, model=noise_model, sigma=noise_sigma, rng=rng)
+        out = model.fit(signal, water_t2_grid_ms=water_grid, fat_t2_grid_ms=fat_grid)
+        water_hat[i] = float(out["params"]["water_t2_ms"])
+        fat_hat[i] = float(out["params"]["fat_t2_ms"])
+        fat_fraction_hat[i] = float(out["params"]["fat_fraction"])
+
+    fat_fraction_true = fat_amp / (water_amp + fat_amp)
+    water_error_rate = float(1.0 - np.mean(water_hat == water_true))
+    fat_error_rate = float(1.0 - np.mean(fat_hat == fat_true))
+    fat_fraction_mae = float(np.mean(np.abs(fat_fraction_hat - fat_fraction_true)))
+    metrics = [
+        _metric_row(
+            domain="T2",
+            model="t2_water_fat",
+            case="t2_water_fat_grid_recovery",
+            metric="water_t2_error_rate",
+            value=water_error_rate,
+            threshold=float(cfg.get("threshold_water_t2_error_rate", 0.0)),
+            unit="error_rate",
+        ),
+        _metric_row(
+            domain="T2",
+            model="t2_water_fat",
+            case="t2_water_fat_grid_recovery",
+            metric="fat_t2_error_rate",
+            value=fat_error_rate,
+            threshold=float(cfg.get("threshold_fat_t2_error_rate", 0.0)),
+            unit="error_rate",
+        ),
+        _metric_row(
+            domain="T2",
+            model="t2_water_fat",
+            case="t2_water_fat_grid_recovery",
+            metric="fat_fraction_mae",
+            value=fat_fraction_mae,
+            threshold=float(cfg.get("threshold_fat_fraction_mae", 0.02)),
+            unit="fraction",
+        ),
+    ]
+    case_row = _case_row(
+        domain="T2",
+        model="t2_water_fat",
+        case="t2_water_fat_grid_recovery",
+        seed=seed,
+        n_samples=n_samples,
+        primary_metric="fat_fraction_mae",
+        metrics=metrics,
+    )
+    return case_row, metrics
+
+
 def _core_validation_rows(config: dict[str, Any]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     core_cfg = config.get("core", {})
     if not isinstance(core_cfg, dict):
@@ -1630,6 +1714,7 @@ def _core_validation_rows(config: dict[str, Any]) -> tuple[list[dict[str, Any]],
         ("inversion_recovery", _validate_inversion_recovery),
         ("epg_t2", _validate_epg_t2),
         ("emc_t2", _validate_emc_t2),
+        ("t2_water_fat", _validate_t2_water_fat),
         ("mwf", _validate_mwf),
         ("b1_dam", _validate_b1_dam),
         ("b1_bloch_siegert", _validate_b1_bloch_siegert),

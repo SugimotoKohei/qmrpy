@@ -38,6 +38,10 @@ Convenience functions for quick fitting without creating model objects.
 
 ::: qmrpy.functional.fit_t2_emc
 
+::: qmrpy.functional.simulate_t2_water_fat
+
+::: qmrpy.functional.fit_t2_water_fat
+
 ## T2* Functions
 
 ::: qmrpy.functional.fit_t2star_mono_r2

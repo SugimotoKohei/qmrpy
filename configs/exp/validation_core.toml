@@ -143,6 +143,20 @@ noise_sigma = 3.0
 threshold_t2_rel_mae = 0.12
 threshold_b1_mae_abs = 0.10
 
+[core.t2_water_fat]
+enabled = true
+n_samples = 32
+te_ms = [10.0, 20.0, 40.0, 80.0, 120.0, 160.0]
+water_t2_grid_ms = [60.0, 80.0, 100.0]
+fat_t2_grid_ms = [25.0, 35.0, 45.0]
+water_amplitude = 800.0
+fat_amplitude = 200.0
+noise_model = "none"
+noise_sigma = 0.0
+threshold_water_t2_error_rate = 0.0
+threshold_fat_t2_error_rate = 0.0
+threshold_fat_fraction_mae = 0.0
+
 [core.mwf]
 enabled = true
 n_samples = 36

@@ -60,6 +60,7 @@ def test_validation_suite_core_output_schema(tmp_path: Path) -> None:
         "inversion_recovery",
         "epg_t2",
         "emc_t2",
+        "t2_water_fat",
         "mwf",
         "b1_dam",
         "b1_bloch_siegert",

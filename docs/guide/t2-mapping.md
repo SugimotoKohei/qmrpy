@@ -5,6 +5,7 @@ qmrpy provides several T2 mapping methods:
 - **T2Mono**: Simple mono-exponential decay
 - **T2EPG**: EPG-corrected T2 with stimulated echo compensation
 - **T2MultiComponent**: Multi-exponential T2 for myelin water fraction (MWF)
+- **T2WaterFat**: Two-pool dictionary T2 water/fat separation
 - **T2DECAESMap**: DECAES-style regularized NNLS fitting
 - **T2EMC**: EPG dictionary matching with optional joint B1 estimation
 
@@ -89,6 +90,33 @@ print(f"MWF = {result['mwf']:.2%}")
 print(f"T2 myelin water = {result['t2mw_ms']:.1f} ms")
 ```
 
+## T2 Water/Fat Separation
+
+`T2WaterFat` uses a compact two-pool dictionary. For each candidate
+`(water_t2_ms, fat_t2_ms)` pair, non-negative water/fat amplitudes are solved
+and the lowest-residual pair is selected.
+
+```python
+from qmrpy.models.t2 import T2WaterFat
+
+model = T2WaterFat(te_ms=[10, 20, 40, 80, 120, 160])
+result = model.fit(
+    signal,
+    water_t2_grid_ms=[60, 80, 100],
+    fat_t2_grid_ms=[25, 35, 45],
+)
+print(result["fat_fraction"])
+print(result["water_t2_ms"], result["fat_t2_ms"])
+
+maps = model.fit_image(
+    volume,
+    water_t2_grid_ms=[60, 80, 100],
+    fat_t2_grid_ms=[25, 35, 45],
+    mask="otsu",
+    n_jobs=-1,
+)
+```
+
 ## DECAES T2 Distribution
 
 Advanced T2 distribution fitting with regularization:
@@ -151,6 +179,7 @@ signal = simulate_t2_epg(
 - [T2Mono](../api/t2.md#qmrpy.models.t2.T2Mono)
 - [T2EPG](../api/t2.md#qmrpy.models.t2.T2EPG)
 - [T2MultiComponent](../api/t2.md#qmrpy.models.t2.T2MultiComponent)
+- [T2WaterFat](../api/t2.md#qmrpy.models.t2.T2WaterFat)
 - [T2DECAESMap](../api/t2.md#qmrpy.models.t2.T2DECAESMap)
 - [T2EMC](../api/t2.md#qmrpy.models.t2.T2EMC)
 - [T2StarMonoR2](../api/t2star.md#qmrpy.models.t2star.T2StarMonoR2)

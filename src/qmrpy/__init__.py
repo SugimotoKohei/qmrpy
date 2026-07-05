@@ -16,6 +16,7 @@ from .functional import (
     fit_t2_epg,
     fit_t2_mono,
     fit_t2_multi_component,
+    fit_t2_water_fat,
     fit_t2star_complex_r2,
     fit_t2star_mono_r2,
     simulate_mrf_dictionary,
@@ -26,6 +27,7 @@ from .functional import (
     simulate_t1_vfa,
     simulate_t2_epg,
     simulate_t2_mono,
+    simulate_t2_water_fat,
 )
 from .io import (
     load_bids_relaxometry,
@@ -56,6 +58,7 @@ __all__ = [
     "fit_t2_epg",
     "fit_t2_mono",
     "fit_t2_multi_component",
+    "fit_t2_water_fat",
     "fit_t2star_complex_r2",
     "fit_t2star_mono_r2",
     "load_bids_relaxometry",
@@ -73,6 +76,7 @@ __all__ = [
     "simulate_t1_vfa",
     "simulate_t2_epg",
     "simulate_t2_mono",
+    "simulate_t2_water_fat",
 ]
 
 __version__ = "1.0.0"

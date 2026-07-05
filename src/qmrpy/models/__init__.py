@@ -13,7 +13,7 @@ from .qsm import (
 )
 from .t1 import T1DESPOT1HIFI, T1InversionRecovery, T1MP2RAGE, T1VFA
 from .t1rho import T1Rho
-from .t2 import T2DECAESMap, T2DECAESPart, T2EMC, T2EPG, T2Mono, T2MultiComponent
+from .t2 import T2DECAESMap, T2DECAESPart, T2EMC, T2EPG, T2Mono, T2MultiComponent, T2WaterFat
 from .t2star import T2StarComplexR2, T2StarESTATICS, T2StarMonoR2
 
 __all__ = [
@@ -36,6 +36,7 @@ __all__ = [
     "T2EPG",
     "T2Mono",
     "T2MultiComponent",
+    "T2WaterFat",
     "T2StarComplexR2",
     "T2StarESTATICS",
     "T2StarMonoR2",

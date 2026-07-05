@@ -21,6 +21,7 @@ from qmrpy.models import (
     T2EPG,
     T2Mono,
     T2MultiComponent,
+    T2WaterFat,
     T2StarComplexR2,
     T2StarMonoR2,
 )
@@ -36,6 +37,7 @@ MODEL_REGISTRY: dict[str, type[Any]] = {
     "t2_emc": T2EMC,
     "t2_decaes_map": T2DECAESMap,
     "t2_multi_component": T2MultiComponent,
+    "t2_water_fat": T2WaterFat,
     "t2star_mono_r2": T2StarMonoR2,
     "t2star_complex_r2": T2StarComplexR2,
     "b0_dual_echo": B0DualEcho,
@@ -266,6 +268,36 @@ def fit_t2_decaes_map(
         **kwargs,
     )
     return model.fit(signal)
+
+
+def simulate_t2_water_fat(
+    *,
+    te_ms: ArrayLike,
+    water_amplitude: float,
+    fat_amplitude: float,
+    water_t2_ms: float,
+    fat_t2_ms: float,
+) -> Any:
+    return _build_model("t2_water_fat", te_ms=te_ms).forward(
+        water_amplitude=water_amplitude,
+        fat_amplitude=fat_amplitude,
+        water_t2_ms=water_t2_ms,
+        fat_t2_ms=fat_t2_ms,
+    )
+
+
+def fit_t2_water_fat(
+    signal: ArrayLike,
+    *,
+    te_ms: ArrayLike,
+    water_t2_grid_ms: ArrayLike,
+    fat_t2_grid_ms: ArrayLike,
+) -> FitResult:
+    return _build_model("t2_water_fat", te_ms=te_ms).fit(
+        signal,
+        water_t2_grid_ms=water_t2_grid_ms,
+        fat_t2_grid_ms=fat_t2_grid_ms,
+    )
 
 
 def fit_t2star_mono_r2(

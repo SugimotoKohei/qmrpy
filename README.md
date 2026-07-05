@@ -42,7 +42,7 @@ result = model.fit_image(image_data, mask="otsu", n_jobs=-1)
 
 ## Features
 
-- **Models**: T1 (VFA, IR, DESPOT1-HIFI, T1MP2RAGE), T1rho, MTR/MTsat, MRF, T2/T2* (mono-exp, EPG, EMC, R2*), B0/B1, QSM, denoising
+- **Models**: T1 (VFA, IR, DESPOT1-HIFI, T1MP2RAGE), T1rho, MTR/MTsat, MRF, T2/T2* (mono-exp, EPG, EMC, water/fat, R2*), B0/B1, QSM, denoising
 - **Parallel fitting**: `n_jobs=-1` for multi-core acceleration
 - **Auto-masking**: `mask="otsu"` for automatic thresholding
 - **I/O**: TIFF in core; optional NIfTI, DICOM, and BIDS helpers for real-data workflows
@@ -140,7 +140,7 @@ result = model.fit_image(image_data, mask="otsu", n_jobs=-1)
 
 ## 主な機能
 
-- **モデル**: T1（VFA, IR, DESPOT1-HIFI, T1MP2RAGE）、T1rho、MTR/MTsat、MRF、T2/T2*（単指数、EPG、EMC、R2*）、B0/B1、QSM、ノイズ除去
+- **モデル**: T1（VFA, IR, DESPOT1-HIFI, T1MP2RAGE）、T1rho、MTR/MTsat、MRF、T2/T2*（単指数、EPG、EMC、水/脂肪、R2*）、B0/B1、QSM、ノイズ除去
 - **並列フィッティング**: `n_jobs=-1`でマルチコア高速化
 - **自動マスク**: `mask="otsu"`でOtsu二値化
 - **I/O**: コアのTIFF入出力に加え、optionalでNIfTI/DICOM/BIDSの実データ入出力に対応

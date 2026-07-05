@@ -8,6 +8,7 @@ from .emc_t2 import T2EMC as _EMCT2
 from .epg_t2 import T2EPG as _EPGT2
 from .mono_t2 import T2Mono as _MonoT2
 from .mwf import T2MultiComponent as _MultiComponentT2
+from .water_fat import T2WaterFat as _WaterFatT2
 
 
 class T2Mono(ResultAdapterBase):
@@ -66,6 +67,17 @@ class T2MultiComponent(ResultAdapterBase):
     )
 
 
+class T2WaterFat(ResultAdapterBase):
+    _IMPL_CLS = _WaterFatT2
+    _PARAM_KEYS = (
+        "water_amplitude",
+        "fat_amplitude",
+        "water_t2_ms",
+        "fat_t2_ms",
+        "fat_fraction",
+    )
+
+
 __all__ = [
     "T2DECAESMap",
     "T2DECAESPart",
@@ -73,4 +85,5 @@ __all__ = [
     "T2EPG",
     "T2Mono",
     "T2MultiComponent",
+    "T2WaterFat",
 ]
