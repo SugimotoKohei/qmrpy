@@ -109,7 +109,9 @@ class T1DESPOT1HIFI:
             ).fit(y)
 
             if y_ir is None or ti_arr is None:
-                pred = self.forward(m0=float(fit_vfa["m0"]), t1_ms=float(fit_vfa["t1_ms"]), b1=b1_eff)
+                pred = self.forward(
+                    m0=float(fit_vfa["m0"]), t1_ms=float(fit_vfa["t1_ms"]), b1=b1_eff
+                )
                 rmse = float(np.sqrt(np.mean((pred - y) ** 2)))
                 return {
                     "m0": float(fit_vfa["m0"]),
@@ -159,7 +161,9 @@ class T1DESPOT1HIFI:
         b1_lo, b1_hi = float(self.b1_bounds[0]), float(self.b1_bounds[1])
         b1_grid = np.linspace(b1_lo, b1_hi, int(self.b1_grid_size), dtype=np.float64)
         if b1_init is not None and b1_lo <= float(b1_init) <= b1_hi:
-            b1_grid = np.unique(np.concatenate([b1_grid, np.array([float(b1_init)], dtype=np.float64)]))
+            b1_grid = np.unique(
+                np.concatenate([b1_grid, np.array([float(b1_init)], dtype=np.float64)])
+            )
 
         best: dict[str, float] | None = None
         best_cost = np.inf
@@ -193,6 +197,7 @@ class T1DESPOT1HIFI:
             raise RuntimeError("T1DESPOT1HIFI grid search failed")
 
         if y_ir is None or ti_arr is None:
+
             def residuals(params: NDArray[np.float64]) -> NDArray[np.float64]:
                 m0_val = float(params[0])
                 t1_val = float(params[1])
@@ -293,7 +298,9 @@ class T1DESPOT1HIFI:
             mask_flat = np.ones((flat.shape[0],), dtype=bool)
         else:
             if resolved_mask.shape != spatial_shape:
-                raise ValueError(f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}")
+                raise ValueError(
+                    f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}"
+                )
             mask_flat = resolved_mask.reshape((-1,))
 
         ir_flat = None
@@ -308,6 +315,7 @@ class T1DESPOT1HIFI:
         output_keys = ["m0", "t1_ms", "b1", "res_rmse", "n_points"]
 
         if ir_flat is None:
+
             def fit_func(signal_1d: NDArray[Any]) -> dict[str, float]:
                 return self.fit(signal_1d, **kwargs)
 
@@ -325,8 +333,7 @@ class T1DESPOT1HIFI:
         from joblib import Parallel, delayed
 
         out: dict[str, Any] = {
-            key: np.full(spatial_shape, np.nan, dtype=np.float64)
-            for key in output_keys
+            key: np.full(spatial_shape, np.nan, dtype=np.float64) for key in output_keys
         }
 
         indices = np.flatnonzero(mask_flat)

@@ -106,7 +106,9 @@ def run_case(
         raise FileNotFoundError(f"qMRLab not found at: {qmrlab_path}")
 
     if subprocess.call(["bash", "-lc", "command -v octave >/dev/null 2>&1"]) != 0:
-        raise RuntimeError("octave が見つかりません。Octave をインストールしてから再実行してください。")
+        raise RuntimeError(
+            "octave が見つかりません。Octave をインストールしてから再実行してください。"
+        )
 
     ts = datetime.now().strftime("%Y-%m-%d_%H%M%S")
     out_dir = out_dir / f"{ts}__mwf_fixed_vector"
@@ -135,13 +137,21 @@ def run_case(
     fit_results = _mat_struct_to_dict(mat["FitResults"])
 
     lower_basis = float(1.5 * echo_times_ms[0])
-    basis = T2MultiComponent.default_t2_basis_ms(t2_min_ms=lower_basis, t2_max_ms=float(t2_basis_max_ms), n=int(t2_basis_n))
+    basis = T2MultiComponent.default_t2_basis_ms(
+        t2_min_ms=lower_basis, t2_max_ms=float(t2_basis_max_ms), n=int(t2_basis_n)
+    )
     model = T2MultiComponent(te_ms=echo_times_ms, t2_basis_ms=basis)
     py = model.fit(
         signal,
         regularization_alpha=float(regularization_alpha),
         regularization_mode=str(regularization_mode),
-        qmrlab_sigma=float(qmrlab_sigma if qmrlab_sigma is not None else case.noise_sigma if case.noise_sigma > 0 else 20.0),
+        qmrlab_sigma=float(
+            qmrlab_sigma
+            if qmrlab_sigma is not None
+            else case.noise_sigma
+            if case.noise_sigma > 0
+            else 20.0
+        ),
         lower_cutoff_mw_ms=lower_basis,
         cutoff_ms=float(case.cutoff_ms),
         upper_cutoff_iew_ms=float(upper_cutoff_iew_ms),
@@ -167,7 +177,11 @@ def run_case(
             "qmrlab_var_myelin": None if qmrlab_var_myelin is None else float(qmrlab_var_myelin),
             "qmrlab_var_iew": None if qmrlab_var_iew is None else float(qmrlab_var_iew),
         },
-        "qmrlab": {"mwf_percent": qmrlab_mwf_percent, "t2mw_ms": qmrlab_t2mw_ms, "t2iew_ms": qmrlab_t2iew_ms},
+        "qmrlab": {
+            "mwf_percent": qmrlab_mwf_percent,
+            "t2mw_ms": qmrlab_t2mw_ms,
+            "t2iew_ms": qmrlab_t2iew_ms,
+        },
         "qmrpy": {
             "mwf_percent": float(100.0 * py["params"]["mwf"]),
             "t2mw_ms": float(py["params"]["t2mw_ms"]),
@@ -176,7 +190,11 @@ def run_case(
             "resid_l2": float(py["quality"]["rmse"]),
             "regularization_alpha": float(regularization_alpha),
             "regularization_mode": str(regularization_mode),
-            "basis": {"t2_min_ms": lower_basis, "t2_max_ms": float(t2_basis_max_ms), "n": int(t2_basis_n)},
+            "basis": {
+                "t2_min_ms": lower_basis,
+                "t2_max_ms": float(t2_basis_max_ms),
+                "n": int(t2_basis_n),
+            },
             "upper_cutoff_iew_ms": float(upper_cutoff_iew_ms),
         },
         "diff": {
@@ -191,25 +209,38 @@ def run_case(
             report["qmrpy"][key] = float(py[key])
 
     report_path = out_dir / "report.json"
-    report_path.write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    report_path.write_text(
+        json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
     return report_path
 
 
 def main(argv: list[str] | None = None) -> int:
-    p = argparse.ArgumentParser(description="qMRLab(mwf) vs qmrpy(MWF) fixed-vector comparison (Octave required).")
+    p = argparse.ArgumentParser(
+        description="qMRLab(mwf) vs qmrpy(MWF) fixed-vector comparison (Octave required)."
+    )
     p.add_argument(
         "--qmrlab-path",
         type=Path,
         default=None,
         help="Path to qMRLab checkout (or set QMRLAB_PATH env var).",
     )
-    p.add_argument("--mwf-percent", type=float, default=15.0, help="Ground-truth MWF in percent (qMRLab convention).")
+    p.add_argument(
+        "--mwf-percent",
+        type=float,
+        default=15.0,
+        help="Ground-truth MWF in percent (qMRLab convention).",
+    )
     p.add_argument("--t2mw-ms", type=float, default=20.0, help="Ground-truth T2MW [ms].")
     p.add_argument("--t2iew-ms", type=float, default=80.0, help="Ground-truth T2IEW [ms].")
     p.add_argument("--cutoff-ms", type=float, default=40.0, help="Cutoff [ms].")
-    p.add_argument("--noise-model", type=str, default="none", help="none|gaussian|rician (default: none)")
+    p.add_argument(
+        "--noise-model", type=str, default="none", help="none|gaussian|rician (default: none)"
+    )
     p.add_argument("--noise-sigma", type=float, default=0.0, help="Noise sigma (default: 0.0)")
-    p.add_argument("--seed", type=int, default=0, help="RNG seed used in Octave generation (default: 0)")
+    p.add_argument(
+        "--seed", type=int, default=0, help="RNG seed used in Octave generation (default: 0)"
+    )
     p.add_argument(
         "--qmrlab-sigma",
         type=float,
@@ -240,9 +271,21 @@ def main(argv: list[str] | None = None) -> int:
         default="qmrlab_regnnls",
         help="none|tikhonov|qmrlab_regnnls (default: qmrlab_regnnls).",
     )
-    p.add_argument("--t2-basis-n", type=int, default=120, help="qMRLab-like basis points (default: 120)")
-    p.add_argument("--t2-basis-max-ms", type=float, default=400.0, help="qMRLab-like basis max [ms] (default: 400)")
-    p.add_argument("--upper-cutoff-iew-ms", type=float, default=200.0, help="Upper cutoff for IEW [ms] (default: 200)")
+    p.add_argument(
+        "--t2-basis-n", type=int, default=120, help="qMRLab-like basis points (default: 120)"
+    )
+    p.add_argument(
+        "--t2-basis-max-ms",
+        type=float,
+        default=400.0,
+        help="qMRLab-like basis max [ms] (default: 400)",
+    )
+    p.add_argument(
+        "--upper-cutoff-iew-ms",
+        type=float,
+        default=200.0,
+        help="Upper cutoff for IEW [ms] (default: 200)",
+    )
     p.add_argument(
         "--out-dir",
         type=Path,
@@ -261,7 +304,9 @@ def main(argv: list[str] | None = None) -> int:
         seed=int(args.seed),
     )
 
-    qmrlab_path = args.qmrlab_path or (Path(os.environ["QMRLAB_PATH"]) if "QMRLAB_PATH" in os.environ else None)
+    qmrlab_path = args.qmrlab_path or (
+        Path(os.environ["QMRLAB_PATH"]) if "QMRLAB_PATH" in os.environ else None
+    )
     if qmrlab_path is None:
         raise FileNotFoundError("qMRLab path is required. Set --qmrlab-path or QMRLAB_PATH.")
 
@@ -276,7 +321,9 @@ def main(argv: list[str] | None = None) -> int:
             t2_basis_max_ms=float(args.t2_basis_max_ms),
             upper_cutoff_iew_ms=float(args.upper_cutoff_iew_ms),
             qmrlab_sigma=(None if args.qmrlab_sigma is None else float(args.qmrlab_sigma)),
-            qmrlab_var_myelin=(None if args.qmrlab_var_myelin is None else float(args.qmrlab_var_myelin)),
+            qmrlab_var_myelin=(
+                None if args.qmrlab_var_myelin is None else float(args.qmrlab_var_myelin)
+            ),
             qmrlab_var_iew=(None if args.qmrlab_var_iew is None else float(args.qmrlab_var_iew)),
         )
     except Exception as e:  # noqa: BLE001
@@ -289,9 +336,15 @@ def main(argv: list[str] | None = None) -> int:
     qm = payload["qmrlab"]
     py = payload["qmrpy"]
     diff = payload["diff"]
-    print(f"qMRLab: MWF={qm['mwf_percent']:.4f}% T2MW={qm['t2mw_ms']:.2f}ms T2IEW={qm['t2iew_ms']:.2f}ms")
-    print(f"qmrpy : MWF={py['mwf_percent']:.4f}% T2MW={py['t2mw_ms']:.2f}ms T2IEW={py['t2iew_ms']:.2f}ms")
-    print(f"diff  : dMWF={diff['mwf_percent']:+.4f}% dT2MW={diff['t2mw_ms']:+.2f}ms dT2IEW={diff['t2iew_ms']:+.2f}ms")
+    print(
+        f"qMRLab: MWF={qm['mwf_percent']:.4f}% T2MW={qm['t2mw_ms']:.2f}ms T2IEW={qm['t2iew_ms']:.2f}ms"
+    )
+    print(
+        f"qmrpy : MWF={py['mwf_percent']:.4f}% T2MW={py['t2mw_ms']:.2f}ms T2IEW={py['t2iew_ms']:.2f}ms"
+    )
+    print(
+        f"diff  : dMWF={diff['mwf_percent']:+.4f}% dT2MW={diff['t2mw_ms']:+.2f}ms dT2IEW={diff['t2iew_ms']:+.2f}ms"
+    )
     return 0
 
 

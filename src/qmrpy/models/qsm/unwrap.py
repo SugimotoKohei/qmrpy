@@ -30,10 +30,9 @@ def unwrap_phase_laplacian(wrapped_phase: NDArray[np.float64]) -> NDArray[np.flo
     mask = del_op != 0
     del_inv[mask] = 1.0 / del_op[mask]
 
-    del_phase = (
-        np.cos(phase) * np.fft.ifftn(np.fft.fftn(np.sin(phase)) * del_op)
-        - np.sin(phase) * np.fft.ifftn(np.fft.fftn(np.cos(phase)) * del_op)
-    )
+    del_phase = np.cos(phase) * np.fft.ifftn(np.fft.fftn(np.sin(phase)) * del_op) - np.sin(
+        phase
+    ) * np.fft.ifftn(np.fft.fftn(np.cos(phase)) * del_op)
 
     unwrapped = np.fft.ifftn(np.fft.fftn(del_phase) * del_inv)
     return np.real(unwrapped).astype(np.float64)

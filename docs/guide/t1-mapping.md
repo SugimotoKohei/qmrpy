@@ -89,7 +89,7 @@ from qmrpy import simulate_t1_vfa, simulate_t1_inversion_recovery
 
 # VFA signal
 signal = simulate_t1_vfa(
-    m0=1000, t1_ms=1000, 
+    m0=1000, t1_ms=1000,
     flip_angle_deg=flip_angles, tr_ms=tr_ms
 )
 

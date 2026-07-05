@@ -36,7 +36,9 @@ def run_fit_image(
         mask_flat = np.ones((flat.shape[0],), dtype=bool)
     else:
         if resolved_mask.shape != spatial_shape:
-            raise ValueError(f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}")
+            raise ValueError(
+                f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}"
+            )
         mask_flat = resolved_mask.reshape((-1,))
 
     return parallel_fit(

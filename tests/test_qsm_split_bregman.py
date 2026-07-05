@@ -97,7 +97,11 @@ def test_qsm_calc_gradient_mask():
 
     shape = (8, 8, 8)
     pad_size = (1, 1, 1)
-    padded_shape = (shape[0] + 2*pad_size[0], shape[1] + 2*pad_size[1], shape[2] + 2*pad_size[2])
+    padded_shape = (
+        shape[0] + 2 * pad_size[0],
+        shape[1] + 2 * pad_size[1],
+        shape[2] + 2 * pad_size[2],
+    )
     magnitude = np.abs(np.random.default_rng(6).normal(100, 20, size=shape))
     mask = np.ones(padded_shape, dtype=float)
 

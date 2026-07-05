@@ -139,7 +139,9 @@ class B1AFI:
             m = np.ones(spatial_shape, dtype=bool)
         else:
             if resolved_mask.shape != spatial_shape:
-                raise ValueError(f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}")
+                raise ValueError(
+                    f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}"
+                )
             m = resolved_mask
 
         b1_raw = np.full(spatial_shape, np.nan, dtype=np.float64)

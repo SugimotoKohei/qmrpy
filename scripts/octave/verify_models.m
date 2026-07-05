@@ -41,17 +41,17 @@ if strcmp(model_name, 'mono_t2')
     % For now: hardcoded TE matching python script for verification.
     % Python: [10, 20, ..., 100]
     TE = [10, 20, 30, 40, 50, 60, 70, 80, 90, 100]';
-    
+
     Model.Prot.SEdata.Mat = TE;
-    
+
     % Fitting loop
     n_samples = size(signals, 1);
     t2_oct = zeros(n_samples, 1);
     m0_oct = zeros(n_samples, 1);
-    
+
     % Silence output
     warning('off', 'all');
-    
+
     for i = 1:n_samples
         data = struct;
         data.SEdata = signals(i, :)';
@@ -59,11 +59,11 @@ if strcmp(model_name, 'mono_t2')
         t2_oct(i) = FitResults.T2;
         m0_oct(i) = FitResults.M0;
     end
-    
+
     % Save Output
     % columns: id, t2_oct, m0_oct
     out_data = [ids, t2_oct, m0_oct];
-    
+
     % Write CSV
     fid = fopen(output_csv, 'w');
     fprintf(fid, 'id,t2_oct,m0_oct\n');
@@ -77,19 +77,19 @@ elseif strcmp(model_name, 'vfa_t1')
     % We should parse from json ideally but hardcoding for speed/stability first.
     FA = [3, 10, 20, 30]';
     TR = 15.0;
-    
-    Model.Prot.VFAData.Mat = [FA, repmat(TR, length(FA), 1)]; 
+
+    Model.Prot.VFAData.Mat = [FA, repmat(TR, length(FA), 1)];
     % qMRLab vfa_t1 protocol format: [FlipAngle TR]
-    
+
     % Input CSV: id, t1, m0, b1, S0...S3
     % col 1=id, 2=t1, 3=m0, 4=b1, 5..=Signals
     b1_map = data_matrix(:, 4);
     signals = data_matrix(:, 5:end);
-    
+
     n_samples = size(signals, 1);
     t1_oct = zeros(n_samples, 1);
     m0_oct = zeros(n_samples, 1);
-    
+
     warning('off', 'all');
     for i = 1:n_samples
         data = struct;
@@ -99,7 +99,7 @@ elseif strcmp(model_name, 'vfa_t1')
         t1_oct(i) = FitResults.T1;
         m0_oct(i) = FitResults.M0;
     end
-    
+
     out_data = [ids, t1_oct, m0_oct];
     fid = fopen(output_csv, 'w');
     fprintf(fid, 'id,t1_oct,m0_oct\n');
@@ -111,7 +111,7 @@ elseif strcmp(model_name, 'b1_dam')
     % Protocol: Alpha (deg)
     % Python: 60
     alpha = 60;
-    
+
     % qMRLab b1_dam protocol:
     % Looks like it expects two angles?
     % Model.Prot.SEQdata.Mat = [alpha; 2*alpha]?
@@ -119,23 +119,23 @@ elseif strcmp(model_name, 'b1_dam')
     % Actually: Prot.MPdata.Mat = [alpha 2*alpha]?
     % Let's try setting [60 120]'.
     Model.Prot.SEQdata.Mat = [alpha; alpha*2];
-    
+
     % Input CSV: id, b1_true, m0_true, S1, S2
     % col 1...3, 4=S1, 5=S2
     signals = data_matrix(:, 4:5);
-    
+
     n_samples = size(signals, 1);
     b1_oct = zeros(n_samples, 1);
-    
+
     warning('off', 'all');
     for i = 1:n_samples
         data = struct;
         % b1_dam expects SFalpha and SF2alpha?
         % Error said 'structure has no member SF2alpha', implying it looked for it.
-        
+
         data.SFalpha = signals(i, 1);
         data.SF2alpha = signals(i, 2);
-        
+
         FitResults = Model.fit(data);
         if i==1, disp(FitResults); end
         % Try to find field
@@ -143,7 +143,7 @@ elseif strcmp(model_name, 'b1_dam')
         elseif isfield(FitResults, 'B1map'), b1_oct(i)=FitResults.B1map;
         else, error('Cannot find B1 field'); end
     end
-    
+
     out_data = [ids, b1_oct];
     fid = fopen(output_csv, 'w');
     fprintf(fid, 'id,b1_oct\n');
@@ -158,11 +158,11 @@ elseif strcmp(model_name, 'inversion_recovery')
     Model.Prot.IRData.Mat = TI;
     % Fix TR to infinite (100s) because Python data uses ra=M0, rb=-2M0 (Infinite TR assumption)
     Model.Prot.TimingTable.Mat = 100000;
-    
+
     signals = data_matrix(:, 4:end);
     n_samples = size(signals, 1);
     t1_oct = zeros(n_samples, 1);
-    
+
     warning('off', 'all');
     for i = 1:n_samples
         data = struct;
@@ -171,7 +171,7 @@ elseif strcmp(model_name, 'inversion_recovery')
         t1_oct(i) = FitResults.T1;
         % qMRLab T1 is ms if TI is ms.
     end
-    
+
     % We just save T1 for now
     out_data = [ids, t1_oct];
     fid = fopen(output_csv, 'w');
@@ -185,15 +185,15 @@ elseif strcmp(model_name, 'mwf')
     % Python: linear 10..320, 32 points
     TE = linspace(10, 320, 32)';
     Model.Prot.MET2data.Mat = TE;
-    
+
     signals = data_matrix(:, 3:end); % col 3 is where S_0 starts?
     % Input CSV: id, mwf_true, S0...S31
     % col 1=id, 2=mwf_true, 3=S0...
     signals = data_matrix(:, 3:end);
-    
+
     n_samples = size(signals, 1);
     mwf_oct = zeros(n_samples, 1);
-    
+
     warning('off', 'all');
     for i = 1:n_samples
         data = struct;
@@ -202,13 +202,13 @@ elseif strcmp(model_name, 'mwf')
         FitResults = Model.fit(data);
         mwf_oct(i) = FitResults.MWF;
     end
-    
+
     out_data = [ids, mwf_oct];
     fid = fopen(output_csv, 'w');
     fprintf(fid, 'id,mwf_oct\n');
     fclose(fid);
     dlmwrite(output_csv, out_data, '-append', 'precision', 16);
-    
+
 else
     error(['Unknown model: ' model_name]);
 end

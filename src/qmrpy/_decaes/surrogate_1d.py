@@ -164,7 +164,14 @@ class DiscreteSurrogateSearcher1D:
         return cls(P=P, seen=np.zeros(P, dtype=bool), numeval=0)
 
 
-def _evaluate_box(surr: CubicHermiteSplineSurrogate1D, state: DiscreteSurrogateSearcher1D, lo: int, hi: int, *, maxeval: int):
+def _evaluate_box(
+    surr: CubicHermiteSplineSurrogate1D,
+    state: DiscreteSurrogateSearcher1D,
+    lo: int,
+    hi: int,
+    *,
+    maxeval: int,
+):
     # Evaluate corners; sorted by distance to suggested point is omitted here since 1D endpoints only.
     for idx in (lo, hi):
         if state.numeval >= maxeval:

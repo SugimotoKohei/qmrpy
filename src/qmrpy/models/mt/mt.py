@@ -111,7 +111,9 @@ class MTR:
             mask_flat = np.ones((flat.shape[0],), dtype=bool)
         else:
             if resolved_mask.shape != spatial_shape:
-                raise ValueError(f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}")
+                raise ValueError(
+                    f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}"
+                )
             mask_flat = resolved_mask.reshape((-1,))
 
         return parallel_fit(
@@ -267,13 +269,17 @@ class MTsat:
             mask_flat = np.ones((flat.shape[0],), dtype=bool)
         else:
             if resolved_mask.shape != spatial_shape:
-                raise ValueError(f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}")
+                raise ValueError(
+                    f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}"
+                )
             mask_flat = resolved_mask.reshape((-1,))
 
         def fit_func(signal_1d: NDArray[Any], index: int) -> dict[str, float]:
             return self.fit(signal_1d, m0=float(m0_flat[index]), t1_ms=float(t1_flat[index]))
 
-        indexed_flat = np.concatenate([flat, np.arange(flat.shape[0], dtype=np.float64)[:, None]], axis=1)
+        indexed_flat = np.concatenate(
+            [flat, np.arange(flat.shape[0], dtype=np.float64)[:, None]], axis=1
+        )
 
         def fit_indexed(row: NDArray[Any]) -> dict[str, float]:
             index = int(row[-1])

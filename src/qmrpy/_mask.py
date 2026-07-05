@@ -108,7 +108,7 @@ def _otsu_threshold(image: NDArray[Any]) -> float:
 
     # Cumulative means
     mean1 = np.cumsum(hist_norm * bin_centers)
-    mean2 = (np.cumsum((hist_norm * bin_centers)[::-1])[::-1])
+    mean2 = np.cumsum((hist_norm * bin_centers)[::-1])[::-1]
 
     # Between-class variance
     with np.errstate(divide="ignore", invalid="ignore"):

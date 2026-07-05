@@ -204,7 +204,9 @@ def simulate_single_voxel(
         if callable(data_factory):
             data = data_factory({k: float(v) for k, v in params.items()})
         if seq_or_path is None or data is None:
-            raise ValueError("mrzero_bloch requires model_protocol['seq_or_path' or 'sequence'] and data/data_factory")
+            raise ValueError(
+                "mrzero_bloch requires model_protocol['seq_or_path' or 'sequence'] and data/data_factory"
+            )
 
         mrzero_kwargs = {
             "spin_count": mrzero_cfg.get("spin_count", 5000),
@@ -349,8 +351,13 @@ def sensitivity_analysis(
     )["fit"]
 
     fit_store: dict[str, dict[str, Any]] = {
-        "params": {k: np.full((n_steps, n_runs), np.nan, dtype=np.float64) for k in probe.get("params", {})},
-        "quality": {k: np.full((n_steps, n_runs), np.nan, dtype=np.float64) for k in probe.get("quality", {})},
+        "params": {
+            k: np.full((n_steps, n_runs), np.nan, dtype=np.float64) for k in probe.get("params", {})
+        },
+        "quality": {
+            k: np.full((n_steps, n_runs), np.nan, dtype=np.float64)
+            for k in probe.get("quality", {})
+        },
         "diagnostics": {
             k: np.full((n_steps, n_runs), np.nan, dtype=np.float64)
             for k in probe.get("diagnostics", {})
@@ -692,13 +699,17 @@ def sim_vary(
         )
         # qMRLab adds ground_truth per fitted param name
         for k in res.get("mean", {}).get("params", {}):
-            res.setdefault("ground_truth", {})[k] = float(st[xnames.index(k)]) if k in xnames else None
+            res.setdefault("ground_truth", {})[k] = (
+                float(st[xnames.index(k)]) if k in xnames else None
+            )
         results[name] = res
 
     return results
 
 
-def sim_rnd(model: Any, rnd_param: Mapping[str, Any], opt: Mapping[str, Any] | None = None) -> dict[str, Any]:
+def sim_rnd(
+    model: Any, rnd_param: Mapping[str, Any], opt: Mapping[str, Any] | None = None
+) -> dict[str, Any]:
     """qMRLab-like SimRnd wrapper (multi-voxel distribution simulation)."""
     import numpy as np
 
@@ -803,8 +814,12 @@ def sim_crlb(
     f_each = np.zeros((xvalues.shape[0], len(var_names)), dtype=np.float64)
     for ix in range(xvalues.shape[0]):
         params = {k: float(v) for k, v in zip(xnames_all, xvalues[ix, :], strict=True)}
-        fisher = fisher_information_gaussian(obj, params=params, variables=var_names, sigma=float(sigma))
-        crlb = np.linalg.inv(np.asarray(fisher, dtype=np.float64) + np.eye(len(var_names)) * np.finfo(float).eps)
+        fisher = fisher_information_gaussian(
+            obj, params=params, variables=var_names, sigma=float(sigma)
+        )
+        crlb = np.linalg.inv(
+            np.asarray(fisher, dtype=np.float64) + np.eye(len(var_names)) * np.finfo(float).eps
+        )
         xsel = np.array([params[n] for n in var_names], dtype=np.float64)
         f_each[ix, :] = np.diag(crlb) / (xsel**2)
 
@@ -827,7 +842,9 @@ def _fit_model(model: Any, signal: Any, *, fit_kwargs: Mapping[str, Any]) -> dic
     if isinstance(params_attr, Mapping):
         return {
             "params": _extract_scalar_mapping(params_attr),
-            "quality": _extract_scalar_mapping(quality_attr if isinstance(quality_attr, Mapping) else {}),
+            "quality": _extract_scalar_mapping(
+                quality_attr if isinstance(quality_attr, Mapping) else {}
+            ),
             "diagnostics": _extract_scalar_mapping(
                 diagnostics_attr if isinstance(diagnostics_attr, Mapping) else {}
             ),

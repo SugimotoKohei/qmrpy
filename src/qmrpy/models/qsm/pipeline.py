@@ -61,12 +61,20 @@ class QSMSplitBregman:
         if self.sharp_filter:
             phase_lunwrap_pad = np.pad(
                 phase_lunwrap,
-                ((self.pad_size[0], self.pad_size[0]), (self.pad_size[1], self.pad_size[1]), (self.pad_size[2], self.pad_size[2])),
+                (
+                    (self.pad_size[0], self.pad_size[0]),
+                    (self.pad_size[1], self.pad_size[1]),
+                    (self.pad_size[2], self.pad_size[2]),
+                ),
                 mode="constant",
             )
             mask_pad = np.pad(
                 mask,
-                ((self.pad_size[0], self.pad_size[0]), (self.pad_size[1], self.pad_size[1]), (self.pad_size[2], self.pad_size[2])),
+                (
+                    (self.pad_size[0], self.pad_size[0]),
+                    (self.pad_size[1], self.pad_size[1]),
+                    (self.pad_size[2], self.pad_size[2]),
+                ),
                 mode="constant",
             )
             nfm_sharp, mask_sharp = background_removal_sharp(

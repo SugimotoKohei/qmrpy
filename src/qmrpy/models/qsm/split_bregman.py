@@ -5,7 +5,9 @@ from numpy.typing import NDArray
 from scipy.sparse.linalg import LinearOperator, cg
 
 
-def _calc_fdr(shape: tuple[int, int, int], direction: str) -> tuple[NDArray[np.complex128], NDArray[np.complex128], NDArray[np.complex128]]:
+def _calc_fdr(
+    shape: tuple[int, int, int], direction: str
+) -> tuple[NDArray[np.complex128], NDArray[np.complex128], NDArray[np.complex128]]:
     """Finite difference operators in k-space (qMRLab calcFdr)."""
     ny, nx, nz = shape  # MATLAB meshgrid order was (k2,k1,k3) -> (y,x,z)
     k2, k1, k3 = np.meshgrid(
@@ -202,7 +204,15 @@ def qsm_split_bregman(
             ryu = magn_weight[..., 1] * np.fft.ifftn(fdy * fu)
             rzu = magn_weight[..., 2] * np.fft.ifftn(fdz * fu)
         else:
-            fu = (dfy + mu * (cfdx * np.fft.fftn(vx - nx) + cfdy * np.fft.fftn(vy - ny) + cfdz * np.fft.fftn(vz - nz))) * sb_reg
+            fu = (
+                dfy
+                + mu
+                * (
+                    cfdx * np.fft.fftn(vx - nx)
+                    + cfdy * np.fft.fftn(vy - ny)
+                    + cfdz * np.fft.fftn(vz - nz)
+                )
+            ) * sb_reg
             rxu = np.fft.ifftn(fdx * fu)
             ryu = np.fft.ifftn(fdy * fu)
             rzu = np.fft.ifftn(fdz * fu)
@@ -219,8 +229,10 @@ def qsm_split_bregman(
         ny = roy - vy
         nz = roz - vz
 
-        res_change = 100.0 * np.linalg.norm(fu.ravel() - fu_prev.ravel()) / max(
-            np.linalg.norm(fu.ravel()), np.finfo(float).eps
+        res_change = (
+            100.0
+            * np.linalg.norm(fu.ravel() - fu_prev.ravel())
+            / max(np.linalg.norm(fu.ravel()), np.finfo(float).eps)
         )
         if res_change < float(tol_pct):
             break

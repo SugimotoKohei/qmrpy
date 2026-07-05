@@ -83,7 +83,9 @@ def main(argv: list[str] | None = None) -> int:
         default=None,
         help="output directory (default: output/reports/<timestamp>_compare)",
     )
-    parser.add_argument("--tag", type=str, default="compare", help="tag for default output dir name")
+    parser.add_argument(
+        "--tag", type=str, default="compare", help="tag for default output dir name"
+    )
     parser.add_argument(
         "--t1-range",
         nargs=2,
@@ -219,7 +221,12 @@ def main(argv: list[str] | None = None) -> int:
             + theme_bw()
             + labs(title="(B) Compare: t1_rmse vs noise_sigma", x="noise_sigma", y="t1_rmse")
         )
-        ggsave(fig2, filename=str(figures_dir / "compare__t1_rmse_vs_noise_sigma.png"), verbose=False, dpi=150)
+        ggsave(
+            fig2,
+            filename=str(figures_dir / "compare__t1_rmse_vs_noise_sigma.png"),
+            verbose=False,
+            dpi=150,
+        )
 
     if "n_valid" in df.columns:
         fig3 = (
@@ -239,7 +246,12 @@ def main(argv: list[str] | None = None) -> int:
             + theme_bw()
             + labs(title="(C) Diagnostics: mean used points", x="run", y="n_points_mean")
         )
-        ggsave(fig4, filename=str(figures_dir / "diagnostic__n_points_mean.png"), verbose=False, dpi=150)
+        ggsave(
+            fig4,
+            filename=str(figures_dir / "diagnostic__n_points_mean.png"),
+            verbose=False,
+            dpi=150,
+        )
 
     if per_sample_frames:
         df_ps_all = pd.concat(per_sample_frames, ignore_index=True)
@@ -254,9 +266,18 @@ def main(argv: list[str] | None = None) -> int:
                 + geom_histogram(bins=40)
                 + facet_wrap("label", scales="free_y")
                 + theme_bw()
-                + labs(title="(C) Failure analysis: T1 residual distribution", x="t1_err [s]", y="count")
+                + labs(
+                    title="(C) Failure analysis: T1 residual distribution",
+                    x="t1_err [s]",
+                    y="count",
+                )
             )
-            ggsave(fig5, filename=str(figures_dir / "failure__t1_err_hist_by_run.png"), verbose=False, dpi=150)
+            ggsave(
+                fig5,
+                filename=str(figures_dir / "failure__t1_err_hist_by_run.png"),
+                verbose=False,
+                dpi=150,
+            )
 
         if "t1_true" in df_ps_all.columns and "t1_err" in df_ps_all.columns:
             df_ps_all["abs_t1_err"] = (df_ps_all["t1_err"]).abs()
@@ -265,9 +286,18 @@ def main(argv: list[str] | None = None) -> int:
                 + geom_point(alpha=0.35, size=1.0)
                 + facet_wrap("label", scales="free_y")
                 + theme_bw()
-                + labs(title="(C) Failure analysis: |T1 error| vs T1 true", x="t1_true [s]", y="|t1_err| [s]")
+                + labs(
+                    title="(C) Failure analysis: |T1 error| vs T1 true",
+                    x="t1_true [s]",
+                    y="|t1_err| [s]",
+                )
             )
-            ggsave(fig6, filename=str(figures_dir / "failure__abs_t1_err_vs_t1_true.png"), verbose=False, dpi=150)
+            ggsave(
+                fig6,
+                filename=str(figures_dir / "failure__abs_t1_err_vs_t1_true.png"),
+                verbose=False,
+                dpi=150,
+            )
 
         if "b1_true" in df_ps_all.columns and "t1_err" in df_ps_all.columns:
             if "abs_t1_err" not in df_ps_all.columns:
@@ -277,9 +307,16 @@ def main(argv: list[str] | None = None) -> int:
                 + geom_point(alpha=0.35, size=1.0)
                 + facet_wrap("label", scales="free_y")
                 + theme_bw()
-                + labs(title="(C) Failure analysis: |T1 error| vs B1", x="b1_true", y="|t1_err| [s]")
+                + labs(
+                    title="(C) Failure analysis: |T1 error| vs B1", x="b1_true", y="|t1_err| [s]"
+                )
             )
-            ggsave(fig7, filename=str(figures_dir / "failure__abs_t1_err_vs_b1.png"), verbose=False, dpi=150)
+            ggsave(
+                fig7,
+                filename=str(figures_dir / "failure__abs_t1_err_vs_b1.png"),
+                verbose=False,
+                dpi=150,
+            )
 
         # Stratified summaries (binning)
         if "abs_t1_err" in df_ps_all.columns and "t1_true" in df_ps_all.columns:
@@ -301,7 +338,11 @@ def main(argv: list[str] | None = None) -> int:
                     df_bin["t1_bin"] = pd.cut(df_bin["t1_true"], bins=t1_edges, include_lowest=True)
                 else:
                     # default: quantile bins (stable within a run set)
-                    n_bins = 10 if df_bin["t1_true"].nunique() >= 10 else max(2, int(df_bin["t1_true"].nunique()))
+                    n_bins = (
+                        10
+                        if df_bin["t1_true"].nunique() >= 10
+                        else max(2, int(df_bin["t1_true"].nunique()))
+                    )
                     df_bin["t1_bin"] = pd.qcut(df_bin["t1_true"], q=n_bins, duplicates="drop")
 
                 def p95(x):
@@ -334,7 +375,12 @@ def main(argv: list[str] | None = None) -> int:
                         y="mean |t1_err| [s]",
                     )
                 )
-                ggsave(fig8, filename=str(figures_dir / "failure__abs_t1_err_by_t1_bin.png"), verbose=False, dpi=150)
+                ggsave(
+                    fig8,
+                    filename=str(figures_dir / "failure__abs_t1_err_by_t1_bin.png"),
+                    verbose=False,
+                    dpi=150,
+                )
 
                 fig8b = (
                     ggplot(agg_plot, aes(x="t1_bin", y="abs_t1_err_p95"))
@@ -348,7 +394,12 @@ def main(argv: list[str] | None = None) -> int:
                         y="p95 |t1_err| [s]",
                     )
                 )
-                ggsave(fig8b, filename=str(figures_dir / "failure__abs_t1_err_p95_by_t1_bin.png"), verbose=False, dpi=150)
+                ggsave(
+                    fig8b,
+                    filename=str(figures_dir / "failure__abs_t1_err_p95_by_t1_bin.png"),
+                    verbose=False,
+                    dpi=150,
+                )
 
         if "abs_t1_err" in df_ps_all.columns and "b1_true" in df_ps_all.columns:
             df_bin = df_ps_all[["label", "b1_true", "abs_t1_err"]].dropna()
@@ -367,7 +418,11 @@ def main(argv: list[str] | None = None) -> int:
                 if b1_edges is not None:
                     df_bin["b1_bin"] = pd.cut(df_bin["b1_true"], bins=b1_edges, include_lowest=True)
                 else:
-                    n_bins = 10 if df_bin["b1_true"].nunique() >= 10 else max(2, int(df_bin["b1_true"].nunique()))
+                    n_bins = (
+                        10
+                        if df_bin["b1_true"].nunique() >= 10
+                        else max(2, int(df_bin["b1_true"].nunique()))
+                    )
                     df_bin["b1_bin"] = pd.qcut(df_bin["b1_true"], q=n_bins, duplicates="drop")
 
                 def p95(x):
@@ -399,7 +454,12 @@ def main(argv: list[str] | None = None) -> int:
                         y="mean |t1_err| [s]",
                     )
                 )
-                ggsave(fig9, filename=str(figures_dir / "failure__abs_t1_err_by_b1_bin.png"), verbose=False, dpi=150)
+                ggsave(
+                    fig9,
+                    filename=str(figures_dir / "failure__abs_t1_err_by_b1_bin.png"),
+                    verbose=False,
+                    dpi=150,
+                )
 
                 fig9b = (
                     ggplot(agg_plot, aes(x="b1_bin", y="abs_t1_err_p95"))
@@ -413,7 +473,12 @@ def main(argv: list[str] | None = None) -> int:
                         y="p95 |t1_err| [s]",
                     )
                 )
-                ggsave(fig9b, filename=str(figures_dir / "failure__abs_t1_err_p95_by_b1_bin.png"), verbose=False, dpi=150)
+                ggsave(
+                    fig9b,
+                    filename=str(figures_dir / "failure__abs_t1_err_p95_by_b1_bin.png"),
+                    verbose=False,
+                    dpi=150,
+                )
 
     (out_dir / "report.json").write_text(
         json.dumps(

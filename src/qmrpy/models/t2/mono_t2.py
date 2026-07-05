@@ -161,7 +161,11 @@ class T2Mono:
                 bounds=(np.asarray(lower3, dtype=np.float64), np.asarray(upper3, dtype=np.float64)),
             )
             m0_hat, t2_hat, offset_hat = result.x
-            return {"m0": float(m0_hat) * scale, "t2_ms": float(t2_hat), "offset": float(offset_hat) * scale}
+            return {
+                "m0": float(m0_hat) * scale,
+                "t2_ms": float(t2_hat),
+                "offset": float(offset_hat) * scale,
+            }
 
         result = least_squares(
             residuals,
@@ -223,7 +227,9 @@ class T2Mono:
             mask_flat = np.ones((flat.shape[0],), dtype=bool)
         else:
             if resolved_mask.shape != spatial_shape:
-                raise ValueError(f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}")
+                raise ValueError(
+                    f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}"
+                )
             mask_flat = resolved_mask.reshape((-1,))
 
         offset_term = bool(kwargs.get("offset_term", False))
@@ -235,6 +241,12 @@ class T2Mono:
             return self.fit(signal, **kwargs)
 
         return parallel_fit(
-            fit_func, flat, mask_flat, output_keys, spatial_shape,
-            n_jobs=n_jobs, verbose=verbose, desc="T2Mono"
+            fit_func,
+            flat,
+            mask_flat,
+            output_keys,
+            spatial_shape,
+            n_jobs=n_jobs,
+            verbose=verbose,
+            desc="T2Mono",
         )

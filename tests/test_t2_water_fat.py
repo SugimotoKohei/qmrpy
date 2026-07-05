@@ -37,8 +37,12 @@ def test_t2_water_fat_fit_image_supports_mask_and_parallel():
     from qmrpy.models import T2WaterFat
 
     model = T2WaterFat(te_ms=[10.0, 20.0, 40.0, 80.0, 120.0, 160.0])
-    signal_a = model.forward(water_amplitude=800.0, fat_amplitude=200.0, water_t2_ms=80.0, fat_t2_ms=35.0)
-    signal_b = model.forward(water_amplitude=600.0, fat_amplitude=400.0, water_t2_ms=100.0, fat_t2_ms=45.0)
+    signal_a = model.forward(
+        water_amplitude=800.0, fat_amplitude=200.0, water_t2_ms=80.0, fat_t2_ms=35.0
+    )
+    signal_b = model.forward(
+        water_amplitude=600.0, fat_amplitude=400.0, water_t2_ms=100.0, fat_t2_ms=45.0
+    )
     image = np.stack([signal_a, signal_b], axis=0).reshape(2, 1, -1)
     mask = np.array([[True], [False]], dtype=bool)
 
@@ -99,4 +103,6 @@ def test_t2_water_fat_rejects_invalid_inputs():
     with pytest.raises(ValueError, match="signal shape"):
         model.fit([1.0], water_t2_grid_ms=[80.0], fat_t2_grid_ms=[30.0])
     with pytest.raises(ValueError, match="mask must be None"):
-        model.fit_image([1.0, 0.8], water_t2_grid_ms=[80.0], fat_t2_grid_ms=[30.0], mask=np.array([True]))
+        model.fit_image(
+            [1.0, 0.8], water_t2_grid_ms=[80.0], fat_t2_grid_ms=[30.0], mask=np.array([True])
+        )

@@ -48,7 +48,12 @@ def _maybe_plot(df: Any, *, out_dir: Path) -> None:
 
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="Sweep qMRLab(mwf) vs qmrpy comparison parameters.")
-    p.add_argument("--qmrlab-path", type=Path, default=None, help="Path to qMRLab checkout (or set QMRLAB_PATH).")
+    p.add_argument(
+        "--qmrlab-path",
+        type=Path,
+        default=None,
+        help="Path to qMRLab checkout (or set QMRLAB_PATH).",
+    )
     p.add_argument("--out-dir", type=Path, default=Path("output/reports/qmrlab_parity_sweeps"))
 
     p.add_argument("--mwf-percent", type=float, default=15.0)
@@ -66,9 +71,15 @@ def main(argv: list[str] | None = None) -> int:
     # Note: qMRLab's mwf.equation returns a normalized signal with S(TE=0)~1,
     # so noise sigma should typically be small (e.g., 0.001..0.01) for reasonable SNR.
     p.add_argument("--noise-sigma", type=str, default="0,0.001,0.002,0.005,0.01")
-    p.add_argument("--plot", action="store_true", help="Also write a quick diagnostic plot (requires plotnine).")
+    p.add_argument(
+        "--plot",
+        action="store_true",
+        help="Also write a quick diagnostic plot (requires plotnine).",
+    )
     args = p.parse_args(argv)
-    qmrlab_path = args.qmrlab_path or (Path(os.environ["QMRLAB_PATH"]) if "QMRLAB_PATH" in os.environ else None)
+    qmrlab_path = args.qmrlab_path or (
+        Path(os.environ["QMRLAB_PATH"]) if "QMRLAB_PATH" in os.environ else None
+    )
     if qmrlab_path is None:
         raise FileNotFoundError("qMRLab path is required. Set --qmrlab-path or QMRLAB_PATH.")
 
@@ -133,7 +144,7 @@ def main(argv: list[str] | None = None) -> int:
         )
 
         report_path = run_case(
-                qmrlab_path=qmrlab_path,
+            qmrlab_path=qmrlab_path,
             out_dir=out_dir / "cases",
             case=case,
             regularization_alpha=float(alpha),
@@ -167,10 +178,14 @@ def main(argv: list[str] | None = None) -> int:
     df = df.sort_values(["abs_dmwf_percent", "abs_dt2mw_ms"], ascending=True)
 
     df.to_csv(out_dir / "summary.csv", index=False)
-    (out_dir / "grid.json").write_text(json.dumps(grid.__dict__, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    (out_dir / "grid.json").write_text(
+        json.dumps(grid.__dict__, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
     best = df.head(10).to_dict(orient="records")
-    (out_dir / "top10.json").write_text(json.dumps(best, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    (out_dir / "top10.json").write_text(
+        json.dumps(best, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
     if bool(args.plot):
         _maybe_plot(df, out_dir=out_dir)

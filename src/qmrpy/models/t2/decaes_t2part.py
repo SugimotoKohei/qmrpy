@@ -119,7 +119,12 @@ class T2DECAESPart:
         if dist.shape != (self.n_t2,):
             raise ValueError(f"distribution must be shape ({self.n_t2},), got {dist.shape}")
         if np.any(np.isnan(dist)):
-            return {"sfr": float("nan"), "sgm": float("nan"), "mfr": float("nan"), "mgm": float("nan")}
+            return {
+                "sfr": float("nan"),
+                "sgm": float("nan"),
+                "mfr": float("nan"),
+                "mgm": float("nan"),
+            }
 
         t2 = self.t2_times_ms()
         logt2 = np.log(t2)

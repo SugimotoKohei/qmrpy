@@ -65,7 +65,9 @@ class B0DualEcho:
 
         te1_s = float(self.te1_ms) / 1000.0
         te2_s = float(self.te2_ms) / 1000.0
-        phase0_rad = float(_wrap_phase(np.asarray(phase[0] - 2.0 * np.pi * b0_hz * te1_s, dtype=np.float64)))
+        phase0_rad = float(
+            _wrap_phase(np.asarray(phase[0] - 2.0 * np.pi * b0_hz * te1_s, dtype=np.float64))
+        )
 
         pred = phase0_rad + 2.0 * np.pi * b0_hz * np.array([te1_s, te2_s], dtype=np.float64)
         residual = float(np.sqrt(np.mean(_wrap_phase(pred - phase) ** 2)))
@@ -120,14 +122,20 @@ class B0DualEcho:
 
         pred1 = phase0 + 2.0 * np.pi * b0_hz * te1_s
         pred2 = phase0 + 2.0 * np.pi * b0_hz * te2_s
-        residual = np.sqrt(0.5 * (_wrap_phase(pred1 - phase_e1) ** 2 + _wrap_phase(pred2 - phase_e2) ** 2))
+        residual = np.sqrt(
+            0.5 * (_wrap_phase(pred1 - phase_e1) ** 2 + _wrap_phase(pred2 - phase_e2) ** 2)
+        )
 
-        resolved_mask = resolve_mask(mask, np.asarray(arr, dtype=np.float64) if np.isrealobj(arr) else np.abs(arr))
+        resolved_mask = resolve_mask(
+            mask, np.asarray(arr, dtype=np.float64) if np.isrealobj(arr) else np.abs(arr)
+        )
         if resolved_mask is None:
             valid = np.ones(spatial_shape, dtype=bool)
         else:
             if resolved_mask.shape != spatial_shape:
-                raise ValueError(f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}")
+                raise ValueError(
+                    f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}"
+                )
             valid = resolved_mask.astype(bool)
 
         out_b0 = np.full(spatial_shape, np.nan, dtype=np.float64)

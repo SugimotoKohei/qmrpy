@@ -8,7 +8,9 @@ from nbclient import NotebookClient
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Execute a Jupyter notebook (.ipynb) in-place or to an output path")
+    ap = argparse.ArgumentParser(
+        description="Execute a Jupyter notebook (.ipynb) in-place or to an output path"
+    )
     ap.add_argument("notebook", type=Path)
     ap.add_argument("--output", type=Path, default=None)
     ap.add_argument("--timeout", type=int, default=600)

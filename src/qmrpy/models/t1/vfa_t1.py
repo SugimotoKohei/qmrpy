@@ -266,7 +266,9 @@ class T1VFA:
             mask_flat = np.ones((flat.shape[0],), dtype=bool)
         else:
             if resolved_mask.shape != spatial_shape:
-                raise ValueError(f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}")
+                raise ValueError(
+                    f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}"
+                )
             mask_flat = resolved_mask.reshape((-1,))
 
         output_keys = ["m0", "t1_ms", "n_points"]
@@ -275,8 +277,14 @@ class T1VFA:
             return self.fit(signal, **kwargs)
 
         return parallel_fit(
-            fit_func, flat, mask_flat, output_keys, spatial_shape,
-            n_jobs=n_jobs, verbose=verbose, desc="T1VFA"
+            fit_func,
+            flat,
+            mask_flat,
+            output_keys,
+            spatial_shape,
+            n_jobs=n_jobs,
+            verbose=verbose,
+            desc="T1VFA",
         )
 
 

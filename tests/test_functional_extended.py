@@ -23,7 +23,9 @@ def test_extended_functional_wrappers():
     out_b0m = qmrpy.fit_b0_multi_echo(np.angle(c_signal), te_ms=te)
     assert "phase0_rad" in out_b0m["params"]
 
-    vfa_sig = qmrpy.simulate_t1_vfa(m0=1000.0, t1_ms=1200.0, flip_angle_deg=[3.0, 10.0, 18.0], tr_ms=18.0)
+    vfa_sig = qmrpy.simulate_t1_vfa(
+        m0=1000.0, t1_ms=1200.0, flip_angle_deg=[3.0, 10.0, 18.0], tr_ms=18.0
+    )
     out_hifi = qmrpy.fit_t1_despot1_hifi(vfa_sig, flip_angle_deg=[3.0, 10.0, 18.0], tr_ms=18.0)
     assert "b1" in out_hifi["params"]
 

@@ -17,7 +17,11 @@ def calc_gradient_mask_from_magnitude(
     n = mask_sharp.shape
     fdx, fdy, fdz = calc_fdr(n, direction)
 
-    magn_pad = np.pad(magn, ((pad_size[0], pad_size[0]), (pad_size[1], pad_size[1]), (pad_size[2], pad_size[2])), mode="constant")
+    magn_pad = np.pad(
+        magn,
+        ((pad_size[0], pad_size[0]), (pad_size[1], pad_size[1]), (pad_size[2], pad_size[2])),
+        mode="constant",
+    )
     magn_pad = magn_pad * mask_sharp
     maxv = float(np.max(magn_pad)) if np.max(magn_pad) > 0 else 1.0
     magn_pad = magn_pad / maxv

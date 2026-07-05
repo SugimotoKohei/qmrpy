@@ -160,7 +160,9 @@ def _seed_for(base_seed: int, offset: int) -> int:
     return int(base_seed + 1009 * int(offset))
 
 
-def _add_noise(signal: np.ndarray, *, model: str, sigma: float, rng: np.random.Generator) -> np.ndarray:
+def _add_noise(
+    signal: np.ndarray, *, model: str, sigma: float, rng: np.random.Generator
+) -> np.ndarray:
     from qmrpy.sim.noise import add_gaussian_noise, add_rician_noise
 
     sigma = float(sigma)
@@ -235,12 +237,16 @@ def _case_row(
     }
 
 
-def _validate_mono_t2(cfg: dict[str, Any], *, seed: int, default_n_samples: int) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+def _validate_mono_t2(
+    cfg: dict[str, Any], *, seed: int, default_n_samples: int
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     from qmrpy.models.t2 import T2Mono
 
     rng = np.random.default_rng(seed)
     n_samples = int(cfg.get("n_samples", default_n_samples))
-    te_ms = np.asarray(_as_float_list(cfg.get("te_ms", [10.0, 20.0, 40.0, 80.0]), name="core.mono_t2.te_ms"))
+    te_ms = np.asarray(
+        _as_float_list(cfg.get("te_ms", [10.0, 20.0, 40.0, 80.0]), name="core.mono_t2.te_ms")
+    )
     t2_lo, t2_hi = _as_pair(cfg.get("t2_range_ms", [30.0, 150.0]), name="core.mono_t2.t2_range_ms")
     m0 = float(cfg.get("m0", 1000.0))
     noise_model = str(cfg.get("noise_model", "gaussian"))
@@ -254,7 +260,9 @@ def _validate_mono_t2(cfg: dict[str, Any], *, seed: int, default_n_samples: int)
     m0_true = np.full(n_samples, m0, dtype=np.float64)
 
     model = T2Mono(te_ms=te_ms)
-    signals = np.stack([model.forward(m0=float(m0_true[i]), t2_ms=float(t2_true[i])) for i in range(n_samples)])
+    signals = np.stack(
+        [model.forward(m0=float(m0_true[i]), t2_ms=float(t2_true[i])) for i in range(n_samples)]
+    )
     signals = _add_noise(signals, model=noise_model, sigma=noise_sigma, rng=rng)
 
     t2_hat = np.empty(n_samples, dtype=np.float64)
@@ -304,13 +312,19 @@ def _validate_mono_t2(cfg: dict[str, Any], *, seed: int, default_n_samples: int)
     return case_row, metrics
 
 
-def _validate_vfa_t1(cfg: dict[str, Any], *, seed: int, default_n_samples: int) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+def _validate_vfa_t1(
+    cfg: dict[str, Any], *, seed: int, default_n_samples: int
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     from qmrpy.models.t1 import T1VFA
 
     rng = np.random.default_rng(seed)
     n_samples = int(cfg.get("n_samples", default_n_samples))
 
-    flip_angle_deg = np.asarray(_as_float_list(cfg.get("flip_angle_deg", [3.0, 8.0, 15.0, 25.0]), name="core.vfa_t1.flip_angle_deg"))
+    flip_angle_deg = np.asarray(
+        _as_float_list(
+            cfg.get("flip_angle_deg", [3.0, 8.0, 15.0, 25.0]), name="core.vfa_t1.flip_angle_deg"
+        )
+    )
     tr_ms = float(cfg.get("tr_ms", 15.0))
     m0 = float(cfg.get("m0", 2000.0))
     t1_lo, t1_hi = _as_pair(cfg.get("t1_range_ms", [500.0, 2000.0]), name="core.vfa_t1.t1_range_ms")
@@ -378,8 +392,12 @@ def _validate_t1rho(
 
     rng = np.random.default_rng(seed)
     n_samples = int(cfg.get("n_samples", default_n_samples))
-    tsl_ms = np.asarray(_as_float_list(cfg.get("tsl_ms", [0.0, 10.0, 30.0, 60.0]), name="core.t1rho.tsl_ms"))
-    t1rho_lo, t1rho_hi = _as_pair(cfg.get("t1rho_range_ms", [30.0, 120.0]), name="core.t1rho.t1rho_range_ms")
+    tsl_ms = np.asarray(
+        _as_float_list(cfg.get("tsl_ms", [0.0, 10.0, 30.0, 60.0]), name="core.t1rho.tsl_ms")
+    )
+    t1rho_lo, t1rho_hi = _as_pair(
+        cfg.get("t1rho_range_ms", [30.0, 120.0]), name="core.t1rho.t1rho_range_ms"
+    )
     m0 = float(cfg.get("m0", 1000.0))
     noise_model = str(cfg.get("noise_model", "gaussian"))
     noise_sigma = float(cfg.get("noise_sigma", 0.0))
@@ -388,7 +406,10 @@ def _validate_t1rho(
     t1rho_true = rng.uniform(t1rho_lo, t1rho_hi, size=n_samples)
     m0_true = np.full(n_samples, m0, dtype=np.float64)
     signals = np.stack(
-        [model.forward(m0=float(m0_true[i]), t1rho_ms=float(t1rho_true[i])) for i in range(n_samples)]
+        [
+            model.forward(m0=float(m0_true[i]), t1rho_ms=float(t1rho_true[i]))
+            for i in range(n_samples)
+        ]
     )
     signals = _add_noise(signals, model=noise_model, sigma=noise_sigma, rng=rng)
 
@@ -448,7 +469,9 @@ def _validate_inversion_recovery(
             name="core.inversion_recovery.ti_ms",
         )
     )
-    t1_lo, t1_hi = _as_pair(cfg.get("t1_range_ms", [500.0, 1800.0]), name="core.inversion_recovery.t1_range_ms")
+    t1_lo, t1_hi = _as_pair(
+        cfg.get("t1_range_ms", [500.0, 1800.0]), name="core.inversion_recovery.t1_range_ms"
+    )
     ra = float(cfg.get("ra", 500.0))
     rb = float(cfg.get("rb", -1000.0))
     noise_model = str(cfg.get("noise_model", "gaussian"))
@@ -492,7 +515,9 @@ def _validate_inversion_recovery(
     return case_row, metrics
 
 
-def _validate_epg_t2(cfg: dict[str, Any], *, seed: int, default_n_samples: int) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+def _validate_epg_t2(
+    cfg: dict[str, Any], *, seed: int, default_n_samples: int
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     from qmrpy.models.t2 import T2EPG
 
     rng = np.random.default_rng(seed)
@@ -562,7 +587,9 @@ def _validate_epg_t2(cfg: dict[str, Any], *, seed: int, default_n_samples: int) 
     return case_row, metrics
 
 
-def _validate_mwf(cfg: dict[str, Any], *, seed: int, default_n_samples: int) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+def _validate_mwf(
+    cfg: dict[str, Any], *, seed: int, default_n_samples: int
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     from qmrpy.models.t2 import T2MultiComponent
 
     rng = np.random.default_rng(seed)
@@ -693,7 +720,9 @@ def _validate_mwf(cfg: dict[str, Any], *, seed: int, default_n_samples: int) -> 
     return case_row, metrics
 
 
-def _validate_b1_dam(cfg: dict[str, Any], *, seed: int, default_n_samples: int) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+def _validate_b1_dam(
+    cfg: dict[str, Any], *, seed: int, default_n_samples: int
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     from qmrpy.models.b1 import B1DAM
 
     rng = np.random.default_rng(seed)
@@ -809,7 +838,9 @@ def _validate_mtsat(
     tr_ms = float(cfg.get("tr_ms", 25.0))
     m0 = float(cfg.get("m0", 1000.0))
     t1_lo, t1_hi = _as_pair(cfg.get("t1_range_ms", [700.0, 1600.0]), name="core.mtsat.t1_range_ms")
-    mtsat_lo, mtsat_hi = _as_pair(cfg.get("mtsat_range", [0.02, 0.12]), name="core.mtsat.mtsat_range")
+    mtsat_lo, mtsat_hi = _as_pair(
+        cfg.get("mtsat_range", [0.02, 0.12]), name="core.mtsat.mtsat_range"
+    )
     noise_model = str(cfg.get("noise_model", "gaussian"))
     noise_sigma = float(cfg.get("noise_sigma", 0.0))
 
@@ -861,15 +892,25 @@ def _validate_mrf_dictionary(
         )
     )
     tr_ms = np.asarray(
-        _as_float_list(cfg.get("tr_ms", [12.0, 14.0, 11.0, 16.0, 13.0, 15.0]), name="core.mrf_dictionary.tr_ms")
+        _as_float_list(
+            cfg.get("tr_ms", [12.0, 14.0, 11.0, 16.0, 13.0, 15.0]), name="core.mrf_dictionary.tr_ms"
+        )
     )
     te_raw = cfg.get("te_ms", [3.0, 6.0, 4.0, 8.0, 5.0, 7.0])
     if isinstance(te_raw, list):
         te_ms: Any = np.asarray(_as_float_list(te_raw, name="core.mrf_dictionary.te_ms"))
     else:
         te_ms = float(te_raw)
-    t1_grid = np.asarray(_as_float_list(cfg.get("t1_grid_ms", [800.0, 1000.0, 1200.0]), name="core.mrf_dictionary.t1_grid_ms"))
-    t2_grid = np.asarray(_as_float_list(cfg.get("t2_grid_ms", [60.0, 80.0, 100.0]), name="core.mrf_dictionary.t2_grid_ms"))
+    t1_grid = np.asarray(
+        _as_float_list(
+            cfg.get("t1_grid_ms", [800.0, 1000.0, 1200.0]), name="core.mrf_dictionary.t1_grid_ms"
+        )
+    )
+    t2_grid = np.asarray(
+        _as_float_list(
+            cfg.get("t2_grid_ms", [60.0, 80.0, 100.0]), name="core.mrf_dictionary.t2_grid_ms"
+        )
+    )
     m0 = float(cfg.get("m0", 1000.0))
     noise_model = str(cfg.get("noise_model", "gaussian"))
     noise_sigma = float(cfg.get("noise_sigma", 0.0))
@@ -922,7 +963,9 @@ def _validate_mrf_dictionary(
     return case_row, metrics
 
 
-def _validate_qsm(cfg: dict[str, Any], *, seed: int, default_n_samples: int) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+def _validate_qsm(
+    cfg: dict[str, Any], *, seed: int, default_n_samples: int
+) -> tuple[dict[str, Any], list[dict[str, Any]]]:
     from qmrpy.models.qsm import QSMSplitBregman
 
     rng = np.random.default_rng(seed)
@@ -1002,9 +1045,13 @@ def _validate_simulation(
     _ = default_n_samples
     rng = np.random.default_rng(seed)
 
-    te_ms = np.asarray(_as_float_list(cfg.get("te_ms", [10.0, 20.0, 40.0, 80.0]), name="core.simulation.te_ms"))
+    te_ms = np.asarray(
+        _as_float_list(cfg.get("te_ms", [10.0, 20.0, 40.0, 80.0]), name="core.simulation.te_ms")
+    )
     t2_nominal_ms = float(cfg.get("t2_nominal_ms", 60.0))
-    t2_lo, t2_hi = _as_pair(cfg.get("t2_range_ms", [40.0, 100.0]), name="core.simulation.t2_range_ms")
+    t2_lo, t2_hi = _as_pair(
+        cfg.get("t2_range_ms", [40.0, 100.0]), name="core.simulation.t2_range_ms"
+    )
     m0 = float(cfg.get("m0", 1000.0))
     n_steps = int(cfg.get("n_steps", 5))
     n_runs = int(cfg.get("n_runs", 8))
@@ -1079,7 +1126,9 @@ def _validate_b0_dual_echo(
 
     te1_ms = float(cfg.get("te1_ms", 4.0))
     te2_ms = float(cfg.get("te2_ms", 6.0))
-    b0_lo, b0_hi = _as_pair(cfg.get("b0_range_hz", [-80.0, 80.0]), name="core.b0_dual_echo.b0_range_hz")
+    b0_lo, b0_hi = _as_pair(
+        cfg.get("b0_range_hz", [-80.0, 80.0]), name="core.b0_dual_echo.b0_range_hz"
+    )
     phase_noise = float(cfg.get("phase_noise_rad", 0.0))
 
     model = B0DualEcho(te1_ms=te1_ms, te2_ms=te2_ms)
@@ -1140,8 +1189,12 @@ def _validate_b0_multi_echo(
     rng = np.random.default_rng(seed)
     n_samples = int(cfg.get("n_samples", default_n_samples))
 
-    te_ms = np.asarray(_as_float_list(cfg.get("te_ms", [4.0, 8.0, 12.0, 16.0]), name="core.b0_multi_echo.te_ms"))
-    b0_lo, b0_hi = _as_pair(cfg.get("b0_range_hz", [-120.0, 120.0]), name="core.b0_multi_echo.b0_range_hz")
+    te_ms = np.asarray(
+        _as_float_list(cfg.get("te_ms", [4.0, 8.0, 12.0, 16.0]), name="core.b0_multi_echo.te_ms")
+    )
+    b0_lo, b0_hi = _as_pair(
+        cfg.get("b0_range_hz", [-120.0, 120.0]), name="core.b0_multi_echo.b0_range_hz"
+    )
     phase_noise = float(cfg.get("phase_noise_rad", 0.0))
 
     model = B0MultiEcho(te_ms=te_ms, unwrap_phase=True)
@@ -1263,8 +1316,14 @@ def _validate_r2star_mono(
     rng = np.random.default_rng(seed)
     n_samples = int(cfg.get("n_samples", default_n_samples))
 
-    te_ms = np.asarray(_as_float_list(cfg.get("te_ms", [4.0, 8.0, 12.0, 16.0, 20.0]), name="core.r2star_mono.te_ms"))
-    t2_lo, t2_hi = _as_pair(cfg.get("t2star_range_ms", [12.0, 50.0]), name="core.r2star_mono.t2star_range_ms")
+    te_ms = np.asarray(
+        _as_float_list(
+            cfg.get("te_ms", [4.0, 8.0, 12.0, 16.0, 20.0]), name="core.r2star_mono.te_ms"
+        )
+    )
+    t2_lo, t2_hi = _as_pair(
+        cfg.get("t2star_range_ms", [12.0, 50.0]), name="core.r2star_mono.t2star_range_ms"
+    )
     s0 = float(cfg.get("s0", 1000.0))
     noise_model = str(cfg.get("noise_model", "gaussian"))
     noise_sigma = float(cfg.get("noise_sigma", 0.0))
@@ -1326,10 +1385,16 @@ def _validate_r2star_complex(
     n_samples = int(cfg.get("n_samples", default_n_samples))
 
     te_ms = np.asarray(
-        _as_float_list(cfg.get("te_ms", [4.0, 8.0, 12.0, 16.0, 20.0, 24.0]), name="core.r2star_complex.te_ms")
+        _as_float_list(
+            cfg.get("te_ms", [4.0, 8.0, 12.0, 16.0, 20.0, 24.0]), name="core.r2star_complex.te_ms"
+        )
     )
-    t2_lo, t2_hi = _as_pair(cfg.get("t2star_range_ms", [12.0, 50.0]), name="core.r2star_complex.t2star_range_ms")
-    df_lo, df_hi = _as_pair(cfg.get("delta_f_range_hz", [-30.0, 30.0]), name="core.r2star_complex.delta_f_range_hz")
+    t2_lo, t2_hi = _as_pair(
+        cfg.get("t2star_range_ms", [12.0, 50.0]), name="core.r2star_complex.t2star_range_ms"
+    )
+    df_lo, df_hi = _as_pair(
+        cfg.get("delta_f_range_hz", [-30.0, 30.0]), name="core.r2star_complex.delta_f_range_hz"
+    )
     s0 = float(cfg.get("s0", 600.0))
     noise_sigma = float(cfg.get("noise_sigma", 0.0))
 
@@ -1397,12 +1462,22 @@ def _validate_despot1_hifi(
 
     rng = np.random.default_rng(seed)
     n_samples = int(cfg.get("n_samples", default_n_samples))
-    fa = np.asarray(_as_float_list(cfg.get("flip_angle_deg", [3.0, 10.0, 18.0]), name="core.despot1_hifi.flip_angle_deg"))
+    fa = np.asarray(
+        _as_float_list(
+            cfg.get("flip_angle_deg", [3.0, 10.0, 18.0]), name="core.despot1_hifi.flip_angle_deg"
+        )
+    )
     tr_ms = float(cfg.get("tr_ms", 18.0))
-    t1_lo, t1_hi = _as_pair(cfg.get("t1_range_ms", [500.0, 2000.0]), name="core.despot1_hifi.t1_range_ms")
+    t1_lo, t1_hi = _as_pair(
+        cfg.get("t1_range_ms", [500.0, 2000.0]), name="core.despot1_hifi.t1_range_ms"
+    )
     b1_lo, b1_hi = _as_pair(cfg.get("b1_range", [0.85, 1.15]), name="core.despot1_hifi.b1_range")
     m0 = float(cfg.get("m0", 1200.0))
-    ti_ms = np.asarray(_as_float_list(cfg.get("ti_ms", [200.0, 500.0, 900.0, 1500.0, 2500.0]), name="core.despot1_hifi.ti_ms"))
+    ti_ms = np.asarray(
+        _as_float_list(
+            cfg.get("ti_ms", [200.0, 500.0, 900.0, 1500.0, 2500.0]), name="core.despot1_hifi.ti_ms"
+        )
+    )
     noise_model = str(cfg.get("noise_model", "gaussian"))
     noise_sigma = float(cfg.get("noise_sigma", 2.0))
 
@@ -1482,7 +1557,9 @@ def _validate_mp2rage(
     ti2_ms = float(cfg.get("ti2_ms", 2500.0))
     alpha1_deg = float(cfg.get("alpha1_deg", 4.0))
     alpha2_deg = float(cfg.get("alpha2_deg", 5.0))
-    t1_lo, t1_hi = _as_pair(cfg.get("t1_range_ms", [500.0, 2200.0]), name="core.mp2rage.t1_range_ms")
+    t1_lo, t1_hi = _as_pair(
+        cfg.get("t1_range_ms", [500.0, 2200.0]), name="core.mp2rage.t1_range_ms"
+    )
     b1_lo, b1_hi = _as_pair(cfg.get("b1_range", [0.9, 1.1]), name="core.mp2rage.b1_range")
     m0 = float(cfg.get("m0", 900.0))
     noise_model = str(cfg.get("noise_model", "gaussian"))
@@ -1617,8 +1694,17 @@ def _validate_t2_water_fat(
             name="core.t2_water_fat.te_ms",
         )
     )
-    water_grid = np.asarray(_as_float_list(cfg.get("water_t2_grid_ms", [60.0, 80.0, 100.0]), name="core.t2_water_fat.water_t2_grid_ms"))
-    fat_grid = np.asarray(_as_float_list(cfg.get("fat_t2_grid_ms", [25.0, 35.0, 45.0]), name="core.t2_water_fat.fat_t2_grid_ms"))
+    water_grid = np.asarray(
+        _as_float_list(
+            cfg.get("water_t2_grid_ms", [60.0, 80.0, 100.0]),
+            name="core.t2_water_fat.water_t2_grid_ms",
+        )
+    )
+    fat_grid = np.asarray(
+        _as_float_list(
+            cfg.get("fat_t2_grid_ms", [25.0, 35.0, 45.0]), name="core.t2_water_fat.fat_t2_grid_ms"
+        )
+    )
     water_amp = float(cfg.get("water_amplitude", 800.0))
     fat_amp = float(cfg.get("fat_amplitude", 200.0))
     noise_model = str(cfg.get("noise_model", "gaussian"))
@@ -1688,7 +1774,9 @@ def _validate_t2_water_fat(
     return case_row, metrics
 
 
-def _core_validation_rows(config: dict[str, Any]) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
+def _core_validation_rows(
+    config: dict[str, Any],
+) -> tuple[list[dict[str, Any]], list[dict[str, Any]]]:
     core_cfg = config.get("core", {})
     if not isinstance(core_cfg, dict):
         raise ValueError("[core] section is required in validation config")
@@ -1817,7 +1905,9 @@ def _decaes_parity_rows() -> list[dict[str, Any]]:
         }
     )
 
-    def _reg_case(reg: str, *, chi2_factor: float | None = None, noise_level: float | None = None) -> None:
+    def _reg_case(
+        reg: str, *, chi2_factor: float | None = None, noise_level: float | None = None
+    ) -> None:
         alpha_ref = float(_load_csv_1d(TEST_DATA_DIR / f"decaes_ref_{reg}_alpha.csv")[0])
         mu_ref = float(_load_csv_1d(TEST_DATA_DIR / f"decaes_ref_{reg}_mu.csv")[0])
         chi2_ref = float(_load_csv_1d(TEST_DATA_DIR / f"decaes_ref_{reg}_chi2factor.csv")[0])
@@ -1967,7 +2057,9 @@ def main(argv: list[str] | None = None) -> int:
         description="Summarize validation/parity results into CSV/Markdown/JSON tables."
     )
     p.add_argument("--out-dir", type=Path, default=DEFAULT_OUT_DIR)
-    p.add_argument("--config", type=Path, default=DEFAULT_CONFIG_PATH, help="Validation config TOML path")
+    p.add_argument(
+        "--config", type=Path, default=DEFAULT_CONFIG_PATH, help="Validation config TOML path"
+    )
     p.add_argument(
         "--suite",
         type=str,

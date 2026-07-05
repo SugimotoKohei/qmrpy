@@ -190,7 +190,9 @@ def _run_mono_t2(cfg: MonoT2Config, *, out_metrics: Path, out_figures: Path) -> 
         "m0_rmse": float(np.sqrt(np.mean(m0_err**2))),
         "t2_rel_mae": float(np.mean(np.abs(t2_err) / t2_true)),
     }
-    out_metrics.write_text(json.dumps(metrics, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    out_metrics.write_text(
+        json.dumps(metrics, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
     import pandas as pd
 
@@ -203,7 +205,9 @@ def _run_mono_t2(cfg: MonoT2Config, *, out_metrics: Path, out_figures: Path) -> 
         + theme_bw()
         + labs(title="(A) Data check: T2 true distribution", x="T2 true [ms]", y="count")
     )
-    ggsave(fig_a, filename=str(out_figures / "data_check__t2_true_hist.png"), verbose=False, dpi=150)
+    ggsave(
+        fig_a, filename=str(out_figures / "data_check__t2_true_hist.png"), verbose=False, dpi=150
+    )
 
     fig_b = (
         ggplot(df, aes(x="t2_true", y="t2_hat"))
@@ -218,7 +222,11 @@ def _run_mono_t2(cfg: MonoT2Config, *, out_metrics: Path, out_figures: Path) -> 
         ggplot(df, aes(x="t2_err"))
         + geom_histogram(bins=30)
         + theme_bw()
-        + labs(title="(C) Failure analysis: T2 residual distribution", x="T2 error (hat - true) [ms]", y="count")
+        + labs(
+            title="(C) Failure analysis: T2 residual distribution",
+            x="T2 error (hat - true) [ms]",
+            y="count",
+        )
     )
     ggsave(fig_c, filename=str(out_figures / "failure__t2_error_hist.png"), verbose=False, dpi=150)
 
@@ -256,7 +264,6 @@ class B1DamConfig:
     seed: int
 
 
-
 @dataclass(frozen=True)
 class MwfConfig:
     te_ms: list[float]
@@ -277,7 +284,6 @@ class MwfConfig:
     regularization_alpha: float
 
 
-
 @dataclass(frozen=True)
 class InversionRecoveryConfigLegacy:
     ti_ms: list[float]
@@ -290,7 +296,6 @@ class InversionRecoveryConfigLegacy:
     noise_sigma: float
     seed: int
     method: str
-
 
 
 def _parse_vfat1_config(config: dict[str, object]) -> VFAT1Config:
@@ -386,9 +391,6 @@ def _parse_b1_dam_config(config: dict[str, object]) -> B1DamConfig:
     )
 
 
-
-
-
 def _parse_mwf_config(config: dict[str, object]) -> MwfConfig:
     run_cfg = config.get("run", {})
     mwf_cfg = config.get("mwf", {})
@@ -446,9 +448,9 @@ def _parse_mwf_config(config: dict[str, object]) -> MwfConfig:
     )
 
 
-
-def _parse_inversion_recovery_config_legacy(config: dict[str, object]) -> InversionRecoveryConfigLegacy:
-
+def _parse_inversion_recovery_config_legacy(
+    config: dict[str, object],
+) -> InversionRecoveryConfigLegacy:
     run_cfg = config.get("run", {})
     ir_cfg = config.get("inversion_recovery", {})
     if not isinstance(run_cfg, dict) or not isinstance(ir_cfg, dict):
@@ -489,7 +491,6 @@ def _parse_inversion_recovery_config_legacy(config: dict[str, object]) -> Invers
     )
 
 
-
 def _run_vfat1(cfg: VFAT1Config, *, out_metrics: Path, out_figures: Path) -> dict[str, object]:
     import numpy as np
 
@@ -508,7 +509,9 @@ def _run_vfat1(cfg: VFAT1Config, *, out_metrics: Path, out_figures: Path) -> dic
     else:
         b1_true = np.full(cfg.n_samples, cfg.b1, dtype=float)
 
-    model_nominal = T1VFA(flip_angle_deg=np.array(cfg.flip_angle_deg, dtype=float), tr_ms=cfg.tr_ms, b1=1.0)
+    model_nominal = T1VFA(
+        flip_angle_deg=np.array(cfg.flip_angle_deg, dtype=float), tr_ms=cfg.tr_ms, b1=1.0
+    )
     signal_clean = np.stack(
         [
             T1VFA(
@@ -558,7 +561,9 @@ def _run_vfat1(cfg: VFAT1Config, *, out_metrics: Path, out_figures: Path) -> dic
         "flip_angle_deg": [float(x) for x in cfg.flip_angle_deg],
         "tr_ms": float(cfg.tr_ms),
         "b1": float(cfg.b1),
-        "b1_range": None if cfg.b1_range is None else [float(cfg.b1_range[0]), float(cfg.b1_range[1])],
+        "b1_range": None
+        if cfg.b1_range is None
+        else [float(cfg.b1_range[0]), float(cfg.b1_range[1])],
         "noise_model": str(cfg.noise_model),
         "noise_sigma": float(cfg.noise_sigma),
         "robust_linear": bool(cfg.robust_linear),
@@ -572,7 +577,9 @@ def _run_vfat1(cfg: VFAT1Config, *, out_metrics: Path, out_figures: Path) -> dic
         "m0_rmse": float(np.sqrt(np.mean(m0_err**2))),
         "t1_rel_mae": float(np.mean(np.abs(t1_err) / t1_true[valid])),
     }
-    out_metrics.write_text(json.dumps(metrics, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    out_metrics.write_text(
+        json.dumps(metrics, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
     import pandas as pd
 
@@ -593,7 +600,9 @@ def _run_vfat1(cfg: VFAT1Config, *, out_metrics: Path, out_figures: Path) -> dic
         + theme_bw()
         + labs(title="(A) Data check: T1 true distribution", x="T1 true [ms]", y="count")
     )
-    ggsave(fig_a, filename=str(out_figures / "data_check__t1_true_hist.png"), verbose=False, dpi=150)
+    ggsave(
+        fig_a, filename=str(out_figures / "data_check__t1_true_hist.png"), verbose=False, dpi=150
+    )
 
     fig_b = (
         ggplot(df, aes(x="t1_true", y="t1_hat"))
@@ -608,7 +617,11 @@ def _run_vfat1(cfg: VFAT1Config, *, out_metrics: Path, out_figures: Path) -> dic
         ggplot(df, aes(x="t1_err"))
         + geom_histogram(bins=30)
         + theme_bw()
-        + labs(title="(C) Failure analysis: T1 residual distribution", x="T1 error (hat - true) [ms]", y="count")
+        + labs(
+            title="(C) Failure analysis: T1 residual distribution",
+            x="T1 error (hat - true) [ms]",
+            y="count",
+        )
     )
     ggsave(fig_c, filename=str(out_figures / "failure__t1_error_hist.png"), verbose=False, dpi=150)
 
@@ -629,7 +642,9 @@ def _run_b1_dam(cfg: B1DamConfig, *, out_metrics: Path, out_figures: Path) -> di
     b1_true = rng.uniform(cfg.b1_min, cfg.b1_max, size=cfg.n_samples).astype(float)
     model = B1DAM(alpha_deg=cfg.alpha_deg)
 
-    signal_clean = np.stack([model.forward(m0=cfg.m0, b1=float(b1_true[i])) for i in range(cfg.n_samples)])
+    signal_clean = np.stack(
+        [model.forward(m0=cfg.m0, b1=float(b1_true[i])) for i in range(cfg.n_samples)]
+    )
 
     if cfg.noise_model == "gaussian":
         signal = add_gaussian_noise(signal_clean, sigma=cfg.noise_sigma, rng=rng)
@@ -656,7 +671,9 @@ def _run_b1_dam(cfg: B1DamConfig, *, out_metrics: Path, out_figures: Path) -> di
         "b1_rel_mae": float(np.nanmean(np.abs(err) / b1_true)),
         "spurious_rate": float(np.nanmean(spurious)),
     }
-    out_metrics.write_text(json.dumps(metrics, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    out_metrics.write_text(
+        json.dumps(metrics, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
     import pandas as pd
 
@@ -669,7 +686,9 @@ def _run_b1_dam(cfg: B1DamConfig, *, out_metrics: Path, out_figures: Path) -> di
         + theme_bw()
         + labs(title="(A) Data check: B1 true distribution", x="B1 true", y="count")
     )
-    ggsave(fig_a, filename=str(out_figures / "data_check__b1_true_hist.png"), verbose=False, dpi=150)
+    ggsave(
+        fig_a, filename=str(out_figures / "data_check__b1_true_hist.png"), verbose=False, dpi=150
+    )
 
     fig_b = (
         ggplot(df, aes(x="b1_true", y="b1_hat"))
@@ -684,7 +703,11 @@ def _run_b1_dam(cfg: B1DamConfig, *, out_metrics: Path, out_figures: Path) -> di
         ggplot(df, aes(x="b1_err"))
         + geom_histogram(bins=30)
         + theme_bw()
-        + labs(title="(C) Failure analysis: B1 residual distribution", x="B1 error (hat - true)", y="count")
+        + labs(
+            title="(C) Failure analysis: B1 residual distribution",
+            x="B1 error (hat - true)",
+            y="count",
+        )
     )
     ggsave(fig_c, filename=str(out_figures / "failure__b1_error_hist.png"), verbose=False, dpi=150)
 
@@ -695,7 +718,16 @@ def _run_mwf(cfg: MwfConfig, *, out_metrics: Path, out_figures: Path) -> dict[st
     import numpy as np
 
     _require_plotnine()
-    from plotnine import aes, geom_abline, geom_histogram, geom_line, geom_point, geom_vline, ggplot, labs
+    from plotnine import (
+        aes,
+        geom_abline,
+        geom_histogram,
+        geom_line,
+        geom_point,
+        geom_vline,
+        ggplot,
+        labs,
+    )
     from plotnine import scale_x_log10, theme_bw
     from plotnine import ggsave
 
@@ -703,12 +735,12 @@ def _run_mwf(cfg: MwfConfig, *, out_metrics: Path, out_figures: Path) -> dict[st
     from qmrpy.sim.noise import add_gaussian_noise, add_rician_noise
 
     rng = np.random.default_rng(cfg.seed)
-    
+
     # Ground Truth: Two pools (Myelin + IE)
     # w_myelin = MWF * M0
     # w_ie = (1 - MWF) * M0
     # In reality, M0 might vary, but fixing for baseline.
-    
+
     # Generate distribution of MWF around ref? or constant?
     # Let's vary MWF slightly to see scatter.
     mwf_true = rng.uniform(cfg.mwf_ref * 0.5, cfg.mwf_ref * 1.5, size=cfg.n_samples)
@@ -717,11 +749,11 @@ def _run_mwf(cfg: MwfConfig, *, out_metrics: Path, out_figures: Path) -> dict[st
     # Signal simulation
     # S(TE) = M0 * [ MWF*exp(-TE/T2_myelin) + (1-MWF)*exp(-TE/T2_ie) ]
     te_arr = np.array(cfg.te_ms, dtype=float)
-    
+
     # We can reuse T2MultiComponent forward if we construct weights on basis?
     # Or just simulate manually for exact T2s (which might not be on basis grid).
     # Manual simulation is better to avoid "inverse crime".
-    
+
     signal_clean = []
     for i in range(cfg.n_samples):
         s = m0_true[i] * (
@@ -745,7 +777,9 @@ def _run_mwf(cfg: MwfConfig, *, out_metrics: Path, out_figures: Path) -> dict[st
     fitted_resid_l2 = np.empty(cfg.n_samples, dtype=float)
 
     t2_min_ms, t2_max_ms = cfg.t2_basis_range_ms
-    basis = T2MultiComponent.default_t2_basis_ms(t2_min_ms=t2_min_ms, t2_max_ms=t2_max_ms, n=cfg.t2_basis_n)
+    basis = T2MultiComponent.default_t2_basis_ms(
+        t2_min_ms=t2_min_ms, t2_max_ms=t2_max_ms, n=cfg.t2_basis_n
+    )
     model = T2MultiComponent(te_ms=te_arr, t2_basis_ms=basis)
     fitted_weights = np.empty((cfg.n_samples, basis.size), dtype=float)
 
@@ -775,7 +809,9 @@ def _run_mwf(cfg: MwfConfig, *, out_metrics: Path, out_figures: Path) -> dict[st
         "mwf_ref": float(cfg.mwf_ref),
         "t2_myelin_ms": float(cfg.t2_myelin_ms),
         "t2_ie_ms": float(cfg.t2_ie_ms),
-        "lower_cutoff_mw_ms": None if cfg.lower_cutoff_mw_ms is None else float(cfg.lower_cutoff_mw_ms),
+        "lower_cutoff_mw_ms": None
+        if cfg.lower_cutoff_mw_ms is None
+        else float(cfg.lower_cutoff_mw_ms),
         "cutoff_ms": float(cfg.cutoff_ms),
         "upper_cutoff_iew_ms": float(cfg.upper_cutoff_iew_ms),
         "t2_basis_range_ms": [float(cfg.t2_basis_range_ms[0]), float(cfg.t2_basis_range_ms[1])],
@@ -790,7 +826,9 @@ def _run_mwf(cfg: MwfConfig, *, out_metrics: Path, out_figures: Path) -> dict[st
         "t2mw_mae_ms": float(np.nanmean(np.abs(t2mw_err))),
         "t2iew_mae_ms": float(np.nanmean(np.abs(t2iew_err))),
     }
-    out_metrics.write_text(json.dumps(metrics, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    out_metrics.write_text(
+        json.dumps(metrics, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
     import pandas as pd
 
@@ -819,7 +857,11 @@ def _run_mwf(cfg: MwfConfig, *, out_metrics: Path, out_figures: Path) -> dict[st
     )
     w_mean = np.nanmean(weights_norm, axis=0)
     df_spec = pd.DataFrame({"t2_ms": basis, "weight_mean": w_mean})
-    lower_cutoff = float(cfg.lower_cutoff_mw_ms) if cfg.lower_cutoff_mw_ms is not None else float(1.5 * te_arr[0])
+    lower_cutoff = (
+        float(cfg.lower_cutoff_mw_ms)
+        if cfg.lower_cutoff_mw_ms is not None
+        else float(1.5 * te_arr[0])
+    )
     df_lines = pd.DataFrame(
         {
             "x": [lower_cutoff, float(cfg.cutoff_ms), float(cfg.upper_cutoff_iew_ms)],
@@ -838,7 +880,9 @@ def _run_mwf(cfg: MwfConfig, *, out_metrics: Path, out_figures: Path) -> dict[st
             y="mean weight fraction",
         )
     )
-    ggsave(fig_spec, filename=str(out_figures / "spectrum__mean_weights.png"), verbose=False, dpi=150)
+    ggsave(
+        fig_spec, filename=str(out_figures / "spectrum__mean_weights.png"), verbose=False, dpi=150
+    )
 
     fig_a = (
         ggplot(df, aes(x="mwf_true"))
@@ -846,7 +890,9 @@ def _run_mwf(cfg: MwfConfig, *, out_metrics: Path, out_figures: Path) -> dict[st
         + theme_bw()
         + labs(title="(A) Data check: MWF true distribution", x="MWF true", y="count")
     )
-    ggsave(fig_a, filename=str(out_figures / "data_check__mwf_true_hist.png"), verbose=False, dpi=150)
+    ggsave(
+        fig_a, filename=str(out_figures / "data_check__mwf_true_hist.png"), verbose=False, dpi=150
+    )
 
     fig_b = (
         ggplot(df, aes(x="mwf_true", y="mwf_hat"))
@@ -861,7 +907,11 @@ def _run_mwf(cfg: MwfConfig, *, out_metrics: Path, out_figures: Path) -> dict[st
         ggplot(df, aes(x="mwf_err"))
         + geom_histogram(bins=30)
         + theme_bw()
-        + labs(title="(C) Failure analysis: MWF residual distribution", x="MWF error (hat - true)", y="count")
+        + labs(
+            title="(C) Failure analysis: MWF residual distribution",
+            x="MWF error (hat - true)",
+            y="count",
+        )
     )
     ggsave(fig_c, filename=str(out_figures / "failure__mwf_error_hist.png"), verbose=False, dpi=150)
 
@@ -906,7 +956,9 @@ def _parse_inversion_recovery_config(config: dict[str, object]) -> InversionReco
     rb = float(ir_cfg.get("rb", -1000.0))
     method = str(ir_cfg.get("method", "magnitude"))
     solver = str(ir_cfg.get("solver", "least_squares"))
-    noise_model = str(ir_cfg.get("noise_model", "rician" if method.lower() == "magnitude" else "gaussian"))
+    noise_model = str(
+        ir_cfg.get("noise_model", "rician" if method.lower() == "magnitude" else "gaussian")
+    )
     noise_sigma = float(ir_cfg.get("noise_sigma", 5.0))
     seed = int(run_cfg.get("seed", 0))
     return InversionRecoveryConfig(
@@ -944,7 +996,10 @@ def _run_inversion_recovery(
     model = T1InversionRecovery(ti_ms=np.array(cfg.ti_ms, dtype=float))
 
     signal_clean = np.stack(
-        [model.forward(t1_ms=float(t1_true[i]), ra=cfg.ra, rb=cfg.rb, magnitude=False) for i in range(cfg.n_samples)]
+        [
+            model.forward(t1_ms=float(t1_true[i]), ra=cfg.ra, rb=cfg.rb, magnitude=False)
+            for i in range(cfg.n_samples)
+        ]
     )
     if cfg.method.lower() == "magnitude":
         signal_clean = np.abs(signal_clean)
@@ -981,7 +1036,9 @@ def _run_inversion_recovery(
         "t1_rel_mae": float(np.mean(np.abs(t1_err) / t1_true)),
         "fit_res_rmse_mean": float(np.mean(fitted_rmse)),
     }
-    out_metrics.write_text(json.dumps(metrics, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    out_metrics.write_text(
+        json.dumps(metrics, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
 
     import pandas as pd
 
@@ -1002,7 +1059,9 @@ def _run_inversion_recovery(
         + theme_bw()
         + labs(title="(A) Data check: T1 true distribution", x="T1 true [ms]", y="count")
     )
-    ggsave(fig_a, filename=str(out_figures / "data_check__t1_true_hist.png"), verbose=False, dpi=150)
+    ggsave(
+        fig_a, filename=str(out_figures / "data_check__t1_true_hist.png"), verbose=False, dpi=150
+    )
 
     fig_b = (
         ggplot(df, aes(x="t1_true_ms", y="t1_hat_ms"))
@@ -1017,7 +1076,11 @@ def _run_inversion_recovery(
         ggplot(df, aes(x="t1_err_ms"))
         + geom_histogram(bins=30)
         + theme_bw()
-        + labs(title="(C) Failure analysis: T1 residual distribution", x="T1 error (hat - true) [ms]", y="count")
+        + labs(
+            title="(C) Failure analysis: T1 residual distribution",
+            x="T1 error (hat - true) [ms]",
+            y="count",
+        )
     )
     ggsave(fig_c, filename=str(out_figures / "failure__t1_error_hist.png"), verbose=False, dpi=150)
 
@@ -1027,13 +1090,21 @@ def _run_inversion_recovery(
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--config", type=str, required=True, help="configs/exp/*.toml")
-    parser.add_argument("--run-id", type=str, default=None, help="YYYY-MM-DD_HHMMSS_tag (default: now)")
-    parser.add_argument("--out-root", type=str, default="output/runs", help="output root (default: output/runs)")
+    parser.add_argument(
+        "--run-id", type=str, default=None, help="YYYY-MM-DD_HHMMSS_tag (default: now)"
+    )
+    parser.add_argument(
+        "--out-root", type=str, default="output/runs", help="output root (default: output/runs)"
+    )
     args = parser.parse_args(argv)
 
     config_path = Path(args.config)
     config = _read_toml(config_path)
-    tag = str(config.get("run", {}).get("tag", "exp")) if isinstance(config.get("run", {}), dict) else "exp"
+    tag = (
+        str(config.get("run", {}).get("tag", "exp"))
+        if isinstance(config.get("run", {}), dict)
+        else "exp"
+    )
 
     run_id = args.run_id or _now_run_id(tag)
     run_dir = Path(args.out_root) / run_id
@@ -1041,6 +1112,7 @@ def main(argv: list[str] | None = None) -> int:
     env_updates = _setup_runtime_caches(paths["env"])
 
     (paths["logs"] / "run.log").write_text("", encoding="utf-8")
+
     def log(msg: str) -> None:
         with (paths["logs"] / "run.log").open("a", encoding="utf-8") as f:
             f.write(msg.rstrip() + "\n")
@@ -1096,7 +1168,6 @@ def main(argv: list[str] | None = None) -> int:
         )
         model_cfg_dict = asdict(model_cfg)
     else:
-
         raise ValueError(f"unknown model: {model_name}")
 
     run_json = {
@@ -1121,7 +1192,9 @@ def main(argv: list[str] | None = None) -> int:
         "model_config": model_cfg_dict,
         "result": result,
     }
-    (run_dir / "run.json").write_text(json.dumps(run_json, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    (run_dir / "run.json").write_text(
+        json.dumps(run_json, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
     log("done")
     return 0
 

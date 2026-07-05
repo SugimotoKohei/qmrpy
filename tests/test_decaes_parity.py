@@ -60,7 +60,9 @@ def test_decaes_parity_opt_alpha_gcv() -> None:
     assert np.allclose(out["params"]["distribution"], dist_ref, rtol=1e-5, atol=1e-7)
 
 
-def _assert_reg_parity(reg: str, *, chi2_factor: float | None = None, noise_level: float | None = None) -> None:
+def _assert_reg_parity(
+    reg: str, *, chi2_factor: float | None = None, noise_level: float | None = None
+) -> None:
     alpha_ref = float(_load_csv_1d(f"tests/data/decaes_ref_{reg}_alpha.csv")[0])
     mu_ref = float(_load_csv_1d(f"tests/data/decaes_ref_{reg}_mu.csv")[0])
     chi2_ref = float(_load_csv_1d(f"tests/data/decaes_ref_{reg}_chi2factor.csv")[0])

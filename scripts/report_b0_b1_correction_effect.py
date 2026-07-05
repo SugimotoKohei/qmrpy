@@ -64,10 +64,14 @@ def run_benchmark(*, seed: int = 20260211, n_samples: int = 300) -> dict[str, An
         b1_hat = float(b1_model.fit(bs_signal_noisy)["params"]["b1_raw"])
         b1_abs_err.append(abs(b1_hat - b1_true))
 
-        t1_signal = T1VFA(flip_angle_deg=flip_angle_deg, tr_ms=18.0, b1=b1_true).forward(m0=m0, t1_ms=t1_true_ms)
+        t1_signal = T1VFA(flip_angle_deg=flip_angle_deg, tr_ms=18.0, b1=b1_true).forward(
+            m0=m0, t1_ms=t1_true_ms
+        )
         t1_signal_noisy = t1_signal + rng.normal(0.0, 2.0, size=t1_signal.shape)
         t1_out_unc = T1VFA(flip_angle_deg=flip_angle_deg, tr_ms=18.0, b1=1.0).fit(t1_signal_noisy)
-        t1_out_cor = T1VFA(flip_angle_deg=flip_angle_deg, tr_ms=18.0, b1=b1_hat).fit(t1_signal_noisy)
+        t1_out_cor = T1VFA(flip_angle_deg=flip_angle_deg, tr_ms=18.0, b1=b1_hat).fit(
+            t1_signal_noisy
+        )
         t1_err_unc.append(abs(float(t1_out_unc["params"]["t1_ms"]) - t1_true_ms) / t1_true_ms)
         t1_err_cor.append(abs(float(t1_out_cor["params"]["t1_ms"]) - t1_true_ms) / t1_true_ms)
 
@@ -153,8 +157,10 @@ def run_benchmark(*, seed: int = 20260211, n_samples: int = 300) -> dict[str, An
     }
 
     passes = {
-        "t1_rel_median_corrected": metrics["t1_rel_median_corrected"] <= thresholds["t1_rel_median_corrected_max"],
-        "t2_rel_median_corrected": metrics["t2_rel_median_corrected"] <= thresholds["t2_rel_median_corrected_max"],
+        "t1_rel_median_corrected": metrics["t1_rel_median_corrected"]
+        <= thresholds["t1_rel_median_corrected_max"],
+        "t2_rel_median_corrected": metrics["t2_rel_median_corrected"]
+        <= thresholds["t2_rel_median_corrected_max"],
         "t2star_rel_median_corrected": (
             metrics["t2star_rel_median_corrected"] <= thresholds["t2star_rel_median_corrected_max"]
         ),
@@ -198,7 +204,9 @@ def main() -> None:
 
     report = run_benchmark(seed=args.seed, n_samples=args.n_samples)
     args.json_out.parent.mkdir(parents=True, exist_ok=True)
-    args.json_out.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    args.json_out.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     print(json.dumps(report, ensure_ascii=False, indent=2))
 
 

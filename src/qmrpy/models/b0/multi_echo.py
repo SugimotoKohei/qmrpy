@@ -59,7 +59,9 @@ class B0MultiEcho:
 
         phase = _as_phase(signal)
         if phase.ndim != 1 or phase.shape != self.te_ms.shape:
-            raise ValueError(f"signal shape {phase.shape} must match te_ms shape {self.te_ms.shape}")
+            raise ValueError(
+                f"signal shape {phase.shape} must match te_ms shape {self.te_ms.shape}"
+            )
 
         te_s = self.te_ms / 1000.0
         phase_fit = np.unwrap(phase) if self.unwrap_phase else phase
@@ -103,12 +105,16 @@ class B0MultiEcho:
         spatial_shape = phase.shape[:-1]
         flat = phase.reshape((-1, phase.shape[-1]))
 
-        resolved_mask = resolve_mask(mask, np.asarray(arr, dtype=np.float64) if np.isrealobj(arr) else np.abs(arr))
+        resolved_mask = resolve_mask(
+            mask, np.asarray(arr, dtype=np.float64) if np.isrealobj(arr) else np.abs(arr)
+        )
         if resolved_mask is None:
             mask_flat = np.ones((flat.shape[0],), dtype=bool)
         else:
             if resolved_mask.shape != spatial_shape:
-                raise ValueError(f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}")
+                raise ValueError(
+                    f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}"
+                )
             mask_flat = resolved_mask.reshape((-1,))
 
         def fit_func(signal_1d: NDArray[Any]) -> dict[str, float]:

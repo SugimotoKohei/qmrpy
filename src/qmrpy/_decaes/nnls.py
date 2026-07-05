@@ -128,7 +128,9 @@ def _construct_apply_householder(A: np.ndarray, b: np.ndarray, ip: int, jp: int,
     return -1.0
 
 
-def _apply_householder_dual(A: np.ndarray, w: np.ndarray, b: np.ndarray, tau: float, j1: int, m1: int) -> None:
+def _apply_householder_dual(
+    A: np.ndarray, w: np.ndarray, b: np.ndarray, tau: float, j1: int, m1: int
+) -> None:
     # Simplified port of apply_householder_dual!(...) without loop unrolling.
     if j1 >= m1:
         return
@@ -154,7 +156,9 @@ def _apply_householder_dual(A: np.ndarray, w: np.ndarray, b: np.ndarray, tau: fl
     A[j1, j1] = aii
 
 
-def _unsafe_nnls(work: _NnlsWorkspace, *, init_dual: bool = True, max_iter: int | None = None) -> None:
+def _unsafe_nnls(
+    work: _NnlsWorkspace, *, init_dual: bool = True, max_iter: int | None = None
+) -> None:
     A = work.A
     b = work.b
     x = work.x
@@ -246,9 +250,13 @@ def _unsafe_nnls(work: _NnlsWorkspace, *, init_dual: bool = True, max_iter: int 
                         A[i, i] = 0.0
 
                         for j in range(0, i):
-                            A[i - 1, j], A[i, j] = _orthogonal_rotmatvec(cc, ss, A[i - 1, j], A[i, j])
+                            A[i - 1, j], A[i, j] = _orthogonal_rotmatvec(
+                                cc, ss, A[i - 1, j], A[i, j]
+                            )
                         for j in range(i + 1, n):
-                            A[i - 1, j], A[i, j] = _orthogonal_rotmatvec(cc, ss, A[i - 1, j], A[i, j])
+                            A[i - 1, j], A[i, j] = _orthogonal_rotmatvec(
+                                cc, ss, A[i - 1, j], A[i, j]
+                            )
 
                         b[i - 1], b[i] = _orthogonal_rotmatvec(cc, ss, b[i - 1], b[i])
 
@@ -413,9 +421,13 @@ def _unsafe_nnls_tikhonov(
                         A[i, i] = 0.0
 
                         for j in range(0, i):
-                            A[i - 1, j], A[i, j] = _orthogonal_rotmatvec(cc, ss, A[i - 1, j], A[i, j])
+                            A[i - 1, j], A[i, j] = _orthogonal_rotmatvec(
+                                cc, ss, A[i - 1, j], A[i, j]
+                            )
                         for j in range(i + 1, n):
-                            A[i - 1, j], A[i, j] = _orthogonal_rotmatvec(cc, ss, A[i - 1, j], A[i, j])
+                            A[i - 1, j], A[i, j] = _orthogonal_rotmatvec(
+                                cc, ss, A[i - 1, j], A[i, j]
+                            )
 
                         b[i - 1], b[i] = _orthogonal_rotmatvec(cc, ss, b[i - 1], b[i])
 

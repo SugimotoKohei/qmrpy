@@ -136,12 +136,16 @@ class T2StarESTATICS:
         spatial_shape = arr.shape[:-2]
         flat = arr.reshape((-1, arr.shape[-2], arr.shape[-1]))
 
-        resolved_mask = resolve_mask(mask, np.mean(np.abs(np.asarray(arr, dtype=np.complex128)), axis=-2))
+        resolved_mask = resolve_mask(
+            mask, np.mean(np.abs(np.asarray(arr, dtype=np.complex128)), axis=-2)
+        )
         if resolved_mask is None:
             mask_flat = np.ones((flat.shape[0],), dtype=bool)
         else:
             if resolved_mask.shape != spatial_shape:
-                raise ValueError(f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}")
+                raise ValueError(
+                    f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}"
+                )
             mask_flat = resolved_mask.reshape((-1,))
 
         def fit_func(signal_1d: NDArray[Any]) -> dict[str, float]:

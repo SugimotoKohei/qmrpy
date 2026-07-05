@@ -18,7 +18,9 @@ def _require_pypulseq() -> Any:
         from pypulseq.make_trapezoid import make_trapezoid  # noqa: F401
         from pypulseq.opts import Opts  # noqa: F401
     except ModuleNotFoundError as exc:
-        raise ModuleNotFoundError("pypulseq が必要です。`uv add pypulseq` を実行してください。") from exc
+        raise ModuleNotFoundError(
+            "pypulseq が必要です。`uv add pypulseq` を実行してください。"
+        ) from exc
 
     from pypulseq.Sequence.sequence import Sequence
     from pypulseq.calc_duration import calc_duration
@@ -66,6 +68,7 @@ def _write_sequence(seq: Any, path: str | Path | None, *, fallback_name: str) ->
     seq.write(str(seq_path))
     return str(seq_path)
 
+
 def build_cpmg_sequence(
     *,
     te_ms: float = 10.0,
@@ -101,7 +104,9 @@ def build_cpmg_sequence(
     repeat_phase_encodes:
       - If True, repeat the echo train for every phase-encode line (TR loop).
     """
-    Sequence, calc_duration, make_adc, make_delay, make_sinc_pulse, make_trapezoid, _ = _require_pypulseq()
+    Sequence, calc_duration, make_adc, make_delay, make_sinc_pulse, make_trapezoid, _ = (
+        _require_pypulseq()
+    )
     if n_echo <= 0:
         raise ValueError("n_echo must be >= 1")
     if te_ms <= 0:
@@ -161,7 +166,9 @@ def build_cpmg_sequence(
             adc_duration = 1.0 / bw_pp
         adc_duration = _quantize(adc_duration, raster)
 
-    adc = make_adc(num_samples=int(adc_samples), duration=adc_duration, system=system, phase_offset=0.0)
+    adc = make_adc(
+        num_samples=int(adc_samples), duration=adc_duration, system=system, phase_offset=0.0
+    )
 
     gx_pre = gx = gx_reph = None
     ky_values = None
@@ -277,7 +284,9 @@ def build_flash_sequence(
     system: Any | None = None,
 ) -> Any:
     """Standard FLASH sequence template."""
-    Sequence, calc_duration, make_adc, make_delay, make_sinc_pulse, make_trapezoid, _ = _require_pypulseq()
+    Sequence, calc_duration, make_adc, make_delay, make_sinc_pulse, make_trapezoid, _ = (
+        _require_pypulseq()
+    )
     if tr_ms <= 0:
         raise ValueError("tr_ms must be > 0")
     if n_reps <= 0:
@@ -302,7 +311,9 @@ def build_flash_sequence(
     )
     gz_reph = make_trapezoid(channel="z", area=-gz.area / 2, duration=1e-3, system=system)
     adc = make_adc(num_samples=int(adc_samples), duration=adc_duration, system=system)
-    gz_spoil = make_trapezoid(channel="z", area=10.0 / slice_thickness, duration=2e-3, system=system)
+    gz_spoil = make_trapezoid(
+        channel="z", area=10.0 / slice_thickness, duration=2e-3, system=system
+    )
 
     rf_dur = calc_duration(rf, gz)
     gz_reph_dur = calc_duration(gz_reph)
@@ -356,11 +367,14 @@ def mrzero_single_voxel_data_factory(
     size = torch.tensor([s * 1e-3 for s in size_mm])
     voxel_pos = torch.zeros((1, 3))
     nyquist = torch.tensor([1, 1, 1])
+
     def dephasing_func(b0_in: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         _ = t
         return torch.zeros_like(b0_in)
 
-    return mr0.SimData(pd, t1, t2, t2dash, d, b0_t, b1_t, coil_sens, size, voxel_pos, nyquist, dephasing_func)
+    return mr0.SimData(
+        pd, t1, t2, t2dash, d, b0_t, b1_t, coil_sens, size, voxel_pos, nyquist, dephasing_func
+    )
 
 
 def mrzero_protocol_se(

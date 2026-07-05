@@ -95,7 +95,9 @@ class T2MultiComponent:
 
         # A shape: (n_te, n_basis)
         # A[i, j] = exp(-te[i] / t2_basis[j])
-        return np.exp(-self.te_ms[:, None] / self.t2_basis_ms[None, :])
+        te_ms = np.asarray(self.te_ms, dtype=np.float64)
+        t2_basis_ms = np.asarray(self.t2_basis_ms, dtype=np.float64)
+        return np.exp(-te_ms[:, None] / t2_basis_ms[None, :])
 
     def forward(self, *, weights: ArrayLike) -> NDArray[np.float64]:
         """Simulate signal from weights.
@@ -197,7 +199,9 @@ class T2MultiComponent:
             regularization_mode = "tikhonov" if regularization_alpha > 0 else "none"
         regularization_mode = str(regularization_mode).lower()
         if regularization_mode not in {"none", "tikhonov", "qmrlab_regnnls"}:
-            raise ValueError(f"regularization_mode must be one of none/tikhonov/qmrlab_regnnls, got {regularization_mode}")
+            raise ValueError(
+                f"regularization_mode must be one of none/tikhonov/qmrlab_regnnls, got {regularization_mode}"
+            )
 
         def _do_nnls(matrix: Any, data: Any) -> NDArray[np.float64]:
             w, _ = nnls(matrix, data)
@@ -249,7 +253,11 @@ class T2MultiComponent:
                 y_aug = np.concatenate([y, np.zeros(n_basis)])
                 w_reg = _do_nnls(A_aug, y_aug)
                 chi2_reg = _chi2(A_aug, y_aug, w_reg, sigma)
-                diff = 100.0 * (chi2_reg - chi2_nnls) / chi2_nnls if np.isfinite(chi2_nnls) else float("nan")
+                diff = (
+                    100.0 * (chi2_reg - chi2_nnls) / chi2_nnls
+                    if np.isfinite(chi2_nnls)
+                    else float("nan")
+                )
                 n_iter += 1
 
             w_hat = w_reg
@@ -367,7 +375,9 @@ class T2MultiComponent:
             mask_flat = np.ones((flat.shape[0],), dtype=bool)
         else:
             if resolved_mask.shape != spatial_shape:
-                raise ValueError(f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}")
+                raise ValueError(
+                    f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}"
+                )
             mask_flat = resolved_mask.reshape((-1,))
 
         out: dict[str, Any] = {
@@ -399,6 +409,7 @@ class T2MultiComponent:
             iterator = indices
             if verbose:
                 from tqdm import tqdm
+
                 iterator = tqdm(indices, desc="MWF", unit="voxel")
 
             for idx in iterator:
@@ -423,14 +434,12 @@ class T2MultiComponent:
 
             if verbose:
                 from tqdm import tqdm
+
                 results = Parallel(n_jobs=n_jobs)(
-                    delayed(fit_single)(idx)
-                    for idx in tqdm(indices, desc="MWF", unit="voxel")
+                    delayed(fit_single)(idx) for idx in tqdm(indices, desc="MWF", unit="voxel")
                 )
             else:
-                results = Parallel(n_jobs=n_jobs)(
-                    delayed(fit_single)(idx) for idx in indices
-                )
+                results = Parallel(n_jobs=n_jobs)(delayed(fit_single)(idx) for idx in indices)
 
             for idx, res in results:
                 out["mwf"].flat[idx] = float(res["mwf"])

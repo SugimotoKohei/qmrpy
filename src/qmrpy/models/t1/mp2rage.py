@@ -25,9 +25,7 @@ def _mp2rage_uni(inv1: float, inv2: float) -> float:
     return float((inv1 * inv2) / den)
 
 
-def _parse_positive_bounds(
-    bounds: tuple[float, float], *, name: str
-) -> tuple[float, float]:
+def _parse_positive_bounds(bounds: tuple[float, float], *, name: str) -> tuple[float, float]:
     lo = float(bounds[0])
     hi = float(bounds[1])
     if lo <= 0 or hi <= lo:
@@ -231,7 +229,9 @@ class T1MP2RAGE:
 
         lower = np.array([0.0, t1_lo, b1_lo], dtype=np.float64)
         upper = np.array([np.inf, t1_hi, b1_hi], dtype=np.float64)
-        x0 = np.clip(np.array([candidate.m0, candidate.t1_ms, candidate.b1], dtype=np.float64), lower, upper)
+        x0 = np.clip(
+            np.array([candidate.m0, candidate.t1_ms, candidate.b1], dtype=np.float64), lower, upper
+        )
 
         def residuals(params: NDArray[np.float64]) -> NDArray[np.float64]:
             m0_val = float(params[0])
@@ -375,7 +375,9 @@ class T1MP2RAGE:
             mask_flat = np.ones((flat.shape[0],), dtype=bool)
         else:
             if resolved_mask.shape != spatial_shape:
-                raise ValueError(f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}")
+                raise ValueError(
+                    f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}"
+                )
             mask_flat = resolved_mask.reshape((-1,))
 
         def fit_func(signal_1d: NDArray[Any]) -> dict[str, float]:

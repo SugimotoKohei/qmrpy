@@ -55,14 +55,16 @@ class TestEPGCore:
         from qmrpy.models.t2.decaes_t2 import epg_decay_curve as decaes_ref
 
         t2_ms, t1_ms, te_ms, etl = 80.0, 1000.0, 10.0, 32
-        
+
         # Reference
-        ref = decaes_ref(etl=etl, alpha_deg=180.0, te_ms=te_ms,
-                         t2_ms=t2_ms, t1_ms=t1_ms, beta_deg=180.0)
+        ref = decaes_ref(
+            etl=etl, alpha_deg=180.0, te_ms=te_ms, t2_ms=t2_ms, t1_ms=t1_ms, beta_deg=180.0
+        )
         # New implementation
-        new = epg_cpmg_decaes(etl=etl, alpha_deg=180.0, te_ms=te_ms,
-                              t2_ms=t2_ms, t1_ms=t1_ms, beta_deg=180.0)
-        
+        new = epg_cpmg_decaes(
+            etl=etl, alpha_deg=180.0, te_ms=te_ms, t2_ms=t2_ms, t1_ms=t1_ms, beta_deg=180.0
+        )
+
         np.testing.assert_allclose(new, ref, atol=1e-12)
 
 
@@ -152,8 +154,9 @@ class TestEPGGradientEcho:
             signal = epg_gre.flash(t1_ms=t1_ms, tr_ms=tr_ms, fa_deg=fa_deg, n_pulses=500)
             epg_ss = signal[-1]
 
-            np.testing.assert_allclose(epg_ss, ernst, rtol=0.001,
-                                       err_msg=f"Mismatch at FA={fa_deg}")
+            np.testing.assert_allclose(
+                epg_ss, ernst, rtol=0.001, err_msg=f"Mismatch at FA={fa_deg}"
+            )
 
     def test_flash_steady_state_analytical(self):
         """Compare FLASH simulation to analytical function."""
@@ -241,9 +244,7 @@ class TestEPGWeigel:
         import csv
         import os
 
-        ref_path = os.path.join(
-            os.path.dirname(__file__), "epg_reference", "weigel_reference.csv"
-        )
+        ref_path = os.path.join(os.path.dirname(__file__), "epg_reference", "weigel_reference.csv")
         if not os.path.exists(ref_path):
             pytest.skip("Weigel reference file not found")
 
@@ -324,9 +325,7 @@ class TestVariableFlipAngle:
         signal1 = epg_se.se(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=8, refocus_deg=180)
 
         # Array with same value repeated
-        signal2 = epg_se.se(
-            t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=8, refocus_deg=[180] * 8
-        )
+        signal2 = epg_se.se(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=8, refocus_deg=[180] * 8)
 
         np.testing.assert_allclose(signal1, signal2, rtol=1e-10)
 
@@ -335,15 +334,11 @@ class TestVariableFlipAngle:
         from qmrpy.epg import epg_se
 
         # Constant 180° refocusing
-        signal_const = epg_se.se(
-            t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=8, refocus_deg=180
-        )
+        signal_const = epg_se.se(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=8, refocus_deg=180)
 
         # Variable flip angles (decreasing)
         angles = [180, 160, 140, 120, 100, 80, 60, 40]
-        signal_vfa = epg_se.se(
-            t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=8, refocus_deg=angles
-        )
+        signal_vfa = epg_se.se(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=8, refocus_deg=angles)
 
         # Should be different
         assert not np.allclose(signal_const, signal_vfa)
@@ -359,14 +354,10 @@ class TestVariableFlipAngle:
         angles = [180, 160, 140, 120, 100, 80, 60, 40]
 
         # tse() with variable angles
-        signal_tse = epg_se.tse(
-            t2_ms=80, t1_ms=1000, te_ms=10, etl=8, refocus_angles_deg=angles
-        )
+        signal_tse = epg_se.tse(t2_ms=80, t1_ms=1000, te_ms=10, etl=8, refocus_angles_deg=angles)
 
         # Should match se() with same angles
-        signal_se = epg_se.se(
-            t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=8, refocus_deg=angles
-        )
+        signal_se = epg_se.se(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=8, refocus_deg=angles)
 
         np.testing.assert_allclose(signal_tse, signal_se, rtol=1e-10)
 
@@ -375,9 +366,7 @@ class TestVariableFlipAngle:
         from qmrpy.epg import epg_se
 
         with pytest.raises(ValueError, match="must be a scalar or array of length"):
-            epg_se.se(
-                t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=8, refocus_deg=[180, 160, 140]
-            )
+            epg_se.se(t2_ms=80, t1_ms=1000, te_ms=10, n_echoes=8, refocus_deg=[180, 160, 140])
 
     def test_vfa_with_b1(self):
         """Variable flip angles should work with B1 inhomogeneity."""

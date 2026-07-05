@@ -213,7 +213,10 @@ class T2EPG:
                 result = least_squares(
                     residuals_joint_off,
                     x0=x0,
-                    bounds=(np.asarray(lower4, dtype=np.float64), np.asarray(upper4, dtype=np.float64)),
+                    bounds=(
+                        np.asarray(lower4, dtype=np.float64),
+                        np.asarray(upper4, dtype=np.float64),
+                    ),
                     max_nfev=max_nfev,
                 )
                 m0_hat, t2_hat, offset_hat, b1_hat = result.x
@@ -327,7 +330,9 @@ class T2EPG:
             mask_flat = np.ones((flat.shape[0],), dtype=bool)
         else:
             if resolved_mask.shape != spatial_shape:
-                raise ValueError(f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}")
+                raise ValueError(
+                    f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}"
+                )
             mask_flat = resolved_mask.reshape((-1,))
 
         if b1_map is not None and "b1" in kwargs:
@@ -338,7 +343,9 @@ class T2EPG:
         if b1_map is not None:
             b1_arr = np.asarray(b1_map, dtype=np.float64)
             if b1_arr.shape != spatial_shape:
-                raise ValueError(f"b1_map shape {b1_arr.shape} must match spatial shape {spatial_shape}")
+                raise ValueError(
+                    f"b1_map shape {b1_arr.shape} must match spatial shape {spatial_shape}"
+                )
             b1_flat = b1_arr.reshape((-1,))
 
         offset_term = bool(kwargs.get("offset_term", False))
@@ -355,8 +362,7 @@ class T2EPG:
             from joblib import Parallel, delayed
 
             out: dict[str, Any] = {
-                key: np.full(spatial_shape, np.nan, dtype=np.float64)
-                for key in output_keys
+                key: np.full(spatial_shape, np.nan, dtype=np.float64) for key in output_keys
             }
             indices = np.flatnonzero(mask_flat)
             n_voxels = len(indices)
@@ -365,7 +371,9 @@ class T2EPG:
                 return out
 
             if verbose:
-                logger.info("T2EPG: %d voxels, n_jobs=%s, shape=%s", n_voxels, n_jobs, spatial_shape)
+                logger.info(
+                    "T2EPG: %d voxels, n_jobs=%s, shape=%s", n_voxels, n_jobs, spatial_shape
+                )
 
             def fit_with_b1(idx: int) -> tuple[int, dict[str, float]]:
                 return idx, self.fit(flat[idx], b1=float(b1_flat[idx]), **kwargs)
@@ -374,6 +382,7 @@ class T2EPG:
                 iterator = indices
                 if verbose:
                     from tqdm import tqdm
+
                     iterator = tqdm(indices, desc="T2EPG", unit="voxel")
 
                 for idx in iterator:
@@ -384,14 +393,13 @@ class T2EPG:
             else:
                 if verbose:
                     from tqdm import tqdm
+
                     results = Parallel(n_jobs=n_jobs)(
                         delayed(fit_with_b1)(idx)
                         for idx in tqdm(indices, desc="T2EPG", unit="voxel")
                     )
                 else:
-                    results = Parallel(n_jobs=n_jobs)(
-                        delayed(fit_with_b1)(idx) for idx in indices
-                    )
+                    results = Parallel(n_jobs=n_jobs)(delayed(fit_with_b1)(idx) for idx in indices)
                 for idx, res in results:
                     for key in output_keys:
                         if key in res:
@@ -407,6 +415,12 @@ class T2EPG:
                 return self.fit(signal, **kwargs)
 
             return parallel_fit(
-                fit_func, flat, mask_flat, output_keys, spatial_shape,
-                n_jobs=n_jobs, verbose=verbose, desc="T2EPG"
+                fit_func,
+                flat,
+                mask_flat,
+                output_keys,
+                spatial_shape,
+                n_jobs=n_jobs,
+                verbose=verbose,
+                desc="T2EPG",
             )

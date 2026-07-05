@@ -15,4 +15,3 @@ noise_sigma = 5.0
 robust_linear = false
 huber_k = 1.345
 outlier_reject = false
-

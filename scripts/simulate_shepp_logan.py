@@ -52,7 +52,9 @@ def _save_arrays(out_dir: Path, arrays: dict[str, Any]) -> dict[str, str]:
     return paths
 
 
-def _slab_average(volume: np.ndarray, *, thickness_mm: float, center_mm: float, voxel_size_mm: float) -> np.ndarray:
+def _slab_average(
+    volume: np.ndarray, *, thickness_mm: float, center_mm: float, voxel_size_mm: float
+) -> np.ndarray:
     if volume.ndim != 3:
         raise ValueError("volume must be 3D (nz, ny, nx)")
     nz = volume.shape[0]
@@ -264,7 +266,11 @@ def main() -> int:
 
     report = {
         "config": asdict(cfg),
-        "paths": {"arrays": array_paths, "figure": fig_path, "figure_individual": fig_path_individual},
+        "paths": {
+            "arrays": array_paths,
+            "figure": fig_path,
+            "figure_individual": fig_path_individual,
+        },
         "stats": {
             "signal_max": float(np.max(signal)),
             "signal_min": float(np.min(signal)),
@@ -274,7 +280,9 @@ def main() -> int:
             "sigma": float(sigma),
         },
     }
-    (out_dir / "report.json").write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    (out_dir / "report.json").write_text(
+        json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
     print(json.dumps(report["stats"], indent=2, ensure_ascii=False))
     if fig_path is None:
         print("plotnine が見つからないため、図の保存はスキップしました。")

@@ -12,4 +12,3 @@ rb = -1000.0
 method = "magnitude"
 noise_model = "rician"
 noise_sigma = 5.0
-

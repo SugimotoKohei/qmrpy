@@ -64,7 +64,9 @@ def _save_json(path: Path, payload: dict[str, Any]) -> None:
     path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
 
 
-def _slab_average(volume: np.ndarray, *, thickness_mm: float, center_mm: float, voxel_size_mm: float) -> np.ndarray:
+def _slab_average(
+    volume: np.ndarray, *, thickness_mm: float, center_mm: float, voxel_size_mm: float
+) -> np.ndarray:
     if volume.ndim != 3:
         raise ValueError("volume must be 3D (nz, ny, nx)")
     nz = volume.shape[0]
@@ -104,14 +106,19 @@ def _make_simdata(
     size = torch.tensor([float(s) * 1e-3 for s in voxel_size_mm])
     voxel_pos = torch.tensor([[p * 1e-3 for p in voxel_pos_mm]], dtype=torch.float32)
     nyquist = torch.tensor([1, 1, 1])
+
     def dephasing_func(b0_in: torch.Tensor, t: torch.Tensor) -> torch.Tensor:
         _ = t
         return torch.zeros_like(b0_in)
 
-    return mr0.SimData(pd_t, t1, t2, t2dash, d, b0_t, b1_t, coil_sens, size, voxel_pos, nyquist, dephasing_func)
+    return mr0.SimData(
+        pd_t, t1, t2, t2dash, d, b0_t, b1_t, coil_sens, size, voxel_pos, nyquist, dephasing_func
+    )
 
 
-def _plot_echoes(out_dir: Path, pd: np.ndarray, images: np.ndarray, *, echo_indices: list[int]) -> str | None:
+def _plot_echoes(
+    out_dir: Path, pd: np.ndarray, images: np.ndarray, *, echo_indices: list[int]
+) -> str | None:
     try:
         import matplotlib.pyplot as plt
     except Exception:
@@ -144,7 +151,9 @@ def _plot_echoes(out_dir: Path, pd: np.ndarray, images: np.ndarray, *, echo_indi
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="MRzero TSE-style 2D simulation with Shepp-Logan phantom.")
+    parser = argparse.ArgumentParser(
+        description="MRzero TSE-style 2D simulation with Shepp-Logan phantom."
+    )
     parser.add_argument("--nx", type=int, default=128)
     parser.add_argument("--ny", type=int, default=128)
     parser.add_argument("--nz", type=int, default=64)
@@ -448,7 +457,9 @@ def main() -> int:
     np.save(out_dir / "arrays" / "images_mag.npy", images_mag)
     np.save(out_dir / "arrays" / "echo_times_ms.npy", echo_times_ms)
 
-    fig_path = _plot_echoes(out_dir / "figures", pd, images_mag, echo_indices=[0, n_echo // 2, n_echo - 1])
+    fig_path = _plot_echoes(
+        out_dir / "figures", pd, images_mag, echo_indices=[0, n_echo // 2, n_echo - 1]
+    )
 
     report = {
         "config": asdict(cfg),
@@ -475,7 +486,9 @@ def main() -> int:
             else float(np.mean(images_mag)),
         },
     }
-    (out_dir / "report.json").write_text(json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    (out_dir / "report.json").write_text(
+        json.dumps(report, indent=2, ensure_ascii=False) + "\n", encoding="utf-8"
+    )
     print(f"Output dir: {out_dir}")
     return 0
 

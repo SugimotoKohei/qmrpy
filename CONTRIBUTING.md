@@ -22,13 +22,22 @@ uv sync --locked --extra dev --extra io --group docs
 
 ```bash
 uv lock --check
+uv run --locked pre-commit run --all-files
 uv run --locked -m pytest
+uv run --locked -m pytest --cov=qmrpy --cov-report=xml
 uv run --locked ruff check src tests scripts
+uv run --locked mypy src/qmrpy
 uv run --locked mkdocs build
 uv run --locked scripts/summarize_parity.py --suite core
 ```
 
-型チェックはフェーズ5で CI ゲートとして整備します。導入後は `uv run --locked mypy src/qmrpy` を標準確認に含めます。
+pre-commit は local hook 構成です。導入する場合は以下を実行してください。
+
+```bash
+uv run --locked pre-commit install
+```
+
+型チェックは段階導入です。`pyproject.toml` の mypy 設定で、既存数値コード由来の NumPy 型推論エラーは明示的に無効化しています。新規コードでは実行時検証と型注釈を追加し、許容範囲を広げないでください。
 
 ## 実装方針
 

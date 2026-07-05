@@ -33,9 +33,9 @@ data.Mask = ones(size(Data4D,1), size(Data4D,2), size(Data4D,3));
 % Options: kernel=[5 5 5], sampling='full' (default implied by nargout>1 in MPdenoising.m but here calling Model.fit)
 % Model.fit calls MPdenoising.
 % By default Model.options.sampling might be 'fast'?
-% Let's check denoising_mppca defaults. 
+% Let's check denoising_mppca defaults.
 % properties: buttons = {'sampling',{'fast','full'},...} -> Default is 'fast'?
-% Wait, default in button2opts takes first? 
+% Wait, default in button2opts takes first?
 % Let's force 'full' for parity with our Sliding Window implementation.
 
 Model.options.sampling = 'full';

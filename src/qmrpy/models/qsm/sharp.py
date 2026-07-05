@@ -20,7 +20,9 @@ def background_removal_sharp(
     raise ValueError("filter_mode must be 'once' or 'iterative'")
 
 
-def _sharp_once(phase_lunwrap: NDArray[np.float64], mask_pad: NDArray[np.float64]) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+def _sharp_once(
+    phase_lunwrap: NDArray[np.float64], mask_pad: NDArray[np.float64]
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     shape = mask_pad.shape
     ksize = (9, 9, 9)
     threshold = 0.05
@@ -39,7 +41,9 @@ def _sharp_once(phase_lunwrap: NDArray[np.float64], mask_pad: NDArray[np.float64
     return phase_sharp.astype(np.float64), mask_sharp.astype(np.float64)
 
 
-def _sharp_iterative(phase_lunwrap: NDArray[np.float64], mask_pad: NDArray[np.float64]) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
+def _sharp_iterative(
+    phase_lunwrap: NDArray[np.float64], mask_pad: NDArray[np.float64]
+) -> tuple[NDArray[np.float64], NDArray[np.float64]]:
     shape = mask_pad.shape
     threshold = 0.05
     kernel_sizes = list(range(9, 2, -2))
@@ -69,7 +73,9 @@ def _sharp_iterative(phase_lunwrap: NDArray[np.float64], mask_pad: NDArray[np.fl
     return phase_sharp.astype(np.float64), mask_sharp.astype(np.float64)
 
 
-def _calc_del_kernel(ksize: tuple[int, int, int], shape: tuple[int, int, int]) -> NDArray[np.complex128]:
+def _calc_del_kernel(
+    ksize: tuple[int, int, int], shape: tuple[int, int, int]
+) -> NDArray[np.complex128]:
     khsize = ((np.array(ksize) - 1) // 2).astype(int)
     a, b, c = np.meshgrid(
         np.arange(-khsize[1], khsize[1] + 1),

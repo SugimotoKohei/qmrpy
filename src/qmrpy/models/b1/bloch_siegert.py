@@ -91,12 +91,16 @@ class B1BlochSiegert:
         dphi = _wrap_phase(np.asarray(phase[..., 0] - phase[..., 1], dtype=np.float64))
         b1 = np.sqrt(np.abs(dphi) / (2.0 * float(self.k_bs_rad_per_b1sq)))
 
-        resolved_mask = resolve_mask(mask, np.asarray(arr, dtype=np.float64) if np.isrealobj(arr) else np.abs(arr))
+        resolved_mask = resolve_mask(
+            mask, np.asarray(arr, dtype=np.float64) if np.isrealobj(arr) else np.abs(arr)
+        )
         if resolved_mask is None:
             valid = np.ones(spatial_shape, dtype=bool)
         else:
             if resolved_mask.shape != spatial_shape:
-                raise ValueError(f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}")
+                raise ValueError(
+                    f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}"
+                )
             valid = resolved_mask.astype(bool)
 
         out_b1 = np.full(spatial_shape, np.nan, dtype=np.float64)

@@ -14,14 +14,14 @@ for pn = 2:N_in
 end
 
 N     = length(fa);
-Nt2   = 2*N;                                     
-Nt2p1 = Nt2+1;  
+Nt2   = 2*N;
+Nt2p1 = Nt2+1;
 Nt2p2 = Nt2+2;
 
 if ((init_90pad2 == 1) && (N>1))
     fa(1) = (pi+fa(2))/2;
 end
-    
+
 if (T1_in == 0)
     E1 = 1.0;
 else
@@ -49,16 +49,16 @@ else
 end
 
 for pn = 1:N
-    T(1,1) =         cos(fa(pn)/2)^2;   
+    T(1,1) =         cos(fa(pn)/2)^2;
     T(1,2) =         sin(fa(pn)/2)^2;
     T(1,3) = -1.0i * sin(fa(pn)  )  ;
     T(2,1) =         sin(fa(pn)/2)^2;
     T(2,2) =         cos(fa(pn)/2)^2;
     T(2,3) = +1.0i * sin(fa(pn)  )  ;
     T(3,1) = -0.5i * sin(fa(pn)  )  ;
-    T(3,2) = +0.5i * sin(fa(pn)  )  ;           
+    T(3,2) = +0.5i * sin(fa(pn)  )  ;
     T(3,3) =         cos(fa(pn)  )  ;
-    
+
     pn2 = 2*pn;
     k   = 1:(pn2-1);
     kp1 = 1:(pn2);
@@ -67,7 +67,7 @@ for pn = 1:N
     Omega_preRF(1:2,k)      = E2 * Omega_postRF(1:2,k);
     Omega_preRF(3,k(2:end)) = E1 * Omega_postRF(3,k(2:end));
     Omega_preRF(3,1)        = E1 * Omega_postRF(3,1) + 1 - E1;
-        
+
     Omega_preRF(1,k+1) = Omega_preRF(1,k);
     Omega_preRF(2,k)   = Omega_preRF(2,k+1);
     Omega_preRF(1,1)   = conj(Omega_preRF(2,1));
@@ -89,7 +89,7 @@ for pn = 1:N
     Xi_F_all_out(Nt2p2-kp2,2*pn)        =      Omega_postRF(1,kp2);
     Xi_F_all_out(Nt2+kp2(2:end),2*pn) = conj(Omega_postRF(2,kp2(2:end)));
     Xi_Z_all_out(Nt2p2-kp2,2*pn)        =      Omega_postRF(3,kp2);
-     
+
 end
 
 Xi_F_all_out(abs(Xi_F_all_out)<eps*1e3) = 0;

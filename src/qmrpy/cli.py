@@ -36,7 +36,9 @@ def _build_parser() -> argparse.ArgumentParser:
     fit = subparsers.add_parser("fit", help="Fit a supported model to a NIfTI image")
     fit.add_argument("model", choices=sorted(FIT_MODELS))
     fit.add_argument("--input", required=True, type=Path, help="Input NIfTI path")
-    fit.add_argument("--output", required=True, type=Path, help="Output NIfTI path for the selected map")
+    fit.add_argument(
+        "--output", required=True, type=Path, help="Output NIfTI path for the selected map"
+    )
     fit.add_argument("--param", default=None, help="Parameter map to save")
     fit.add_argument("--mask", default=None, help='Mask mode; use "otsu" for automatic masking')
     fit.add_argument("--n-jobs", type=int, default=1, help="Parallel jobs; -1 uses all CPUs")

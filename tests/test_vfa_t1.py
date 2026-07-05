@@ -78,7 +78,9 @@ def test_vfa_t1_outlier_rejection_recovers_from_upward_spike():
     no_reject = model.fit(signal, outlier_reject=False)
     reject = model.fit(signal, outlier_reject=True)
 
-    assert abs(reject["params"]["t1_ms"] - t1_true_ms) < abs(no_reject["params"]["t1_ms"] - t1_true_ms)
+    assert abs(reject["params"]["t1_ms"] - t1_true_ms) < abs(
+        no_reject["params"]["t1_ms"] - t1_true_ms
+    )
     assert reject["quality"]["n_points"] < no_reject["quality"]["n_points"]
 
 

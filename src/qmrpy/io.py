@@ -191,7 +191,9 @@ def save_nifti(
     arr = np.asarray(data)
     if dtype is not None:
         arr = arr.astype(dtype)
-    out_affine = np.eye(4, dtype=np.float64) if affine is None else np.asarray(affine, dtype=np.float64)
+    out_affine = (
+        np.eye(4, dtype=np.float64) if affine is None else np.asarray(affine, dtype=np.float64)
+    )
     out_header = header.copy() if hasattr(header, "copy") else header
     image = nib.Nifti1Image(arr, out_affine, header=out_header)
     nib.save(image, str(path))
@@ -390,7 +392,9 @@ def _dicom_metadata(datasets: list[Any], records: list[dict[str, Any]]) -> dict[
     if len(z_positions) > 1:
         slice_spacing = float(np.median(np.diff(z_positions)))
     else:
-        slice_spacing = float(getattr(first, "SpacingBetweenSlices", getattr(first, "SliceThickness", 1.0)))
+        slice_spacing = float(
+            getattr(first, "SpacingBetweenSlices", getattr(first, "SliceThickness", 1.0))
+        )
     pixel_spacing = getattr(first, "PixelSpacing", [1.0, 1.0])
     voxel_spacing = (
         float(pixel_spacing[0]),

@@ -70,10 +70,9 @@ class T2WaterFat:
             raise ValueError("water_amplitude and fat_amplitude must be >= 0")
         if water_t2_ms <= 0 or fat_t2_ms <= 0:
             raise ValueError("water_t2_ms and fat_t2_ms must be > 0")
-        return (
-            float(water_amplitude) * np.exp(-self.te_ms / float(water_t2_ms))
-            + float(fat_amplitude) * np.exp(-self.te_ms / float(fat_t2_ms))
-        )
+        return float(water_amplitude) * np.exp(-self.te_ms / float(water_t2_ms)) + float(
+            fat_amplitude
+        ) * np.exp(-self.te_ms / float(fat_t2_ms))
 
     def fit(
         self,
@@ -140,7 +139,9 @@ class T2WaterFat:
                 raise ValueError("mask must be None for 1D data")
             return self.fit(arr, water_t2_grid_ms=water_t2_grid_ms, fat_t2_grid_ms=fat_t2_grid_ms)
         if arr.shape[-1] != self.te_ms.shape[0]:
-            raise ValueError(f"data last dim {arr.shape[-1]} must match te_ms length {self.te_ms.shape[0]}")
+            raise ValueError(
+                f"data last dim {arr.shape[-1]} must match te_ms length {self.te_ms.shape[0]}"
+            )
 
         spatial_shape = arr.shape[:-1]
         flat = arr.reshape((-1, arr.shape[-1]))
@@ -149,7 +150,9 @@ class T2WaterFat:
             mask_flat = np.ones((flat.shape[0],), dtype=bool)
         else:
             if resolved_mask.shape != spatial_shape:
-                raise ValueError(f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}")
+                raise ValueError(
+                    f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}"
+                )
             mask_flat = resolved_mask.reshape((-1,))
 
         def fit_func(signal_1d: NDArray[Any]) -> dict[str, float]:
@@ -163,7 +166,14 @@ class T2WaterFat:
             fit_func,
             flat,
             mask_flat,
-            ["water_amplitude", "fat_amplitude", "water_t2_ms", "fat_t2_ms", "fat_fraction", "resid_l2"],
+            [
+                "water_amplitude",
+                "fat_amplitude",
+                "water_t2_ms",
+                "fat_t2_ms",
+                "fat_fraction",
+                "resid_l2",
+            ],
             spatial_shape,
             n_jobs=n_jobs,
             verbose=verbose,

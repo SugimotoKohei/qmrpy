@@ -222,11 +222,14 @@ def epg_weigel(
         sin_fa = np.sin(fa)
         cos_fa = np.cos(fa)
 
-        T = np.array([
-            [cos2, sin2, -1j * sin_fa],
-            [sin2, cos2, +1j * sin_fa],
-            [-0.5j * sin_fa, +0.5j * sin_fa, cos_fa],
-        ], dtype=np.complex128)
+        T = np.array(
+            [
+                [cos2, sin2, -1j * sin_fa],
+                [sin2, cos2, +1j * sin_fa],
+                [-0.5j * sin_fa, +0.5j * sin_fa, cos_fa],
+            ],
+            dtype=np.complex128,
+        )
 
         pn2 = 2 * pn
         # k indices (0-based in Python)
@@ -240,8 +243,8 @@ def epg_weigel(
 
         # Gradient dephasing: F+ shifts up, F- shifts down
         # F+(k) -> F+(k+1), F-(k+1) -> F-(k), F-(0) -> F+(0)*
-        Omega_preRF[0, 1:k_max + 1] = Omega_preRF[0, 0:k_max]
-        Omega_preRF[1, 0:k_max] = Omega_preRF[1, 1:k_max + 1]
+        Omega_preRF[0, 1 : k_max + 1] = Omega_preRF[0, 0:k_max]
+        Omega_preRF[1, 0:k_max] = Omega_preRF[1, 1 : k_max + 1]
         Omega_preRF[0, 0] = np.conj(Omega_preRF[1, 0])
 
         # === RF pulse ===
@@ -256,8 +259,8 @@ def epg_weigel(
 
         # Gradient dephasing
         kp2_max = pn2 + 1
-        Omega_postRF[0, 1:kp2_max] = Omega_postRF[0, 0:kp2_max - 1]
-        Omega_postRF[1, 0:kp2_max - 1] = Omega_postRF[1, 1:kp2_max]
+        Omega_postRF[0, 1:kp2_max] = Omega_postRF[0, 0 : kp2_max - 1]
+        Omega_postRF[1, 0 : kp2_max - 1] = Omega_postRF[1, 1:kp2_max]
         Omega_postRF[0, 0] = np.conj(Omega_postRF[1, 0])
 
         # Record echo (F+(0) at echo time)
@@ -317,8 +320,8 @@ def epg_cpmg_decaes(
 
     # B1 factor (alpha_deg/180 is the effective B1)
     A = float(alpha_deg) / 180.0
-    alpha_ex = A * 90.0      # Excitation pulse
-    alpha1 = A * 180.0       # First refocusing pulse
+    alpha_ex = A * 90.0  # Excitation pulse
+    alpha1 = A * 180.0  # First refocusing pulse
     alphai = A * float(beta_deg)  # Subsequent refocusing pulses
 
     # Relaxation for TE/2
@@ -410,9 +413,7 @@ class EPGSimulator:
             raise ValueError("t2_ms must be > 0")
 
         # Initialize state matrix: (n_states, 3) for [F+, F-, Z]
-        self.states: NDArray[np.complex128] = np.zeros(
-            (self.n_states, 3), dtype=np.complex128
-        )
+        self.states: NDArray[np.complex128] = np.zeros((self.n_states, 3), dtype=np.complex128)
 
     def reset(self, m0: float = 1.0) -> None:
         """Reset to thermal equilibrium.

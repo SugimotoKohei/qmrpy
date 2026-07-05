@@ -15,7 +15,7 @@ It covers fundamental physics and quantitative imaging applications.
 4.  **T2* & Dephasing:** Reversible (Spin Echo) vs Irreversible (FID) dephasing under B0 inhomogeneity.
 5.  **QSM:** 3D Susceptibility Mapping simulation and reconstruction.
 """
-nb['cells'].append(nbf.v4.new_markdown_cell(text))
+nb["cells"].append(nbf.v4.new_markdown_cell(text))
 
 # Imports
 code = """import numpy as np
@@ -48,7 +48,7 @@ from qmrpy.models.qsm.utils import kspace_kernel
 # Setup Output Directory
 Path("output/seq").mkdir(parents=True, exist_ok=True)
 """
-nb['cells'].append(nbf.v4.new_code_cell(code))
+nb["cells"].append(nbf.v4.new_code_cell(code))
 
 # --- Chapter 1 ---
 text = """## 1. Bloch Simulation Basics: Spin Echo & Stimulated Echoes
@@ -56,7 +56,7 @@ text = """## 1. Bloch Simulation Basics: Spin Echo & Stimulated Echoes
 We simulate a single voxel using a CPMG sequence.
 We compare an ideal 180° refocusing pulse (pure Spin Echo) with a 60° refocusing pulse (generating Stimulated Echoes).
 """
-nb['cells'].append(nbf.v4.new_markdown_cell(text))
+nb["cells"].append(nbf.v4.new_markdown_cell(text))
 
 code = """# System & Sequence Helper
 system = Opts(max_grad=28, grad_unit='mT/m', max_slew=150, slew_unit='T/m/s',
@@ -69,7 +69,7 @@ def build_cpmg_seq(te=10e-3, n_echo=16, adc_samples=1, refoc_angle_deg=180.0):
     seq = Sequence(system)
     phase_exc = 0.0
     phase_ref = np.pi / 2.0
-    
+
     # 90 deg Excitation + Rewinder
     rf90, gz90, _ = make_sinc_pulse(flip_angle=np.deg2rad(90), duration=3e-3, phase_offset=phase_exc,
                                    slice_thickness=5e-3, apodization=0.5, time_bw_product=4, system=system, return_gz=True)
@@ -78,22 +78,22 @@ def build_cpmg_seq(te=10e-3, n_echo=16, adc_samples=1, refoc_angle_deg=180.0):
     # Refocusing
     rf180, gz180, _ = make_sinc_pulse(flip_angle=np.deg2rad(refoc_angle_deg), duration=3e-3, phase_offset=phase_ref,
                                     slice_thickness=5e-3, apodization=0.5, time_bw_product=4, system=system, return_gz=True)
-    
+
     adc = make_adc(num_samples=adc_samples, duration=3.2e-3, system=system, phase_offset=phase_exc)
-    
+
     tau = te / 2
     rf90_dur = calc_duration(rf90, gz90)
     gz90_rephaser_dur = calc_duration(gz90_rephaser)
     rf180_dur = calc_duration(rf180, gz180)
     adc_dur = calc_duration(adc)
     raster = system.block_duration_raster
-    
+
     seq.add_block(rf90, gz90)
     seq.add_block(gz90_rephaser)
-    
+
     delay1 = tau - (rf90_dur / 2) - gz90_rephaser_dur - (rf180_dur / 2)
     if delay1 > 0: seq.add_block(make_delay(quantize(delay1, raster)))
-    
+
     for _ in range(n_echo):
         seq.add_block(rf180, gz180)
         delay2 = tau - (rf180_dur / 2) - (adc_dur / 2)
@@ -108,11 +108,11 @@ PD = torch.ones((1,))
 T1 = torch.ones((1,)) * 1.0
 T2 = torch.ones((1,)) * 0.1 # 100ms
 T2dash = torch.ones((1,)) * 0.1
-D = torch.zeros((1, 3)) 
+D = torch.zeros((1, 3))
 B0 = torch.zeros((1,))
 B1 = torch.ones((1, 1))
 coil_sens = torch.ones((1, 1))
-size = torch.tensor([0.005, 0.005, 0.005]) 
+size = torch.tensor([0.005, 0.005, 0.005])
 voxel_pos = torch.zeros((1, 3))
 nyquist = torch.tensor([1, 1, 1])
 dephasing_func = lambda b0, t: torch.zeros_like(b0)
@@ -147,7 +147,7 @@ p = (
 )
 print(p)
 """
-nb['cells'].append(nbf.v4.new_code_cell(code))
+nb["cells"].append(nbf.v4.new_code_cell(code))
 
 # --- Chapter 2 ---
 text = """## 2. T1 Mapping: VFA, B1 Error, and AFI Correction
@@ -157,7 +157,7 @@ We simulate a realistic scenario for T1 mapping:
 2.  **Imperfections:** B1 error (actual FA is 85% of nominal) and Noise.
 3.  **AFI (Actual Flip-angle Imaging):** Estimating the B1 map to correct T1.
 """
-nb['cells'].append(nbf.v4.new_markdown_cell(text))
+nb["cells"].append(nbf.v4.new_markdown_cell(text))
 
 code = """# 1. AFI Simulation (Estimate B1)
 def build_afi_seq(flip_angle_deg, tr1=20e-3, tr2=100e-3, adc_samples=1, n_reps=200):
@@ -166,12 +166,12 @@ def build_afi_seq(flip_angle_deg, tr1=20e-3, tr2=100e-3, adc_samples=1, n_reps=2
     gz_reph = make_trapezoid(channel='z', area=-gz.area / 2, duration=1e-3, system=system)
     adc = make_adc(num_samples=adc_samples, duration=3.2e-3, system=system)
     gz_spoil = make_trapezoid(channel='z', area=20/5e-3, duration=4e-3, system=system)
-    
+
     rf_dur = calc_duration(rf, gz); gz_reph_dur = calc_duration(gz_reph); adc_dur = calc_duration(adc); spoil_dur = calc_duration(gz_spoil)
     min_dur = rf_dur + gz_reph_dur + adc_dur + spoil_dur
     delay1 = make_delay(quantize(tr1 - min_dur, system.block_duration_raster))
     delay2 = make_delay(quantize(tr2 - min_dur, system.block_duration_raster))
-    
+
     for _ in range(n_reps):
         for d in [delay1, delay2]:
             seq.add_block(rf, gz); seq.add_block(gz_reph); seq.add_block(adc); seq.add_block(gz_spoil); seq.add_block(d)
@@ -229,7 +229,7 @@ print(f"True T1: {TRUE_T1} ms")
 print(f"Uncorrected Fit (B1=1.0): {t1_nocorr:.1f} ms")
 print(f"Corrected Fit (B1={est_b1:.2f}): {t1_corr:.1f} ms")
 """
-nb['cells'].append(nbf.v4.new_code_cell(code))
+nb["cells"].append(nbf.v4.new_code_cell(code))
 
 # --- Chapter 3 ---
 text = """## 3. T2 Mapping & MWF Estimation
@@ -240,7 +240,7 @@ We simulate a voxel with two compartments:
 
 We fit the data using Mono-exponential model and Multi-component (MWF) model.
 """
-nb['cells'].append(nbf.v4.new_markdown_cell(text))
+nb["cells"].append(nbf.v4.new_markdown_cell(text))
 
 code = """# Simulation: Two Compartments
 def create_data(t2, fraction):
@@ -274,7 +274,7 @@ df_spec = pd.DataFrame({'T2': res_mwf['t2_basis_ms'], 'Amplitude': res_mwf['weig
 p = (ggplot(df_spec, aes(x='T2', y='Amplitude')) + geom_col(fill='purple') + scale_x_log10() + theme_bw() + labs(title=f'T2 Spectrum (MWF={mwf_est:.2f})'))
 print(p)
 """
-nb['cells'].append(nbf.v4.new_code_cell(code))
+nb["cells"].append(nbf.v4.new_code_cell(code))
 
 # --- Chapter 4 ---
 text = """## 4. T2* and Dephasing (FID vs Spin Echo)
@@ -282,13 +282,13 @@ text = """## 4. T2* and Dephasing (FID vs Spin Echo)
 Demonstration of reversible dephasing (Spin Echo) vs irreversible dephasing (T2*).
 We simulate 5000 isochromats with random B0 offsets.
 """
-nb['cells'].append(nbf.v4.new_markdown_cell(text))
+nb["cells"].append(nbf.v4.new_markdown_cell(text))
 
 code = """# Data with B0 Inhomogeneity
 SPIN_COUNT = 5000
 B0_offsets = np.clip(np.random.standard_cauchy(SPIN_COUNT) * 10.0, -200, 200) # Lorentzian
-data_t2s = mr0.SimData(torch.ones(SPIN_COUNT)/SPIN_COUNT, torch.ones(SPIN_COUNT)*1.0, torch.ones(SPIN_COUNT)*0.1, torch.ones(SPIN_COUNT)*0.1, 
-                       torch.zeros(SPIN_COUNT), torch.tensor(B0_offsets, dtype=torch.float32), 
+data_t2s = mr0.SimData(torch.ones(SPIN_COUNT)/SPIN_COUNT, torch.ones(SPIN_COUNT)*1.0, torch.ones(SPIN_COUNT)*0.1, torch.ones(SPIN_COUNT)*0.1,
+                       torch.zeros(SPIN_COUNT), torch.tensor(B0_offsets, dtype=torch.float32),
                        torch.ones((1, SPIN_COUNT)), torch.ones((1, SPIN_COUNT)), size, torch.zeros((SPIN_COUNT,3)), nyquist, lambda b0,t: 2*np.pi*b0*t)
 
 # FID
@@ -319,14 +319,14 @@ df_se = pd.DataFrame({'Time': np.linspace(30, 70, 200), 'Signal': sig_se.flatten
 p = (ggplot(pd.concat([df_fid, df_se]), aes(x='Time', y='Signal', color='Type')) + geom_line() + theme_bw() + labs(title='Reversible Dephasing'))
 print(p)
 """
-nb['cells'].append(nbf.v4.new_code_cell(code))
+nb["cells"].append(nbf.v4.new_code_cell(code))
 
 # --- Chapter 5 ---
 text = """## 5. QSM Simulation
 
 We create a 3D phantom (Sphere with $\chi=1$ppm), compute the dipole field, generate analytic GRE signals, and reconstruct the susceptibility map.
 """
-nb['cells'].append(nbf.v4.new_markdown_cell(text))
+nb["cells"].append(nbf.v4.new_markdown_cell(text))
 
 code = """# 3D Phantom
 N = 32; FOV = 0.2; dx = FOV/N
@@ -356,9 +356,9 @@ plt.subplot(132); plt.imshow(DF[:,:,sl], cmap='jet'); plt.title('Field Map')
 plt.subplot(133); plt.imshow(res['chi_sb'][:,:,sl] * (1.0/(gamma*B0_T*(TEs[1]-TEs[0])*1e-6)), cmap='gray'); plt.title('Recon Chi')
 plt.show()
 """
-nb['cells'].append(nbf.v4.new_code_cell(code))
+nb["cells"].append(nbf.v4.new_code_cell(code))
 
 # Write File
-with open('notebooks/mrzero_tutorial.ipynb', 'w', encoding='utf-8') as f:
+with open("notebooks/mrzero_tutorial.ipynb", "w", encoding="utf-8") as f:
     nbf.write(nb, f)
 print("Generated notebooks/mrzero_tutorial.ipynb")

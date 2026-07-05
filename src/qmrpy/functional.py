@@ -393,7 +393,9 @@ def simulate_mrf_dictionary(
     te_ms: ArrayLike | float | None = None,
     b1: float = 1.0,
 ) -> Any:
-    return _build_model("mrf_dictionary", flip_angle_deg=flip_angle_deg, tr_ms=tr_ms, te_ms=te_ms).forward(
+    return _build_model(
+        "mrf_dictionary", flip_angle_deg=flip_angle_deg, tr_ms=tr_ms, te_ms=te_ms
+    ).forward(
         m0=m0,
         t1_ms=t1_ms,
         t2_ms=t2_ms,
@@ -411,7 +413,9 @@ def fit_mrf_dictionary(
     te_ms: ArrayLike | float | None = None,
     b1: float = 1.0,
 ) -> FitResult:
-    return _build_model("mrf_dictionary", flip_angle_deg=flip_angle_deg, tr_ms=tr_ms, te_ms=te_ms).fit(
+    return _build_model(
+        "mrf_dictionary", flip_angle_deg=flip_angle_deg, tr_ms=tr_ms, te_ms=te_ms
+    ).fit(
         signal,
         t1_grid_ms=t1_grid_ms,
         t2_grid_ms=t2_grid_ms,

@@ -217,7 +217,6 @@ def _basis_matrix_dalpha_fd(
 ):
     """Finite-difference derivative dA/dalpha matching DECAES' ∇A intent."""
 
-
     a = float(alpha_deg)
     h = float(h_deg)
     if a - h < float(alpha_min_deg):
@@ -366,7 +365,11 @@ def _choose_mu(
             delta *= float(dilate)
             cnt += 1
 
-        return (float(a), float(b_), float(fa), float(fb)) if a < b_ else (float(b_), float(a), float(fb), float(fa))
+        return (
+            (float(a), float(b_), float(fa), float(fb))
+            if a < b_
+            else (float(b_), float(a), float(fb), float(fa))
+        )
 
     def brent_root(
         f,
@@ -394,7 +397,7 @@ def _choose_mu(
         c, d, fc, mflag = float(x0), float(x0), float(fx0), True
 
         def secant_step(a_: float, b__: float, fa_: float, fb_: float) -> float:
-            den = (fb_ - fa_)
+            den = fb_ - fa_
             if den == 0.0:
                 return float("nan")
             return a_ - fa_ * (b__ - a_) / den
@@ -542,7 +545,10 @@ def _choose_mu(
 
         point_cache: dict[float, tuple[np.ndarray, float]] = {}  # logmu -> (P, C)
         state_cache: list[
-            tuple[tuple[float, float, float, float], tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]]
+            tuple[
+                tuple[float, float, float, float],
+                tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray],
+            ]
         ] = []
 
         def f_lcurve(logmu: float) -> np.ndarray:
@@ -577,7 +583,10 @@ def _choose_mu(
         ) -> None:
             def pfilter(p: np.ndarray) -> bool:
                 return (
-                    min(float(np.linalg.norm(p - ptopleft)), float(np.linalg.norm(p - pbottomright))) > ctol
+                    min(
+                        float(np.linalg.norm(p - ptopleft)), float(np.linalg.norm(p - pbottomright))
+                    )
+                    > ctol
                 )
 
             for x in xvec:
@@ -748,7 +757,9 @@ class T2DECAESMap:
             float(self.min_ref_angle_deg), 180.0, int(self.n_ref_angles), dtype=np.float64
         )
 
-    def _optimize_alpha(self, b_norm: NDArray[np.float64]) -> tuple[float, NDArray[np.float64], Any, Any]:
+    def _optimize_alpha(
+        self, b_norm: NDArray[np.float64]
+    ) -> tuple[float, NDArray[np.float64], Any, Any]:
         import numpy as np
 
         if self.set_flip_angle_deg is not None:
@@ -795,10 +806,16 @@ class T2DECAESMap:
                 alpha_min_deg=float(self.min_ref_angle_deg),
             )
 
-        mineval = int(self.n_ref_angles_min) if self.n_ref_angles_min is not None else min(5, int(self.n_ref_angles))
+        mineval = (
+            int(self.n_ref_angles_min)
+            if self.n_ref_angles_min is not None
+            else min(5, int(self.n_ref_angles))
+        )
         mineval = max(2, min(mineval, int(self.n_ref_angles)))
 
-        prob = NNLSDiscreteSurrogateSearch1D(As=As, dAs=dAs, grid=grid, b=np.asarray(b_norm, dtype=np.float64))
+        prob = NNLSDiscreteSurrogateSearch1D(
+            As=As, dAs=dAs, grid=grid, b=np.asarray(b_norm, dtype=np.float64)
+        )
         alpha_opt, _ = surrogate_optimize_1d(prob, mineval=mineval, maxeval=int(self.n_ref_angles))
 
         A_opt = _basis_matrix(
@@ -952,7 +969,9 @@ class T2DECAESMap:
             m = np.ones(spatial_shape, dtype=bool)
         else:
             if resolved_mask.shape != spatial_shape:
-                raise ValueError(f"mask shape {resolved_mask.shape} must match image spatial shape {spatial_shape}")
+                raise ValueError(
+                    f"mask shape {resolved_mask.shape} must match image spatial shape {spatial_shape}"
+                )
             m = resolved_mask
 
         if alpha_map_deg is not None:
@@ -977,7 +996,9 @@ class T2DECAESMap:
         mu_map = np.full(shape3, np.nan, dtype=np.float64) if self.save_reg_param else None
         chi2_map = np.full(shape3, np.nan, dtype=np.float64) if self.save_reg_param else None
         decaycurve = (
-            np.full((*shape3, self.n_te), np.nan, dtype=np.float64) if self.save_decay_curve else None
+            np.full((*shape3, self.n_te), np.nan, dtype=np.float64)
+            if self.save_decay_curve
+            else None
         )
         decaybasis = (
             np.full((*shape3, self.n_te, self.n_t2), np.nan, dtype=np.float64)
@@ -987,7 +1008,11 @@ class T2DECAESMap:
 
         dist = np.full((*shape3, self.n_t2), np.nan, dtype=np.float64)
 
-        refangleset = self._flip_angles() if self.set_flip_angle_deg is None else float(self.set_flip_angle_deg)
+        refangleset = (
+            self._flip_angles()
+            if self.set_flip_angle_deg is None
+            else float(self.set_flip_angle_deg)
+        )
         if self.set_flip_angle_deg is None:
             decaybasisset = np.zeros((self.n_te, self.n_t2, len(refangleset)), dtype=np.float64)
             for k, a in enumerate(refangleset):
@@ -1069,7 +1094,9 @@ class T2DECAESMap:
 
             res2 = float(np.dot(resid, resid))
             sigma_res = float(np.std(resid))
-            fnr_val = float(sumx / np.sqrt(res2 / max(self.n_te - 1, 1))) if res2 > 0 else float("inf")
+            fnr_val = (
+                float(sumx / np.sqrt(res2 / max(self.n_te - 1, 1))) if res2 > 0 else float("inf")
+            )
             snr_val = float(max_signal / sigma_res) if sigma_res > 0 else float("inf")
 
             result = {
@@ -1105,6 +1132,7 @@ class T2DECAESMap:
             iterator = indices
             if verbose:
                 from tqdm import tqdm
+
                 iterator = tqdm(indices, desc="T2DECAESMap", unit="voxel")
 
             for idx in iterator:
@@ -1133,14 +1161,13 @@ class T2DECAESMap:
 
             if verbose:
                 from tqdm import tqdm
+
                 results = Parallel(n_jobs=n_jobs)(
                     delayed(process_voxel)(idx)
                     for idx in tqdm(indices, desc="T2DECAESMap", unit="voxel")
                 )
             else:
-                results = Parallel(n_jobs=n_jobs)(
-                    delayed(process_voxel)(idx) for idx in indices
-                )
+                results = Parallel(n_jobs=n_jobs)(delayed(process_voxel)(idx) for idx in indices)
 
             for _idx, res in results:
                 if not res:

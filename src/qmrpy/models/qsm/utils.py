@@ -4,7 +4,9 @@ import numpy as np
 from numpy.typing import NDArray
 
 
-def calc_fdr(shape: tuple[int, int, int], direction: str) -> tuple[NDArray[np.complex128], NDArray[np.complex128], NDArray[np.complex128]]:
+def calc_fdr(
+    shape: tuple[int, int, int], direction: str
+) -> tuple[NDArray[np.complex128], NDArray[np.complex128], NDArray[np.complex128]]:
     """Finite difference operators in k-space (qMRLab calcFdr)."""
     ny, nx, nz = shape  # MATLAB meshgrid order was (k2,k1,k3) -> (y,x,z)
     k2, k1, k3 = np.meshgrid(

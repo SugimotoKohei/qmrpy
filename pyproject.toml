@@ -49,6 +49,9 @@ dev = [
   "ruff>=0.6",
   "nbclient>=0.10.2",
   "nbformat>=5.10.4",
+  "mypy>=2.1.0",
+  "pre-commit>=4.6.0",
+  "pre-commit-hooks>=6.0.0",
 ]
 io = [
     "nibabel>=5",
@@ -68,6 +71,21 @@ packages = ["src/qmrpy"]
 [tool.ruff]
 line-length = 100
 target-version = "py311"
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src/qmrpy"]
+ignore_missing_imports = true
+warn_unused_ignores = false
+disable_error_code = [
+  "arg-type",
+  "assignment",
+  "index",
+  "operator",
+  "override",
+  "return-value",
+  "union-attr",
+]
 
 [tool.pytest.ini_options]
 addopts = "-q"

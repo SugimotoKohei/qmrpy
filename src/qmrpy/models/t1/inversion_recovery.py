@@ -165,7 +165,9 @@ def _rdnls_pr_grid(
                 alpha_vec = 1.0 / t1_vec
                 the_exp = np.exp(-t_vec_sorted[:, None] * alpha_vec[None, :])
                 y_exp_sum = data_tmp @ the_exp
-                rho_norm_vec = np.sum(the_exp**2, axis=0) - (1.0 / n) * (np.sum(the_exp, axis=0) ** 2)
+                rho_norm_vec = np.sum(the_exp**2, axis=0) - (1.0 / n) * (
+                    np.sum(the_exp, axis=0) ** 2
+                )
                 rho_ty_vec = y_exp_sum - (1.0 / n) * np.sum(the_exp, axis=0) * y_sum
                 crit = (np.abs(rho_ty_vec) ** 2) / rho_norm_vec
                 ind = int(np.argmax(crit))
@@ -184,6 +186,8 @@ def _rdnls_pr_grid(
     res = float(res_tmp[best])
     idx = int(min_ind + 1 if best == 0 else min_ind)
     return t1_est, b_est, a_est, res, idx
+
+
 @dataclass(frozen=True, slots=True)
 class T1InversionRecovery:
     """Inversion Recovery T1 model (qMRLab: inversion_recovery).
@@ -462,7 +466,9 @@ class T1InversionRecovery:
             mask_flat = np.ones((flat.shape[0],), dtype=bool)
         else:
             if resolved_mask.shape != spatial_shape:
-                raise ValueError(f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}")
+                raise ValueError(
+                    f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}"
+                )
             mask_flat = resolved_mask.reshape((-1,))
 
         method_norm = str(kwargs.get("method", "magnitude")).lower().strip()
@@ -474,8 +480,14 @@ class T1InversionRecovery:
             return self.fit(signal, **kwargs)
 
         result = parallel_fit(
-            fit_func, flat, mask_flat, output_keys, spatial_shape,
-            n_jobs=n_jobs, verbose=verbose, desc="T1InversionRecovery"
+            fit_func,
+            flat,
+            mask_flat,
+            output_keys,
+            spatial_shape,
+            n_jobs=n_jobs,
+            verbose=verbose,
+            desc="T1InversionRecovery",
         )
 
         # Convert idx to int64

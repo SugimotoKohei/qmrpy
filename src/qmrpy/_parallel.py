@@ -55,8 +55,7 @@ def parallel_fit(
 
     # Initialize output arrays
     out: dict[str, NDArray[Any]] = {
-        key: np.full(spatial_shape, np.nan, dtype=np.float64)
-        for key in output_keys
+        key: np.full(spatial_shape, np.nan, dtype=np.float64) for key in output_keys
     }
 
     indices = np.flatnonzero(mask_flat)
@@ -103,13 +102,10 @@ def parallel_fit(
         from tqdm import tqdm
 
         results = Parallel(n_jobs=n_jobs)(
-            delayed(_fit_single)(idx)
-            for idx in tqdm(indices, desc=desc, unit="voxel")
+            delayed(_fit_single)(idx) for idx in tqdm(indices, desc=desc, unit="voxel")
         )
     else:
-        results = Parallel(n_jobs=n_jobs)(
-            delayed(_fit_single)(idx) for idx in indices
-        )
+        results = Parallel(n_jobs=n_jobs)(delayed(_fit_single)(idx) for idx in indices)
 
     for idx, res in results:
         for key in output_keys:

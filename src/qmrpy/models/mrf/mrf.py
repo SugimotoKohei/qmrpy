@@ -85,7 +85,9 @@ class MRFDictionary:
         object.__setattr__(self, "tr_ms", tr)
         object.__setattr__(self, "te_ms", te)
 
-    def forward(self, *, m0: float = 1.0, t1_ms: float, t2_ms: float, b1: float = 1.0) -> NDArray[np.float64]:
+    def forward(
+        self, *, m0: float = 1.0, t1_ms: float, t2_ms: float, b1: float = 1.0
+    ) -> NDArray[np.float64]:
         """Simulate one MRF fingerprint."""
         import numpy as np
 
@@ -104,7 +106,9 @@ class MRFDictionary:
         sim.reset(m0=1.0)
         out = np.zeros(self.flip_angle_deg.shape[0], dtype=np.float64)
 
-        for i, (fa, tr, te) in enumerate(zip(self.flip_angle_deg, self.tr_ms, self.te_ms, strict=True)):
+        for i, (fa, tr, te) in enumerate(
+            zip(self.flip_angle_deg, self.tr_ms, self.te_ms, strict=True)
+        ):
             sim.apply_rf(float(fa) * float(b1))
             if te > 0:
                 sim.apply_relaxation(float(te), recovery=False)
@@ -235,7 +239,9 @@ class MRFDictionary:
             mask_flat = np.ones((flat.shape[0],), dtype=bool)
         else:
             if resolved_mask.shape != spatial_shape:
-                raise ValueError(f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}")
+                raise ValueError(
+                    f"mask shape {resolved_mask.shape} must match spatial shape {spatial_shape}"
+                )
             mask_flat = resolved_mask.reshape((-1,))
 
         def fit_func(signal_1d: NDArray[Any]) -> dict[str, float]:

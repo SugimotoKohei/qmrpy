@@ -13,11 +13,13 @@
 - 辞書ベース MRF 同時 T1-T2 mapping を追加。
 - 2プール近似の T2 water/fat separation を追加。
 - ガバナンス文書（CONTRIBUTING、CHANGELOG、CODE_OF_CONDUCT、SECURITY、CITATION）を追加。
+- pre-commit、mypy、coverage artifact、OS matrix を含む CI 品質ゲートを追加。
 
 ### Changed
 
 - package keywords から未実装の diffusion を外し、relaxometry / magnetization transfer の実態に合わせた。
 - core validation suite に T1rho、MT、MRF、T2 water/fat の synthetic recovery cases を追加。
+- docs deploy workflow を locked dependency build に変更。
 
 ## [1.0.0] - 2026-01-15
 

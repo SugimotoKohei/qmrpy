@@ -2,7 +2,12 @@
 
 from .arrays import as_1d_float_array
 from .fit_image import run_fit_image
-from .fit_protocols import FitImageModelProtocol, FitModelProtocol, ResultAdapterBase, ResultSchemaMixin
+from .fit_protocols import (
+    FitImageModelProtocol,
+    FitModelProtocol,
+    ResultAdapterBase,
+    ResultSchemaMixin,
+)
 from .phase import as_phase, wrap_phase
 from .result_schema import FitResult, is_nested_result, nest_result
 
