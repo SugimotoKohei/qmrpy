@@ -87,12 +87,6 @@ def _rows() -> list[dict[str, Any]]:
             "tests": "tests/test_b1_dam.py",
         },
         {
-            "category": "Noise",
-            "target": "MPPCA",
-            "verification": "shape/errors",
-            "tests": "tests/test_mppca.py",
-        },
-        {
             "category": "QSM",
             "target": "Split Bregman",
             "verification": "pipeline/numeric",

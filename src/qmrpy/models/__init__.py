@@ -2,7 +2,6 @@ from .b0 import B0DualEcho, B0MultiEcho
 from .b1 import B1AFI, B1BlochSiegert, B1DAM
 from .mt import MTR, MTsat
 from .mrf import MRFDictionary
-from .noise import MPPCA
 from .qsm import (
     QSMSplitBregman,
     background_removal_sharp,
@@ -41,7 +40,6 @@ __all__ = [
     "T2StarESTATICS",
     "T2StarMonoR2",
     "QSMSplitBregman",
-    "MPPCA",
     "background_removal_sharp",
     "calc_chi_l2",
     "calc_gradient_mask_from_magnitude",

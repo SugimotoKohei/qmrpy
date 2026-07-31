@@ -22,7 +22,6 @@ classifiers = [
 ]
 dependencies = [
   "joblib>=1.5.3",
-  "mrzerocore>=0.4.1",
   "numpy>=1.26",
   "pillow>=12.0.0",
   "pypulseq>=1.4.2.post1",
@@ -56,6 +55,13 @@ dev = [
 io = [
     "nibabel>=5",
     "pydicom>=2.4",
+]
+# MRzeroCore is licensed under AGPL-3.0, which is not compatible with qmrpy's MIT
+# licence when combined. It is therefore kept as an opt-in extra: installing it
+# places the resulting combined environment under the AGPL-3.0 terms.
+# See THIRD_PARTY_NOTICES.md.
+mrzero = [
+    "mrzerocore>=0.4.1",
 ]
 
 [tool.hatch.version]

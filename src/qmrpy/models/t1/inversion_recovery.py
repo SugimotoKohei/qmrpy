@@ -1,3 +1,6 @@
+# Portions of this file are a Python translation of qMRLab
+# (https://github.com/qMRLab/qMRLab), Copyright (c) 2017 NeuroPoly,
+# distributed under the MIT License. See THIRD_PARTY_NOTICES.md.
 from __future__ import annotations
 
 from dataclasses import dataclass

@@ -1,18 +1,68 @@
 # Third-Party Notices
 
-This repository contains **translations and reference implementations** of algorithms
-from third-party software. Distribution artifacts (wheel/sdist) include the required
-license attributions.
+`qmrpy` is distributed under the MIT License (see `LICENSE`). Parts of it are Python
+translations of algorithms from other open-source projects. This file records what was
+translated, from where, and under which licence, and lists the licences of the runtime
+dependencies.
 
-## qMRLab
+Last reviewed: 2026-08-01, against the upstream repositories cited below.
 
-- Upstream: `qMRLab` (MATLAB implementation)
+---
+
+## Summary
+
+| Upstream | Licence | Relationship |
+|---|---|---|
+| qMRLab (`src/` only) | MIT | Algorithms translated to Python |
+| DECAES.jl | MIT | Algorithms translated to Python; reference vectors in `tests/data/` |
+| MRzeroCore | AGPL-3.0 | Optional runtime dependency (`qmrpy[mrzero]`), **not** bundled |
+| PyPulseq | MIT | Runtime dependency, not bundled |
+| NumPy, SciPy, joblib, Pillow, tqdm, nibabel, pydicom | BSD-3-Clause / MIT / MPL-2.0 | Runtime dependencies, not bundled |
+
+No third-party source code is bundled in this repository or in the published
+distributions. Files that contain translated logic carry an attribution comment in
+their header.
+
+---
+
+## 1. qMRLab
+
+- Upstream: <https://github.com/qMRLab/qMRLab>
 - Copyright (c) 2017 NeuroPoly
-- License: MIT License
-- Reference materials: Local reference (not bundled)
-- Notes: This repository **translates/restructures** concepts and model definitions from qMRLab.
-  The qMRLab source code and `External/` third-party code are not bundled.
-  If any code is incorporated, license attribution will be added accordingly.
+- Licence: MIT License (repository `LICENSE`)
+
+The following modules are Python translations of qMRLab MATLAB functions. **All of the
+corresponding upstream files live under qMRLab's `src/` tree and are therefore covered
+by qMRLab's MIT licence.** No code from qMRLab's `External/` tree — which bundles
+third-party software under separate, sometimes non-permissive terms — is used.
+
+| qmrpy module | qMRLab source |
+|---|---|
+| `qmrpy/models/qsm/split_bregman.py` | `src/Models_Functions/QSM/qsmSplitBregman.m` |
+| `qmrpy/models/qsm/sharp.py` | `src/Models_Functions/QSM/backgroundRemovalSharp.m` |
+| `qmrpy/models/qsm/gradient_mask.py` | `src/Models_Functions/QSM/calcGradientMaskFromMagnitudeImage.m` |
+| `qmrpy/models/qsm/unwrap.py` | `src/Models_Functions/QSM/unwrapPhaseLaplacian.m` |
+| `qmrpy/models/qsm/utils.py` | `src/Models_Functions/QSM/calcFdr.m`, `kspaceKernel.m`, `applyForward.m`, `calcChiL2.m` |
+| `qmrpy/models/qsm/pipeline.py` | `src/Models/QSM/qsm_sb.m` |
+| `qmrpy/models/t2/mwf.py` | `src/Models_Functions/MWF/met2_eva/do_regNNLS.m` |
+| `qmrpy/models/t1/vfa_t1.py` | `src/Models/T1_relaxometry/vfa_t1.m` |
+| `qmrpy/models/t1/inversion_recovery.py` | `src/Models/T1_relaxometry/inversion_recovery.m` |
+| `qmrpy/models/b1/dam.py` | `src/Models/FieldMaps/b1_dam.m` |
+| `qmrpy/models/b1/afi.py` | `src/Models/FieldMaps/b1_afi.m` |
+| `qmrpy/models/t2/mono_t2.py` | `src/Models/T2_relaxometry/mono_t2.m` |
+| `qmrpy/sim/simulation.py` | qMRLab `SingleVoxel` / `SimVary` / `SimRnd` / `SimFisherMatrix` addons |
+
+### Upstream attribution recorded by qMRLab for the QSM functions
+
+The qMRLab QSM sources listed above state in their own headers that they were
+refactored from Berkin Bilgic's scripts (original source:
+`https://martinos.org/~berkin/software.html`), with the original reference:
+
+> Bilgic B, Fan AP, Polimeni JR, et al. Fast quantitative susceptibility mapping with
+> L1-regularization and automatic parameter selection. *Magn Reson Med.*
+> 2014;72(5):1444-1459. doi:10.1002/mrm.25029
+
+qmrpy's QSM modules are therefore attributed to both qMRLab and that upstream work.
 
 ```
 MIT License
@@ -38,15 +88,29 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
 
-## DECAES.jl
+---
 
-- Upstream: `DECAES.jl`
+## 2. DECAES.jl
+
+- Upstream: <https://github.com/jondeuce/DECAES.jl>
 - Copyright (c) 2019 Jonathan Doucette
-- License: MIT License
-- Reference materials: Local reference (not bundled)
-- Notes: Contains **translations and reference implementations** of some algorithms
+- Licence: MIT License
+
+The following modules are Python translations of DECAES.jl:
+
+| qmrpy module | DECAES.jl source |
+|---|---|
+| `qmrpy/_decaes/nnls.py` | `src/NNLS.jl` (`unsafe_nnls!`, Householder helpers, Tikhonov variant) |
+| `qmrpy/_decaes/surrogate_1d.py` | `src/NNLSRegularization.jl` (`CubicHermiteInterpolator`, `surrogate_spline_opt`) |
+| `qmrpy/epg/core.py`, `qmrpy/models/t2/decaes_t2*.py` | `src/EPGdecaycurve.jl` (`epg_decay_curve!`, element flip matrix) |
+| `qmrpy/models/t2/decaes_t2part.py` | `src/T2partSEcorr.jl` (`sigmoid_weights`, T2-parts analysis) |
+
+`tests/data/decaes_ref*.csv` are **numerical outputs** produced by running DECAES.jl,
+used as fixed reference vectors for parity testing. They contain no DECAES source code.
 
 ```
+MIT License
+
 Copyright (c) 2019 Jonathan Doucette
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
@@ -67,3 +131,66 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
+
+---
+
+## 3. MRzeroCore (optional dependency, AGPL-3.0)
+
+- Upstream: <https://github.com/MRsources/MRzero-Core>
+- Licence: GNU Affero General Public License v3.0
+
+`qmrpy/sim/mrzero.py` calls MRzeroCore through a lazy import. **No MRzeroCore code is
+copied into qmrpy.** Because AGPL-3.0 imposes copyleft (including its network-use
+provision in section 13) on works combined with it, MRzeroCore is **not** a default
+dependency. It is installed only via the opt-in extra:
+
+```bash
+pip install "qmrpy[mrzero]"
+```
+
+Users who install that extra should be aware that the resulting combined environment is
+subject to the AGPL-3.0 terms. All other qmrpy functionality works without it.
+
+---
+
+## 4. Runtime dependency licences
+
+Installed by default:
+
+| Package | Licence |
+|---|---|
+| joblib | BSD-3-Clause |
+| numpy | BSD-3-Clause (with 0BSD / MIT / Zlib / CC0-1.0 components) |
+| pillow | MIT-CMU |
+| pypulseq | MIT |
+| scipy | BSD-3-Clause |
+| tqdm | MPL-2.0 AND MIT |
+
+Optional extras:
+
+| Extra | Package | Licence |
+|---|---|---|
+| `io` | nibabel | MIT |
+| `io` | pydicom | MIT |
+| `viz` | pandas | BSD-3-Clause |
+| `viz` | plotnine | MIT |
+| `mrzero` | mrzerocore | **AGPL-3.0** |
+
+None of these packages are bundled; they are resolved by the package manager at install
+time and remain under their own licences.
+
+---
+
+## 5. Removed components
+
+`MPPCA` (Marchenko-Pastur PCA denoising) was removed in the release following 1.1.0.
+Its implementation had been translated from `MPdenoising.m`, which qMRLab ships under
+`External/mppca_denoise/` and which is **not** covered by qMRLab's MIT licence. That
+file (Copyright (c) 2016 New York University and University of Antwerp, author Jelle
+Veraart) grants rights only to non-commercial entities, only for non-commercial
+research, and only to "use, copy and modify" — it does not grant redistribution or
+sublicensing rights. Redistributing a translation of it under the MIT License would
+have exceeded the granted rights, so the component was removed rather than relicensed.
+
+Users who need MP-PCA denoising should obtain it directly from a source whose licence
+permits their intended use.

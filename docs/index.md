@@ -11,7 +11,7 @@ qmrpy provides tools for fitting, simulating, and analyzing quantitative MRI dat
 - **MR Fingerprinting**: dictionary-based simultaneous T1-T2 matching
 - **T2/T2* Mapping**: mono-exponential, EPG/EMC, water/fat, MWF, R2*, ESTATICS
 - **B1/B0 Mapping**: DAM, AFI, Bloch-Siegert, dual/multi-echo B0
-- **QSM and denoising**: SHARP, split-Bregman QSM, MPPCA
+- **QSM**: Laplacian unwrapping, SHARP background removal, split-Bregman reconstruction
 - **Real-data I/O**: TIFF plus optional NIfTI, DICOM series, and minimal qMRI-BIDS helpers
 - **CLI and validation**: `qmrpy fit`, `qmrpy info`, `qmrpy validate`
 - **Performance**: parallel fitting, progress bars, Otsu auto-masking

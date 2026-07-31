@@ -1872,12 +1872,12 @@ def _decaes_parity_rows() -> list[dict[str, Any]]:
         epg_backend="decaes",
     )
     out = model.fit(signal)
-    dist_diff = out["params"]["distribution"] - dist_ref
+    dist_diff = out["distribution"] - dist_ref
     rows.append(
         {
             "case": "decaes_fixed_flip_no_reg",
             "reg": "none",
-            "alpha_abs_deg": abs(float(out["params"]["alpha_deg"]) - alpha_ref),
+            "alpha_abs_deg": abs(float(out["alpha_deg"]) - alpha_ref),
             "mu_abs": None,
             "chi2factor_abs": None,
             "dist_max_abs": float(np.max(np.abs(dist_diff))),
@@ -1902,12 +1902,12 @@ def _decaes_parity_rows() -> list[dict[str, Any]]:
         epg_backend="decaes",
     )
     out = model.fit(signal)
-    dist_diff = out["params"]["distribution"] - dist_ref
+    dist_diff = out["distribution"] - dist_ref
     rows.append(
         {
             "case": "decaes_opt_alpha_gcv",
             "reg": "gcv",
-            "alpha_abs_deg": abs(float(out["params"]["alpha_deg"]) - alpha_ref),
+            "alpha_abs_deg": abs(float(out["alpha_deg"]) - alpha_ref),
             "mu_abs": abs(float(out["mu"]) - mu_ref),
             "chi2factor_abs": None,
             "dist_max_abs": float(np.max(np.abs(dist_diff))),
@@ -1937,12 +1937,12 @@ def _decaes_parity_rows() -> list[dict[str, Any]]:
             noise_level=noise_level,
         )
         out = model.fit(signal)
-        dist_diff = out["params"]["distribution"] - dist_ref
+        dist_diff = out["distribution"] - dist_ref
         rows.append(
             {
                 "case": f"decaes_opt_alpha_{reg}",
                 "reg": reg,
-                "alpha_abs_deg": abs(float(out["params"]["alpha_deg"]) - alpha_ref),
+                "alpha_abs_deg": abs(float(out["alpha_deg"]) - alpha_ref),
                 "mu_abs": abs(float(out["mu"]) - mu_ref),
                 "chi2factor_abs": abs(float(out["chi2factor"]) - chi2_ref),
                 "dist_max_abs": float(np.max(np.abs(dist_diff))),
