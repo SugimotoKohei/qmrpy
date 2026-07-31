@@ -2355,7 +2355,6 @@ name = "qmrpy"
 source = { editable = "." }
 dependencies = [
     { name = "joblib" },
-    { name = "mrzerocore" },
     { name = "numpy" },
     { name = "pillow" },
     { name = "pypulseq" },
@@ -2378,6 +2377,9 @@ io = [
     { name = "nibabel" },
     { name = "pydicom" },
 ]
+mrzero = [
+    { name = "mrzerocore" },
+]
 viz = [
     { name = "pandas" },
     { name = "plotnine" },
@@ -2396,7 +2398,7 @@ docs = [
 [package.metadata]
 requires-dist = [
     { name = "joblib", specifier = ">=1.5.3" },
-    { name = "mrzerocore", specifier = ">=0.4.1" },
+    { name = "mrzerocore", marker = "extra == 'mrzero'", specifier = ">=0.4.1" },
     { name = "mypy", marker = "extra == 'dev'", specifier = ">=2.1.0" },
     { name = "nbclient", marker = "extra == 'dev'", specifier = ">=0.10.2" },
     { name = "nbformat", marker = "extra == 'dev'", specifier = ">=5.10.4" },
@@ -2415,7 +2417,7 @@ requires-dist = [
     { name = "scipy", specifier = ">=1.11" },
     { name = "tqdm", specifier = ">=4.67.1" },
 ]
-provides-extras = ["dev", "io", "viz"]
+provides-extras = ["dev", "io", "mrzero", "viz"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "twine", specifier = ">=6.2.0" }]

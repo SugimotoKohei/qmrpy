@@ -25,7 +25,7 @@ bibliography: paper.bib
 `qmrpy` is a verification-first Python reference implementation for
 quantitative MRI (qMRI) modeling, fitting, simulation, and real-data I/O. The
 package provides T1, T1rho, magnetization transfer, MRF, T2/T2*, B0/B1, QSM,
-noise, and simulation components under a unified API and pairs those
+and simulation components under a unified API and pairs those
 implementations with reproducible validation artifacts generated from fixed
 configurations and deterministic seeds.
 
@@ -75,7 +75,6 @@ single interface and explicit validation outputs. Implemented methods include:
 - Mono-exponential, EPG-corrected, EMC, and two-pool water/fat T2 fitting
 - Multi-component T2 / myelin water fraction analysis [@MacKay1994]
 - B0/B1 mapping and T2* / R2* fitting
-- MPPCA denoising [@Veraart2016]
 - Split-Bregman-based QSM reconstruction [@Goldstein2009]
 
 # Software design
@@ -141,6 +140,22 @@ Primary metrics from `core_validation.csv` are:
 
 These artifacts support regression monitoring and method comparison workflows,
 while preserving interoperability with established qMRI conventions.
+
+# Visual validation & figures
+
+`qmrpy` includes automated visualization tooling (`scripts/generate_paper_figures.py`)
+that regenerates the manuscript figures with `plotnine` from the validation artifacts
+and from fixed seeds:
+
+- **Figure 1** (`output/paper_figures/fig1_validation_margin.png`): each core case's
+  primary metric divided by its pass threshold, for all 21 cases.
+- **Figure 2** (`output/paper_figures/fig2_parameter_recovery.png`): estimate versus
+  ground truth for VFA T1, spin-lock T1rho, mono-exponential T2 and myelin water fraction.
+- **Figure 3** (`output/paper_figures/fig3_t2_phantom_map.png`): image-level
+  mono-exponential T2 mapping on a synthetic phantom.
+
+A preprint version of this manuscript, with expanded methods and discussion, is kept in
+`paper_biorxiv.md` and built to PDF with `scripts/build_paper.py`.
 
 # AI usage disclosure
 

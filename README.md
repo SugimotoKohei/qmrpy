@@ -12,11 +12,26 @@ Python toolkit for quantitative MRI (qMRI) modeling, fitting, and simulation.
 
 ```bash
 pip install qmrpy
-# Optional real-data I/O helpers
+# Optional real-data I/O helpers (NIfTI / DICOM / qMRI-BIDS)
 pip install "qmrpy[io]"
 # or
 uv add qmrpy
 ```
+
+### Optional extra: MRzero Bloch simulation
+
+`qmrpy.sim.mrzero` wraps [MRzeroCore](https://github.com/MRsources/MRzero-Core) for
+Bloch-based sequence simulation. MRzeroCore is **licensed under AGPL-3.0**, which is
+not compatible with combining it into an MIT-licensed distribution, so it is not
+installed by default:
+
+```bash
+pip install "qmrpy[mrzero]"
+```
+
+Installing this extra places the resulting combined environment under the AGPL-3.0
+terms, including its network-use provisions. Everything else in `qmrpy` works without
+it. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
 
 ## Quickstart
 
@@ -42,7 +57,7 @@ result = model.fit_image(image_data, mask="otsu", n_jobs=-1)
 
 ## Features
 
-- **Models**: T1 (VFA, IR, DESPOT1-HIFI, T1MP2RAGE), T1rho, MTR/MTsat, MRF, T2/T2* (mono-exp, EPG, EMC, water/fat, R2*), B0/B1, QSM, denoising
+- **Models**: T1 (VFA, IR, DESPOT1-HIFI, T1MP2RAGE), T1rho, MTR/MTsat, MRF, T2/T2* (mono-exp, EPG, EMC, water/fat, R2*), B0/B1, QSM
 - **Parallel fitting**: `n_jobs=-1` for multi-core acceleration
 - **Auto-masking**: `mask="otsu"` for automatic thresholding
 - **I/O**: TIFF in core; optional NIfTI, DICOM, and BIDS helpers for real-data workflows

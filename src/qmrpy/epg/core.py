@@ -1,3 +1,6 @@
+# Portions of this file are a Python translation of DECAES.jl
+# (https://github.com/jondeuce/DECAES.jl), Copyright (c) 2019 Jonathan Doucette,
+# distributed under the MIT License. See THIRD_PARTY_NOTICES.md.
 """Core EPG (Extended Phase Graph) simulation engine.
 
 This module provides the fundamental EPG state transition matrices and
