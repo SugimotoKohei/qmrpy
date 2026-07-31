@@ -42,8 +42,8 @@ bioRxiv は「本文と図表を含む単一 PDF のアップロード」を最�
 | Article category | **New Results** |
 | Corresponding author | Kohei Sugimoto |
 | ORCID | 0000-0003-2702-5235 |
-| Affiliation | Independent Researcher, Japan |
-| Email | sugimotokouhei@gmail.com |
+| Affiliation | Department of Radiological Technology, Faculty of Health Science and Technology, Kawasaki University of Medical Welfare, Japan |
+| Email | sugimoto@mw.kawasaki-m.ac.jp |
 | License | **CC BY 4.0** |
 | Manuscript version | qmrpy 2.0.0 に対応 |
 
