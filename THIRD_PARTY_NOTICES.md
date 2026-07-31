@@ -183,14 +183,20 @@ time and remain under their own licences.
 
 ## 5. Removed components
 
-`MPPCA` (Marchenko-Pastur PCA denoising) was removed in the release following 1.1.0.
-Its implementation had been translated from `MPdenoising.m`, which qMRLab ships under
+`MPPCA` (Marchenko-Pastur PCA denoising) was removed in version 2.0.0. Its
+implementation had been translated from `MPdenoising.m`, which qMRLab ships under
 `External/mppca_denoise/` and which is **not** covered by qMRLab's MIT licence. That
 file (Copyright (c) 2016 New York University and University of Antwerp, author Jelle
 Veraart) grants rights only to non-commercial entities, only for non-commercial
 research, and only to "use, copy and modify" — it does not grant redistribution or
 sublicensing rights. Redistributing a translation of it under the MIT License would
 have exceeded the granted rights, so the component was removed rather than relicensed.
+
+Every release before 2.0.0 contained this component. On 2026-08-01 all twenty of them
+(0.1.0 through 1.0.0) were **deleted from PyPI**, and the distribution artefacts
+attached to the corresponding GitHub releases were deleted as well. Version 2.0.0 is
+therefore the only distribution of qmrpy that remains available, and the earlier
+version numbers and file names cannot be reused.
 
 Users who need MP-PCA denoising should obtain it directly from a source whose licence
 permits their intended use.

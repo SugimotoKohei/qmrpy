@@ -10,9 +10,11 @@ colorlinks: true
 
 **Kohei Sugimoto**^1,\*^
 
-^1^ Independent Researcher, Japan. ORCID: 0000-0003-2702-5235
+^1^ Department of Radiological Technology, Faculty of Health Science and Technology, Kawasaki University of Medical Welfare, Japan
 
-\* Correspondence: sugimotokouhei@gmail.com
+ORCID: 0000-0003-2702-5235
+
+\* Correspondence: sugimoto@mw.kawasaki-m.ac.jp
 
 **Running title:** Verification-first qMRI modelling in Python
 

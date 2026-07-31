@@ -5,6 +5,7 @@ authors:
   - family-names: "Sugimoto"
     given-names: "Kohei"
     orcid: "https://orcid.org/0000-0003-2702-5235"
+    affiliation: "Department of Radiological Technology, Faculty of Health Science and Technology, Kawasaki University of Medical Welfare, Japan"
 repository-code: "https://github.com/SugimotoKohei/qmrpy"
 license: "MIT"
 version: "2.0.0"
@@ -16,6 +17,7 @@ preferred-citation:
     - family-names: "Sugimoto"
       given-names: "Kohei"
       orcid: "https://orcid.org/0000-0003-2702-5235"
+    affiliation: "Department of Radiological Technology, Faculty of Health Science and Technology, Kawasaki University of Medical Welfare, Japan"
   journal: "Journal of Open Source Software"
   year: 2026
   notes: "Manuscript: paper.md"

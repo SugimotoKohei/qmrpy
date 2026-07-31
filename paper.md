@@ -14,7 +14,7 @@ authors:
     corresponding: true
     affiliation: 1
 affiliations:
-  - name: Independent Researcher, Japan
+  - name: Department of Radiological Technology, Faculty of Health Science and Technology, Kawasaki University of Medical Welfare, Japan
     index: 1
 date: 15 January 2026
 bibliography: paper.bib
